@@ -102,13 +102,13 @@ export default function SchoolsPage() {
               </div>
 
               {/* Search row */}
-              <div className="search-row">
-                {/* Mobile filter button — hidden on desktop, shown on mobile via CSS */}
-                <div className="mobile-filter-trigger">
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                {/* Filter button — always rendered, hidden on desktop via style tag below */}
+                <div className="mob-filter-btn">
                   <MobileFilterButton onOpen={() => setMobileFilterOpen(true)} />
                 </div>
 
-                <div className="search-wrap">
+                <div className="search-wrap" style={{ flex: 1, minWidth: 200 }}>
                   <Search size={16} />
                   <input
                     type="text"
@@ -128,6 +128,11 @@ export default function SchoolsPage() {
                   {showMap ? "Hide Map" : "Show Map"}
                 </button>
               </div>
+
+              <style>{`
+                .mob-filter-btn { display: none; }
+                @media (max-width: 1024px) { .mob-filter-btn { display: block; } }
+              `}</style>
 
               {/* Map */}
               {showMap && (
