@@ -103,8 +103,8 @@ export default function SchoolsPage() {
 
               {/* Search row */}
               <div className="search-row">
-                {/* Mobile filter button */}
-                <div style={{ display: "none" }} className="mobile-filter-btn">
+                {/* Mobile filter button — hidden on desktop, shown on mobile via CSS */}
+                <div className="mobile-filter-trigger">
                   <MobileFilterButton onOpen={() => setMobileFilterOpen(true)} />
                 </div>
 

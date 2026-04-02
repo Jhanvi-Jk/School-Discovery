@@ -514,21 +514,35 @@ input { font-family: inherit; }
 }
 .btn-primary:hover { background: var(--brown-dark); }
 
+/* ── Mobile filter trigger — hidden on desktop ────────────── */
+.mobile-filter-trigger { display: none; }
+
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .sidebar { display: none; }
   .mobile-toggle { display: block; }
   .site-nav { display: none; }
+  .mobile-filter-trigger { display: block; }
 }
 @media (max-width: 640px) {
-  .page-inner { padding: 16px; }
-  .welcome-box { padding: 18px 20px; }
-  .welcome-box h1 { font-size: 18px; }
-  .school-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .page-inner { padding: 12px; }
+  .welcome-box { padding: 16px; }
+  .welcome-box h1 { font-size: 17px; }
+  .welcome-box p { font-size: 12px; }
+  .search-row { flex-wrap: wrap; gap: 8px; }
+  .search-wrap { order: 2; width: 100%; flex: unset; }
+  .mobile-filter-trigger { order: 1; }
+  .btn-toggle-map { order: 3; width: 100%; text-align: center; }
+  .school-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card-name { font-size: 14px; }
+  .card-stats { font-size: 12px; }
   .tray-label { display: none; }
+  .explore-header { flex-direction: column; align-items: flex-start; gap: 8px; }
 }
 @media (max-width: 480px) {
   .school-grid { grid-template-columns: 1fr; }
+  .card-actions { flex-direction: column; }
+  .btn-compare { justify-content: center; }
 }
 
 /* ── Map box — isolation stops Leaflet z-index bleeding ───── */
