@@ -520,10 +520,13 @@ input { font-family: inherit; }
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .sidebar { display: none; }
-  .mobile-toggle { display: block; }
+  .mobile-toggle { display: flex; align-items: center; justify-content: center; }
   .site-nav { display: none; }
   .mobile-filter-trigger { display: block; }
+  /* Hide sign in button on mobile — it's in the hamburger menu */
+  .btn-signin { display: none; }
 }
+
 @media (max-width: 640px) {
   .page-inner { padding: 12px; }
   .welcome-box { padding: 16px; }
@@ -538,11 +541,23 @@ input { font-family: inherit; }
   .card-stats { font-size: 12px; }
   .tray-label { display: none; }
   .explore-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  /* Compare page — prevent overflow */
+  .compare-inner { padding: 16px; }
+  .compare-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .compare-table th, .compare-table td { min-width: 130px; padding: 10px 12px; font-size: 12px; }
+  .compare-table th.label-col, .compare-table td.label-col { min-width: 90px; font-size: 10px; }
+  .compare-heading { font-size: 18px; }
+  .school-col-head .name { font-size: 12px; }
+  .school-col-head .area { font-size: 11px; }
 }
+
 @media (max-width: 480px) {
   .school-grid { grid-template-columns: 1fr; }
   .card-actions { flex-direction: column; }
   .btn-compare { justify-content: center; }
+  /* Tray on very small screens */
+  .tray-inner { padding: 10px 12px; gap: 8px; }
+  .tray-chip { max-width: 130px; }
 }
 
 /* ── Map box — isolation stops Leaflet z-index bleeding ───── */

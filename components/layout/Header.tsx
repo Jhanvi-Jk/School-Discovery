@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu, X, GitCompare } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useCompareStore } from "@/store/compareStore";
 
 export function Header() {
@@ -22,38 +22,34 @@ export function Header() {
           SchoolFinder<span>.</span>
         </Link>
 
-        {/* Desktop nav */}
+        {/* Desktop nav — hidden on mobile */}
         <nav className="site-nav">
           <Link href="/schools" className={`nav-link ${isActive("/schools") ? "active" : ""}`}>
             Explore
           </Link>
           <Link href="/compare" className={`nav-link ${isActive("/compare") ? "active" : ""}`}>
             Compare
-            {compareCount > 0 && (
-              <span className="nav-badge">{compareCount}</span>
-            )}
+            {compareCount > 0 && <span className="nav-badge">{compareCount}</span>}
+          </Link>
+          <Link href="/login" className="btn-signin">
+            Sign in
           </Link>
         </nav>
 
-        {/* Right */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Link href="/login" className="btn-signin" style={{ display: "block" }}>
-            Sign in Access
-          </Link>
-          <button className="mobile-toggle" onClick={() => setOpen(!open)}>
-            {open ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
+        {/* Hamburger — shown on mobile only */}
+        <button className="mobile-toggle" onClick={() => setOpen(!open)} aria-label="Menu">
+          {open ? <X size={22} /> : <Menu size={22} />}
+        </button>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile dropdown menu */}
       {open && (
         <div className="mobile-menu">
           <Link href="/schools" onClick={() => setOpen(false)}>Explore</Link>
           <Link href="/compare" onClick={() => setOpen(false)}>
             Compare {compareCount > 0 ? `(${compareCount})` : ""}
           </Link>
-          <Link href="/login" onClick={() => setOpen(false)}>Sign in Access</Link>
+          <Link href="/login" onClick={() => setOpen(false)}>Sign in</Link>
         </div>
       )}
     </header>
