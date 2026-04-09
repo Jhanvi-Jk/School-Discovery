@@ -13,7 +13,8 @@ import {
   Curriculum, SchoolType, SchoolGender,
   CURRICULUM_LABELS, SCHOOL_TYPE_LABELS, GENDER_LABELS,
   IB_MYP_SUBJECTS, IB_DP_SUBJECTS,
-  IGCSE_SUBJECTS, ICSE_ELECTIVES_9_10, ISC_ELECTIVES_11_12,
+  IGCSE_SUBJECTS, CAMBRIDGE_ALEVEL_SUBJECTS,
+  ICSE_ELECTIVES_9_10, ISC_ELECTIVES_11_12,
   CBSE_STREAMS, STATE_BOARD_STREAMS,
 } from "@/lib/types";
 
@@ -225,7 +226,7 @@ function SubjectStreamFilter() {
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
               IGCSE — Grade 9–10
             </p>
-            {note("✦ English Language and Mathematics are compulsory in all IGCSE schools. Other subjects vary.")}
+            {note("✦ English Language and Mathematics are compulsory. Subject codes shown in brackets (Cambridge syllabus codes).")}
             <SearchableList
               items={IGCSE_SUBJECTS}
               selected={subjects}
@@ -235,14 +236,15 @@ function SubjectStreamFilter() {
           </div>
         )}
 
-        {/* IGCSE Grade 11–12 (A Level / AS) */}
+        {/* Cambridge A Level Grade 11–12 */}
         {showIGCSE1112 && (
           <div style={{ marginBottom: 14 }}>
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
               Cambridge A Level — Grade 11–12
             </p>
+            {note("Subject codes shown in brackets. A Level subjects are offered at AS or full A2 level depending on the school.")}
             <SearchableList
-              items={IGCSE_SUBJECTS}
+              items={CAMBRIDGE_ALEVEL_SUBJECTS}
               selected={subjects}
               onToggle={(v) => toggleArrayFilter("subjects", v)}
               placeholder="Search A Level subjects…"

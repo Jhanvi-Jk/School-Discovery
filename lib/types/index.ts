@@ -77,27 +77,30 @@ export const DEFAULT_FILTERS: SchoolFilters = {
 // ── Subject / Stream data ─────────────────────────────────────
 
 export const IB_MYP_SUBJECTS = [
-  // Language & Literature
+  // Language & Literature (Group 1)
   "English Language & Literature", "Hindi Language & Literature",
   "Kannada Language & Literature", "Tamil Language & Literature",
   "Telugu Language & Literature", "French Language & Literature",
-  // Language Acquisition
+  // Language Acquisition (Group 2)
   "French (Language Acquisition)", "Spanish (Language Acquisition)",
   "Hindi (Language Acquisition)", "Mandarin (Language Acquisition)",
   "German (Language Acquisition)", "Kannada (Language Acquisition)",
-  // Individuals & Societies
+  "Japanese (Language Acquisition)",
+  // Individuals & Societies (Group 3) — all explicitly listed
   "History", "Geography", "Economics", "Sociology",
-  "Global Politics", "Philosophy", "Anthropology",
-  // Sciences
+  "Psychology", "Global Politics", "Philosophy", "Anthropology",
+  "Environmental Systems & Societies",
+  // Sciences (Group 4)
   "Biology", "Chemistry", "Physics",
   "Integrated Sciences", "Environmental Science",
-  // Mathematics
+  "Computer Science",
+  // Mathematics (Group 5)
   "Mathematics (Standard)", "Mathematics (Extended)",
-  // Arts
+  // Arts (Group 6)
   "Visual Arts", "Music", "Drama", "Dance", "Film",
-  // Physical & Health Education
+  // Physical & Health Education (Group 7)
   "Physical & Health Education",
-  // Design
+  // Design (Group 8)
   "Digital Design", "Product Design",
 ];
 
@@ -129,30 +132,67 @@ export const IB_DP_SUBJECTS = [
   "Visual Arts", "Music", "Theatre", "Film", "Dance",
 ];
 
+// IGCSE = Grade 9-10 Cambridge
 export const IGCSE_SUBJECTS = [
-  // Core — compulsory
-  "English Language ✦ (Compulsory)", "Mathematics ✦ (Compulsory)",
+  // English & Languages
+  "English Language ✦ (0500) — Compulsory",
+  "English Literature (0475)",
+  "French (0520)", "Spanish (0530)", "German (0525)",
+  "Arabic (0508)", "Hindi (0549)", "Urdu (0539)",
+  "Chinese — First Language (0509)",
+  // Mathematics
+  "Mathematics ✦ (0580) — Compulsory",
+  "Additional Mathematics (0606)",
+  "International Mathematics (0607)",
   // Sciences
-  "Physics", "Chemistry", "Biology",
-  "Combined Science", "Co-ordinated Sciences",
-  "Environmental Management", "Marine Science",
-  // Maths / Computing
-  "Additional Mathematics", "International Mathematics",
-  "Computer Science", "Information & Communication Technology",
+  "Biology (0610)", "Chemistry (0620)", "Physics (0625)",
+  "Combined Science (0653)", "Co-ordinated Sciences (0654)",
+  "Environmental Management (0680)", "Marine Science (0697)",
+  // Computing & IT
+  "Computer Science (0478)",
+  "Information & Communication Technology (0417)",
   // Humanities & Social Sciences
-  "History", "Geography", "Economics",
-  "Sociology", "Global Perspectives",
-  "Travel & Tourism", "Enterprise",
-  // Commerce
-  "Business Studies", "Accounting", "Commerce",
-  // Languages
-  "English Literature", "French", "Spanish", "German",
-  "Hindi", "Kannada", "Tamil", "Telugu", "Urdu", "Arabic",
-  // Creative & Vocational
-  "Art & Design", "Design & Technology",
-  "Food & Nutrition", "Music", "Drama",
-  "Physical Education", "Media Studies",
-  "Fashion & Textiles", "Child Development",
+  "History (0470)", "Geography (0460)", "Economics (0455)",
+  "Sociology (0495)", "Psychology (0490)",
+  "Global Perspectives (0457)",
+  // Commerce & Business
+  "Business Studies (0450)", "Accounting (0452)", "Commerce (0547)",
+  "Travel & Tourism (0471)", "Enterprise (0454)",
+  // Creative, Arts & Vocational
+  "Art & Design (0400)", "Design & Technology (0445)",
+  "Music (0410)", "Drama (0411)",
+  "Physical Education (0413)",
+  "Media Studies (0426)", "Food & Nutrition (0648)",
+  "Fashion & Textiles (0415)", "Child Development (0637)",
+];
+
+// Cambridge A Level = Grade 11-12
+export const CAMBRIDGE_ALEVEL_SUBJECTS = [
+  // English & Languages
+  "English Language (9093)",
+  "English Literature (9695)",
+  "French (9716)", "Spanish (9719)", "German (9717)",
+  "Hindi (9687)", "Arabic (9680)",
+  // Mathematics
+  "Mathematics (9709)", "Further Mathematics (9231)",
+  // Sciences
+  "Biology (9700)", "Chemistry (9701)", "Physics (9702)",
+  "Environmental Management (8291)", "Marine Science (9693)",
+  // Computing & IT
+  "Computer Science (9618)",
+  "Information Technology (9626)",
+  // Humanities & Social Sciences
+  "History (9489)", "Geography (9696)",
+  "Economics (9708)", "Sociology (9699)",
+  "Psychology (9698)", "Global Perspectives (9239)",
+  "Thinking Skills (9694)", "Law (9084)",
+  // Commerce & Business
+  "Business (9609)", "Accounting (9706)",
+  "Travel & Tourism (9395)",
+  // Creative, Arts & PE
+  "Art & Design (9479)", "Music (9483)",
+  "Drama (9482)", "Physical Education (9396)",
+  "Media Studies (9607)",
 ];
 
 export const ICSE_ELECTIVES_9_10 = [
