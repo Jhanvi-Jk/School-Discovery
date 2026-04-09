@@ -171,13 +171,16 @@ function SubjectStreamFilter() {
     </div>
   );
 
-  const ibLink = (prog: string, url: string) => (
+  const guideLink = (label: string, url: string) => (
     <a href={url} target="_blank" rel="noopener noreferrer" style={{
-      display: "inline-flex", alignItems: "center", gap: 4,
-      fontSize: 11, color: "var(--brown-dark)", fontWeight: 600,
-      marginBottom: 10, textDecoration: "none",
+      display: "flex", alignItems: "center", gap: 8,
+      background: "var(--brown-dark)", color: "white",
+      padding: "8px 12px", borderRadius: 10, marginBottom: 10,
+      fontSize: 12, fontWeight: 600, textDecoration: "none",
+      border: "none",
     }}>
-      <ExternalLink size={11} /> Official IB {prog} subject guide ↗
+      <ExternalLink size={13} />
+      {label}
     </a>
   );
 
@@ -192,7 +195,7 @@ function SubjectStreamFilter() {
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
               IB MYP — Grade 9–10
             </p>
-            {ibLink("MYP", "https://www.ibo.org/programmes/middle-years-programme/curriculum/")}
+            {guideLink("Official IB MYP Subject Guide ↗", "https://www.ibo.org/programmes/middle-years-programme/curriculum/")}
             {note("IB MYP students study all 8 subject groups. Use this to filter schools that specialise in specific areas.")}
             <SearchableList
               items={IB_MYP_SUBJECTS}
@@ -209,7 +212,7 @@ function SubjectStreamFilter() {
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
               IB Diploma — Grade 11–12
             </p>
-            {ibLink("DP", "https://www.ibo.org/programmes/diploma-programme/curriculum/")}
+            {guideLink("Official IB Diploma Subject Guide ↗", "https://www.ibo.org/programmes/diploma-programme/curriculum/")}
             {note("Students choose 6 subjects across 6 groups — 3 at Higher Level (HL), 3 at Standard Level (SL).")}
             <SearchableList
               items={IB_DP_SUBJECTS}
@@ -226,13 +229,7 @@ function SubjectStreamFilter() {
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
               IGCSE — Grade 9–10
             </p>
-            <a href="https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-upper-secondary/cambridge-igcse/" target="_blank" rel="noopener noreferrer" style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              fontSize: 11, color: "var(--brown-dark)", fontWeight: 600,
-              marginBottom: 10, textDecoration: "none",
-            }}>
-              <ExternalLink size={11} /> Official Cambridge IGCSE subject guide ↗
-            </a>
+            {guideLink("Official Cambridge IGCSE Subject Guide ↗", "https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-upper-secondary/cambridge-igcse/")}
             {note("✦ English Language and Mathematics are compulsory. Subject codes shown in brackets (Cambridge syllabus codes).")}
             <SearchableList
               items={IGCSE_SUBJECTS}
@@ -249,13 +246,7 @@ function SubjectStreamFilter() {
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
               Cambridge A Level — Grade 11–12
             </p>
-            <a href="https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-advanced/cambridge-international-as-and-a-levels/" target="_blank" rel="noopener noreferrer" style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              fontSize: 11, color: "var(--brown-dark)", fontWeight: 600,
-              marginBottom: 10, textDecoration: "none",
-            }}>
-              <ExternalLink size={11} /> Official Cambridge A Level subject guide ↗
-            </a>
+            {guideLink("Official Cambridge A Level Subject Guide ↗", "https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-advanced/cambridge-international-as-and-a-levels/")}
             {note("Subject codes shown in brackets. A Level subjects are offered at AS or full A2 level depending on the school.")}
             <SearchableList
               items={CAMBRIDGE_ALEVEL_SUBJECTS}
