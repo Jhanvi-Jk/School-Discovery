@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   MapPin, BookOpen, Users, Building2, IndianRupee,
   Bus, Trophy, Music, Languages, Calendar, Clock,
-  ChevronDown, X, Search, SlidersHorizontal,
+  ChevronDown, X, Search, SlidersHorizontal, FlaskConical, ExternalLink, Info,
 } from "lucide-react";
 import { useFilterStore } from "@/store/filterStore";
 import {
@@ -12,9 +12,12 @@ import {
   ALL_LANGUAGES, GRADE_OPTIONS,
   Curriculum, SchoolType, SchoolGender,
   CURRICULUM_LABELS, SCHOOL_TYPE_LABELS, GENDER_LABELS,
+  IB_MYP_SUBJECTS, IB_DP_SUBJECTS,
+  IGCSE_SUBJECTS, ICSE_ELECTIVES_9_10, ISC_ELECTIVES_11_12,
+  CBSE_STREAMS, STATE_BOARD_STREAMS,
 } from "@/lib/types";
 
-// ── Section wrapper ─────────────────────────────────────────
+// ── Section wrapper ──────────────────────────────────────────
 
 function Section({
   icon: Icon, title, count, defaultOpen = false, children,
@@ -38,7 +41,7 @@ function Section({
   );
 }
 
-// ── Searchable list ─────────────────────────────────────────
+// ── Searchable list ──────────────────────────────────────────
 
 function SearchableList({ items, selected, onToggle, placeholder }: {
   items: string[]; selected: string[]; onToggle: (v: string) => void; placeholder: string;
@@ -75,7 +78,7 @@ function SearchableList({ items, selected, onToggle, placeholder }: {
   );
 }
 
-// ── Toggle switch ───────────────────────────────────────────
+// ── Toggle switch ────────────────────────────────────────────
 
 function Toggle({ label, sub, value, onChange }: {
   label: string; sub?: string; value: boolean | null; onChange: (v: boolean | null) => void;
@@ -94,7 +97,7 @@ function Toggle({ label, sub, value, onChange }: {
   );
 }
 
-// ── Fee slider ──────────────────────────────────────────────
+// ── Fee slider ───────────────────────────────────────────────
 
 function FeeSlider() {
   const { filters, setFilter } = useFilterStore();
@@ -126,7 +129,224 @@ function FeeSlider() {
   );
 }
 
-// ── Main ────────────────────────────────────────────────────
+// ── Contextual Subject / Stream filter ──────────────────────
+
+function SubjectStreamFilter() {
+  const { filters, toggleArrayFilter, setFilter } = useFilterStore();
+  const { curricula, grades, subjects, streams } = filters;
+
+  const has910 = grades.some((g) => ["Grade 9", "Grade 10"].includes(g));
+  const has1112 = grades.some((g) => ["Grade 11", "Grade 12"].includes(g));
+
+  const hasIB         = curricula.includes("ib");
+  const hasIGCSE      = curricula.includes("igcse");
+  const hasICSE       = curricula.includes("icse");
+  const hasCBSE       = curricula.includes("cbse");
+  const hasStateBoard = curricula.includes("state_board");
+
+  // Determine which panels to show
+  const showIBMYP        = hasIB    && has910;
+  const showIBDP         = hasIB    && has1112;
+  const showIGCSE910     = hasIGCSE && has910;
+  const showIGCSE1112    = hasIGCSE && has1112;
+  const showICSE910      = hasICSE  && has910;
+  const showISC1112      = hasICSE  && has1112;
+  const showCBSEStream   = hasCBSE  && has1112;
+  const showSBStream     = hasStateBoard && has1112;
+
+  const anyVisible = showIBMYP || showIBDP || showIGCSE910 || showIGCSE1112 ||
+                     showICSE910 || showISC1112 || showCBSEStream || showSBStream;
+
+  if (!anyVisible) return null;
+
+  const note = (text: string) => (
+    <div style={{
+      display: "flex", alignItems: "flex-start", gap: 6,
+      background: "var(--beige-300)", borderRadius: 8, padding: "7px 10px", marginBottom: 10,
+      fontSize: 11, color: "var(--muted)", lineHeight: 1.5,
+    }}>
+      <Info size={12} style={{ flexShrink: 0, marginTop: 1 }} />
+      {text}
+    </div>
+  );
+
+  const ibLink = (prog: string, url: string) => (
+    <a href={url} target="_blank" rel="noopener noreferrer" style={{
+      display: "inline-flex", alignItems: "center", gap: 4,
+      fontSize: 11, color: "var(--brown-dark)", fontWeight: 600,
+      marginBottom: 10, textDecoration: "none",
+    }}>
+      <ExternalLink size={11} /> Official IB {prog} subject guide ↗
+    </a>
+  );
+
+  return (
+    <Section icon={FlaskConical} title="Subjects / Stream"
+      count={subjects.length + streams.length}
+      defaultOpen>
+      <>
+        {/* IB MYP (Grade 9–10) */}
+        {showIBMYP && (
+          <div style={{ marginBottom: 14 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
+              IB MYP — Grade 9–10
+            </p>
+            {ibLink("MYP", "https://www.ibo.org/programmes/middle-years-programme/curriculum/")}
+            {note("IB MYP students study all 8 subject groups. Use this to filter schools that specialise in specific areas.")}
+            <SearchableList
+              items={IB_MYP_SUBJECTS}
+              selected={subjects}
+              onToggle={(v) => toggleArrayFilter("subjects", v)}
+              placeholder="Search MYP subjects…"
+            />
+          </div>
+        )}
+
+        {/* IB DP (Grade 11–12) */}
+        {showIBDP && (
+          <div style={{ marginBottom: 14 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
+              IB Diploma — Grade 11–12
+            </p>
+            {ibLink("DP", "https://www.ibo.org/programmes/diploma-programme/curriculum/")}
+            {note("Students choose 6 subjects across 6 groups — 3 at Higher Level (HL), 3 at Standard Level (SL).")}
+            <SearchableList
+              items={IB_DP_SUBJECTS}
+              selected={subjects}
+              onToggle={(v) => toggleArrayFilter("subjects", v)}
+              placeholder="Search DP subjects…"
+            />
+          </div>
+        )}
+
+        {/* IGCSE Grade 9–10 */}
+        {showIGCSE910 && (
+          <div style={{ marginBottom: 14 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
+              IGCSE — Grade 9–10
+            </p>
+            {note("✦ English Language and Mathematics are compulsory in all IGCSE schools. Other subjects vary.")}
+            <SearchableList
+              items={IGCSE_SUBJECTS}
+              selected={subjects}
+              onToggle={(v) => toggleArrayFilter("subjects", v)}
+              placeholder="Search IGCSE subjects…"
+            />
+          </div>
+        )}
+
+        {/* IGCSE Grade 11–12 (A Level / AS) */}
+        {showIGCSE1112 && (
+          <div style={{ marginBottom: 14 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
+              Cambridge A Level — Grade 11–12
+            </p>
+            <SearchableList
+              items={IGCSE_SUBJECTS}
+              selected={subjects}
+              onToggle={(v) => toggleArrayFilter("subjects", v)}
+              placeholder="Search A Level subjects…"
+            />
+          </div>
+        )}
+
+        {/* ICSE Electives Grade 9–10 */}
+        {showICSE910 && (
+          <div style={{ marginBottom: 14 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
+              ICSE Electives — Grade 9–10
+            </p>
+            {note("All ICSE students study English, Math, Science, Social Studies, and a language. Electives are the additional subjects they pick.")}
+            <SearchableList
+              items={ICSE_ELECTIVES_9_10}
+              selected={subjects}
+              onToggle={(v) => toggleArrayFilter("subjects", v)}
+              placeholder="Search electives…"
+            />
+          </div>
+        )}
+
+        {/* ISC (ICSE Grade 11–12) */}
+        {showISC1112 && (
+          <div style={{ marginBottom: 14 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
+              ISC Electives — Grade 11–12
+            </p>
+            {note("For ISC, students choose a combination of subjects. English is compulsory.")}
+            <SearchableList
+              items={ISC_ELECTIVES_11_12}
+              selected={subjects}
+              onToggle={(v) => toggleArrayFilter("subjects", v)}
+              placeholder="Search ISC subjects…"
+            />
+          </div>
+        )}
+
+        {/* CBSE Streams Grade 11–12 */}
+        {showCBSEStream && (
+          <div style={{ marginBottom: 14 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
+              CBSE Stream — Grade 11–12
+            </p>
+            {note("Choose the stream combination you are looking for. Schools may offer one or multiple streams.")}
+            <div className="fp-chips" style={{ marginTop: 4 }}>
+              {CBSE_STREAMS.map((s) => (
+                <button
+                  key={s}
+                  className={`fp-chip${streams.includes(s) ? " on" : ""}`}
+                  onClick={() => toggleArrayFilter("streams", s)}
+                >
+                  {s.split(" — ")[0]}
+                </button>
+              ))}
+            </div>
+            {streams.length > 0 && (
+              <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>
+                Selected: {streams.map((s) => s.split(" — ")[0]).join(", ")}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* State Board Streams Grade 11–12 */}
+        {showSBStream && (
+          <div style={{ marginBottom: 8 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
+              State Board Stream — Grade 11–12
+            </p>
+            <div className="fp-chips" style={{ marginTop: 4 }}>
+              {STATE_BOARD_STREAMS.map((s) => (
+                <button
+                  key={s}
+                  className={`fp-chip${streams.includes(s) ? " on" : ""}`}
+                  onClick={() => toggleArrayFilter("streams", s)}
+                >
+                  {s.split(" — ")[0]}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Clear subjects/streams */}
+        {(subjects.length > 0 || streams.length > 0) && (
+          <button
+            onClick={() => { setFilter("subjects", []); setFilter("streams", []); }}
+            style={{
+              background: "none", border: "none", color: "var(--muted)",
+              fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
+              marginTop: 6,
+            }}
+          >
+            <X size={10} /> Clear subject filters
+          </button>
+        )}
+      </>
+    </Section>
+  );
+}
+
+// ── Main FilterPanel ─────────────────────────────────────────
 
 export function FilterPanel({ className }: { className?: string }) {
   const { filters, toggleArrayFilter, setFilter, resetFilters, activeFilterCount } = useFilterStore();
@@ -134,7 +354,7 @@ export function FilterPanel({ className }: { className?: string }) {
 
   return (
     <div className="fp-wrap">
-      {/* Header row with clear */}
+      {/* Clear all */}
       {count > 0 && (
         <div style={{
           padding: "8px 16px", display: "flex", alignItems: "center", justifyContent: "flex-end",
@@ -208,6 +428,9 @@ export function FilterPanel({ className }: { className?: string }) {
         </div>
       </Section>
 
+      {/* 5b. Contextual Subjects / Stream — appears when relevant curriculum+grade is selected */}
+      <SubjectStreamFilter />
+
       {/* 6. Fees */}
       <Section icon={IndianRupee} title="Annual Fees"
         count={filters.fees_min > 0 || filters.fees_max < 1000000 ? 1 : 0}>
@@ -250,7 +473,7 @@ export function FilterPanel({ className }: { className?: string }) {
   );
 }
 
-// ── Mobile button / sheet ───────────────────────────────────
+// ── Mobile button / sheet ────────────────────────────────────
 
 export function MobileFilterButton({ onOpen }: { onOpen: () => void }) {
   const count = useFilterStore((s) => s.activeFilterCount());

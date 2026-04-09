@@ -65,6 +65,8 @@ export const useFilterStore = create<FilterState>((set, get) => ({
     if (filters.admissions_open !== null) count++;
     if (filters.mid_year !== null) count++;
     if (filters.str_max !== null) count++;
+    if (filters.subjects.length) count++;
+    if (filters.streams.length) count++;
     return count;
   },
 }));

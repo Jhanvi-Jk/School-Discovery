@@ -50,6 +50,8 @@ export interface SchoolFilters {
   admissions_open: boolean | null;
   mid_year: boolean | null;
   str_max: number | null;
+  subjects: string[];   // IB / IGCSE / ICSE subjects
+  streams: string[];    // CBSE / State Board streams (PCM, Commerce, etc.)
 }
 
 export const DEFAULT_FILTERS: SchoolFilters = {
@@ -68,7 +70,84 @@ export const DEFAULT_FILTERS: SchoolFilters = {
   admissions_open: null,
   mid_year: null,
   str_max: null,
+  subjects: [],
+  streams: [],
 };
+
+// ── Subject / Stream data ─────────────────────────────────────
+
+export const IB_MYP_SUBJECTS = [
+  "Language & Literature", "Language Acquisition",
+  "Individuals & Societies", "Sciences", "Mathematics",
+  "Arts", "Physical & Health Education", "Design",
+];
+
+export const IB_DP_SUBJECTS = [
+  // Group 1 — Language & Literature
+  "English A", "Hindi A",
+  // Group 2 — Language Acquisition
+  "French B", "Spanish B", "Hindi B", "Kannada B",
+  // Group 3 — Individuals & Societies
+  "History", "Geography", "Economics", "Business Management", "Psychology",
+  // Group 4 — Sciences
+  "Biology", "Chemistry", "Physics", "Environmental Systems & Societies", "Computer Science",
+  // Group 5 — Mathematics
+  "Mathematics AA (Analysis)", "Mathematics AI (Applications)",
+  // Group 6 — The Arts
+  "Visual Arts", "Music", "Theatre", "Film",
+];
+
+export const IGCSE_SUBJECTS = [
+  "English Language ✦", "Mathematics ✦",
+  "Additional Mathematics", "Physics", "Chemistry", "Biology",
+  "Combined Science", "Computer Science",
+  "History", "Geography", "Economics",
+  "Business Studies", "Accounting",
+  "Art & Design", "Music", "Physical Education",
+  "Media Studies", "Environmental Management",
+  "French", "Hindi", "Kannada", "Tamil", "Telugu",
+];
+
+export const ICSE_ELECTIVES_9_10 = [
+  "Computer Applications", "Economic Applications",
+  "Commercial Applications", "Environmental Science",
+  "Art", "Home Science", "Mass Media",
+  "Physical Education", "Technical Drawing",
+  "Fashion Designing", "Yoga", "Cookery", "Performing Arts",
+];
+
+export const ISC_ELECTIVES_11_12 = [
+  "Physics", "Chemistry", "Biology", "Mathematics",
+  "Computer Science", "Biotechnology",
+  "Economics", "Commerce", "Accounts",
+  "History", "Political Science", "Sociology", "Psychology", "Geography",
+  "English Literature", "Hindi Literature",
+  "Art", "Home Science", "Physical Education",
+  "Fashion Designing", "Mass Media",
+];
+
+export const CBSE_STREAMS = [
+  "PCM — Physics, Chemistry, Maths",
+  "PCMB — Physics, Chemistry, Maths, Biology",
+  "PCMC — Physics, Chemistry, Maths, Computer Sc.",
+  "PCME — Physics, Chemistry, Maths, Electronics",
+  "PCB — Physics, Chemistry, Biology",
+  "Commerce with Maths",
+  "Commerce (without Maths)",
+  "Humanities / Arts",
+  "Humanities with Maths",
+  "Vocational",
+];
+
+export const STATE_BOARD_STREAMS = [
+  "PCMB — Physics, Chemistry, Maths, Biology",
+  "PCM — Physics, Chemistry, Maths",
+  "PCB — Physics, Chemistry, Biology",
+  "PCMC — Physics, Chemistry, Maths, Computer Sc.",
+  "Commerce",
+  "Humanities / Arts",
+  "Vocational",
+];
 
 export type SortOption = "relevance" | "fees_asc" | "fees_desc" | "rating" | "newest";
 
