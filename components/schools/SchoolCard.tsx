@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Star, IndianRupee, Check, Plus } from "lucide-react";
+import { MapPin, Star, IndianRupee, Check, Plus, MessageSquare } from "lucide-react";
 import { formatFeesRange, formatRating } from "@/lib/utils";
 import { CURRICULUM_LABELS, SCHOOL_TYPE_LABELS, type SchoolSummary } from "@/lib/types";
 import { useCompareStore } from "@/store/compareStore";
@@ -23,12 +23,28 @@ export function SchoolCard({ school }: SchoolCardProps) {
   };
 
   return (
-    <div className="school-card">
-      {/* Curriculum badge */}
+    <div className="school-card" style={{ position: "relative" }}>
+
+      {/* ── Rating badge — top right ── */}
+      {school.avg_rating && (
+        <div style={{
+          position: "absolute", top: 14, right: 14,
+          background: "#f59e0b", color: "white",
+          borderRadius: 99, padding: "3px 9px",
+          display: "flex", alignItems: "center", gap: 4,
+          fontSize: 12, fontWeight: 700,
+          boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+        }}>
+          <Star size={11} style={{ fill: "white", color: "white" }} />
+          {formatRating(school.avg_rating)}
+        </div>
+      )}
+
+      {/* Curriculum badges */}
       {school.curricula && school.curricula.length > 0 && (
-        <div style={{ marginBottom: 10 }}>
+        <div style={{ marginBottom: 10, paddingRight: school.avg_rating ? 60 : 0 }}>
           {school.curricula.map((c) => (
-            <span key={c} className="card-badge">
+            <span key={c} className="card-badge" style={{ marginRight: 4 }}>
               {CURRICULUM_LABELS[c]}
             </span>
           ))}
@@ -37,7 +53,9 @@ export function SchoolCard({ school }: SchoolCardProps) {
 
       {/* School name */}
       <Link href={`/schools/${school.slug}`}>
-        <div className="card-name">{school.name}</div>
+        <div className="card-name" style={{ paddingRight: school.avg_rating && !school.curricula?.length ? 60 : 0 }}>
+          {school.name}
+        </div>
       </Link>
 
       {/* Location */}
@@ -50,22 +68,22 @@ export function SchoolCard({ school }: SchoolCardProps) {
 
       {/* Stats */}
       <div className="card-stats">
-        {school.avg_rating && (
-          <div className="card-stat">
-            <Star size={13} style={{ fill: "#f59e0b", color: "#f59e0b" }} />
-            <strong>{formatRating(school.avg_rating)}</strong>
-          </div>
-        )}
         <div className="card-stat">
           <IndianRupee size={12} style={{ color: "#7a6a5a" }} />
           <span>{formatFeesRange(school.total_fees_min, school.total_fees_max) || "—"}</span>
         </div>
+        {school.review_count != null && school.review_count > 0 && (
+          <div className="card-stat">
+            <MessageSquare size={12} style={{ color: "#7a6a5a" }} />
+            <span>{school.review_count} review{school.review_count !== 1 ? "s" : ""}</span>
+          </div>
+        )}
         {school.admissions_open && (
           <div className="card-stat">
             <span style={{
               background: "#dcfce7", color: "#166534",
               fontSize: 11, fontWeight: 600,
-              padding: "2px 8px", borderRadius: 99
+              padding: "2px 8px", borderRadius: 99,
             }}>
               Open
             </span>
@@ -74,9 +92,21 @@ export function SchoolCard({ school }: SchoolCardProps) {
       </div>
 
       {/* Actions */}
-      <div className="card-actions">
-        <Link href={`/schools/${school.slug}`} className="btn-view">
+      <div className="card-actions" style={{ flexWrap: "wrap", gap: 6 }}>
+        <Link href={`/schools/${school.slug}`} className="btn-view" style={{ flex: 1, minWidth: 90 }}>
           View Profile
+        </Link>
+        <Link
+          href={`/schools/${school.slug}/reviews`}
+          style={{
+            display: "flex", alignItems: "center", gap: 5,
+            padding: "10px 12px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+            border: "1.5px solid var(--beige-500)", color: "var(--muted)",
+            background: "transparent", textDecoration: "none", transition: "all 0.15s",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <MessageSquare size={13} /> Reviews
         </Link>
         <button
           onClick={handleCompare}
