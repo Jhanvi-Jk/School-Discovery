@@ -77,53 +77,124 @@ export const DEFAULT_FILTERS: SchoolFilters = {
 // ── Subject / Stream data ─────────────────────────────────────
 
 export const IB_MYP_SUBJECTS = [
-  "Language & Literature", "Language Acquisition",
-  "Individuals & Societies", "Sciences", "Mathematics",
-  "Arts", "Physical & Health Education", "Design",
+  // Language & Literature
+  "English Language & Literature", "Hindi Language & Literature",
+  "Kannada Language & Literature", "Tamil Language & Literature",
+  "Telugu Language & Literature", "French Language & Literature",
+  // Language Acquisition
+  "French (Language Acquisition)", "Spanish (Language Acquisition)",
+  "Hindi (Language Acquisition)", "Mandarin (Language Acquisition)",
+  "German (Language Acquisition)", "Kannada (Language Acquisition)",
+  // Individuals & Societies
+  "History", "Geography", "Economics", "Sociology",
+  "Global Politics", "Philosophy", "Anthropology",
+  // Sciences
+  "Biology", "Chemistry", "Physics",
+  "Integrated Sciences", "Environmental Science",
+  // Mathematics
+  "Mathematics (Standard)", "Mathematics (Extended)",
+  // Arts
+  "Visual Arts", "Music", "Drama", "Dance", "Film",
+  // Physical & Health Education
+  "Physical & Health Education",
+  // Design
+  "Digital Design", "Product Design",
 ];
 
 export const IB_DP_SUBJECTS = [
-  // Group 1 — Language & Literature
-  "English A", "Hindi A",
+  // Group 1 — Studies in Language & Literature
+  "English A: Language & Literature", "English A: Literature",
+  "Hindi A: Language & Literature", "Hindi A: Literature",
+  "Tamil A", "Kannada A", "Telugu A",
   // Group 2 — Language Acquisition
-  "French B", "Spanish B", "Hindi B", "Kannada B",
+  "French B", "Spanish B", "Hindi B",
+  "Mandarin B", "German B", "Japanese B",
+  "French ab initio", "Spanish ab initio",
   // Group 3 — Individuals & Societies
-  "History", "Geography", "Economics", "Business Management", "Psychology",
+  "History", "Geography", "Economics",
+  "Business Management", "Psychology",
+  "Global Politics", "Philosophy",
+  "Environmental Systems & Societies",
+  "Social & Cultural Anthropology", "World Religions",
   // Group 4 — Sciences
-  "Biology", "Chemistry", "Physics", "Environmental Systems & Societies", "Computer Science",
+  "Biology", "Chemistry", "Physics",
+  "Computer Science", "Environmental Systems & Societies",
+  "Sports, Exercise & Health Science", "Design Technology",
   // Group 5 — Mathematics
-  "Mathematics AA (Analysis)", "Mathematics AI (Applications)",
+  "Mathematics: Analysis & Approaches (AA) HL",
+  "Mathematics: Analysis & Approaches (AA) SL",
+  "Mathematics: Applications & Interpretation (AI) HL",
+  "Mathematics: Applications & Interpretation (AI) SL",
   // Group 6 — The Arts
-  "Visual Arts", "Music", "Theatre", "Film",
+  "Visual Arts", "Music", "Theatre", "Film", "Dance",
 ];
 
 export const IGCSE_SUBJECTS = [
-  "English Language ✦", "Mathematics ✦",
-  "Additional Mathematics", "Physics", "Chemistry", "Biology",
-  "Combined Science", "Computer Science",
+  // Core — compulsory
+  "English Language ✦ (Compulsory)", "Mathematics ✦ (Compulsory)",
+  // Sciences
+  "Physics", "Chemistry", "Biology",
+  "Combined Science", "Co-ordinated Sciences",
+  "Environmental Management", "Marine Science",
+  // Maths / Computing
+  "Additional Mathematics", "International Mathematics",
+  "Computer Science", "Information & Communication Technology",
+  // Humanities & Social Sciences
   "History", "Geography", "Economics",
-  "Business Studies", "Accounting",
-  "Art & Design", "Music", "Physical Education",
-  "Media Studies", "Environmental Management",
-  "French", "Hindi", "Kannada", "Tamil", "Telugu",
+  "Sociology", "Global Perspectives",
+  "Travel & Tourism", "Enterprise",
+  // Commerce
+  "Business Studies", "Accounting", "Commerce",
+  // Languages
+  "English Literature", "French", "Spanish", "German",
+  "Hindi", "Kannada", "Tamil", "Telugu", "Urdu", "Arabic",
+  // Creative & Vocational
+  "Art & Design", "Design & Technology",
+  "Food & Nutrition", "Music", "Drama",
+  "Physical Education", "Media Studies",
+  "Fashion & Textiles", "Child Development",
 ];
 
 export const ICSE_ELECTIVES_9_10 = [
-  "Computer Applications", "Economic Applications",
-  "Commercial Applications", "Environmental Science",
-  "Art", "Home Science", "Mass Media",
-  "Physical Education", "Technical Drawing",
-  "Fashion Designing", "Yoga", "Cookery", "Performing Arts",
+  "Computer Applications",
+  "Economic Applications",
+  "Commercial Applications",
+  "Environmental Science",
+  "Agricultural Science",
+  "Biotechnology",
+  "Art",
+  "Home Science",
+  "Mass Media & Communication",
+  "Physical Education",
+  "Technical Drawing",
+  "Fashion Designing",
+  "Yoga",
+  "Cookery",
+  "Performing Arts",
+  "Carnatic Music", "Hindustani Music",
+  "Western Music",
 ];
 
 export const ISC_ELECTIVES_11_12 = [
-  "Physics", "Chemistry", "Biology", "Mathematics",
-  "Computer Science", "Biotechnology",
+  // Sciences
+  "Physics", "Chemistry", "Biology",
+  "Mathematics", "Computer Science", "Biotechnology",
+  "Environmental Science", "Geography",
+  // Commerce & Economics
   "Economics", "Commerce", "Accounts",
-  "History", "Political Science", "Sociology", "Psychology", "Geography",
+  "Business Studies",
+  // Humanities
+  "History", "Political Science",
+  "Sociology", "Psychology",
+  "Legal Studies",
+  // Languages & Literature
   "English Literature", "Hindi Literature",
-  "Art", "Home Science", "Physical Education",
+  "French", "Spanish",
+  // Creative & Vocational
+  "Art", "Home Science",
+  "Physical Education",
   "Fashion Designing", "Mass Media",
+  "Carnatic Music", "Hindustani Music",
 ];
 
 export const CBSE_STREAMS = [
