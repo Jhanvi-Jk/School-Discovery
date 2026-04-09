@@ -226,6 +226,13 @@ function SubjectStreamFilter() {
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
               IGCSE — Grade 9–10
             </p>
+            <a href="https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-upper-secondary/cambridge-igcse/" target="_blank" rel="noopener noreferrer" style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontSize: 11, color: "var(--brown-dark)", fontWeight: 600,
+              marginBottom: 10, textDecoration: "none",
+            }}>
+              <ExternalLink size={11} /> Official Cambridge IGCSE subject guide ↗
+            </a>
             {note("✦ English Language and Mathematics are compulsory. Subject codes shown in brackets (Cambridge syllabus codes).")}
             <SearchableList
               items={IGCSE_SUBJECTS}
@@ -242,6 +249,13 @@ function SubjectStreamFilter() {
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>
               Cambridge A Level — Grade 11–12
             </p>
+            <a href="https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-advanced/cambridge-international-as-and-a-levels/" target="_blank" rel="noopener noreferrer" style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontSize: 11, color: "var(--brown-dark)", fontWeight: 600,
+              marginBottom: 10, textDecoration: "none",
+            }}>
+              <ExternalLink size={11} /> Official Cambridge A Level subject guide ↗
+            </a>
             {note("Subject codes shown in brackets. A Level subjects are offered at AS or full A2 level depending on the school.")}
             <SearchableList
               items={CAMBRIDGE_ALEVEL_SUBJECTS}
