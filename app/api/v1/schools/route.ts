@@ -99,6 +99,8 @@ export async function GET(request: NextRequest) {
     queryBuilder = queryBuilder.range(offset, offset + limit - 1);
 
     const { data: schools, error, count } = await queryBuilder;
+    console.log("SCHOOLS:", schools);
+    console.log("ERROR:", error);
 
     if (error) throw error;
 
