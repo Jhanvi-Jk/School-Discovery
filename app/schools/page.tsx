@@ -56,6 +56,7 @@ export default function SchoolsPage() {
     try {
       const res = await fetch(`/api/v1/schools?${buildQuery(filters, sort)}`);
       const json = await res.json();
+      console.log("API RESPONSE:", json);
       if (json.success) {
         setSchools(json.data);
         setTotalCount(json.pagination.total);
