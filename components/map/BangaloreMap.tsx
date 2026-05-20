@@ -96,6 +96,26 @@ const BANGALORE_AREAS = [
     center: [12.845, 77.670] as [number, number],
   },
   {
+    name: "Jigani",
+    color: "#F97316",
+    fillOpacity: 0.15,
+    coords: [
+      [12.825, 77.590], [12.825, 77.635],
+      [12.860, 77.635], [12.860, 77.590],
+    ] as [number, number][],
+    center: [12.842, 77.612] as [number, number],
+  },
+  {
+    name: "Attibele",
+    color: "#7C3AED",
+    fillOpacity: 0.15,
+    coords: [
+      [12.765, 77.772], [12.765, 77.812],
+      [12.800, 77.812], [12.800, 77.772],
+    ] as [number, number][],
+    center: [12.783, 77.792] as [number, number],
+  },
+  {
     name: "HSR Layout",
     color: "#A855F7",
     fillOpacity: 0.15,
