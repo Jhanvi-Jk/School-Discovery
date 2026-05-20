@@ -227,13 +227,24 @@ export default function SchoolsMapInner({ schools }: Props) {
           attribution=""
         />
 
-        {/* School markers */}
+        {/* School markers — golden-angle phyllotaxis spread per area */}
         {schools.map((school) => {
           const area  = school.area || "";
           const base  = AREA_COORDS[area] || [12.9716, 77.5946];
-          placed[area] = (placed[area] || 0) + 1;
-          const off   = (placed[area] - 1) * 0.004;
-          const pos: [number, number] = [base[0] + off, base[1] + off * 0.5];
+          const idx   = placed[area] || 0;
+          placed[area] = idx + 1;
+          // Use actual coords if available, otherwise spread around area centre
+          let pos: [number, number];
+          if (school.latitude && school.longitude) {
+            pos = [school.latitude, school.longitude];
+          } else if (idx === 0) {
+            pos = [base[0], base[1]];
+          } else {
+            // Golden angle spiral so markers fan out naturally, not in a line
+            const angle  = idx * 2.3999632; // ~137.5° in radians
+            const radius = 0.007 * Math.sqrt(idx);
+            pos = [base[0] + radius * Math.sin(angle), base[1] + radius * Math.cos(angle)];
+          }
           return (
             <Marker key={school.id} position={pos} icon={schoolIcon}>
               <Popup>
