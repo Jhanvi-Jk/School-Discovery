@@ -4,174 +4,452 @@
 -- Paste into Supabase SQL Editor and click Run.
 -- ================================================================
 
-DO $$
-DECLARE
-  data RECORD;
-  sid  UUID;
-BEGIN
-  FOR data IN SELECT * FROM (VALUES
-    -- slug, grade_from, grade_to, opens_at, closes_at, status, is_mid_year
-    ('delhi-public-school-north-yelahanka',         'Nursery','Class 12','2025-01-15','2025-03-31','open',   false),
-    ('delhi-public-school-south-konanakunte',        'Nursery','Class 12','2025-01-15','2025-03-31','open',   false),
-    ('delhi-public-school-east-sarjapur-road',       'Nursery','Class 12','2025-01-20','2025-04-15','open',   false),
-    ('cambridge-international-school-whitefield',    'Nursery','Class 12','2024-11-01','2025-02-28','open',   false),
-    ('cambridge-international-school-sarjapur-road', 'Nursery','Class 12','2024-11-01','2025-02-28','open',   false),
-    ('new-horizon-gurukul-marathahalli',             'Nursery','Class 12','2025-01-10','2025-03-20','open',   false),
-    ('wisdomwood-high-begur-lake',                   'Nursery','Class 10','2025-02-01','2025-04-30','open',   false),
-    ('national-public-school-indiranagar',           'Nursery','Class 12','2024-12-01','2025-01-31','open',   false),
-    ('national-public-school-rajajinagar',           'Nursery','Class 12','2024-12-01','2025-01-31','open',   false),
-    ('national-public-school-hsr-layout',            'Nursery','Class 12','2024-12-01','2025-01-31','open',   false),
-    ('national-public-school-koramangala',           'Nursery','Class 12','2024-12-01','2025-01-31','open',   false),
-    ('national-public-school-jayanagar',             'Nursery','Class 10','2024-12-01','2025-01-31','open',   false),
-    ('goldenbee-global-school-bannerghatta',         'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('goldenbee-global-school-btm-layout',           'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('goldenbee-global-school-horamavu',             'Nursery','Class 10','2025-01-01','2025-04-30','open',   false),
-    ('podar-global-school-yelahanka',                'Nursery','Grade 9', '2025-02-01','2025-04-30','open',   false),
-    ('new-oxford-school-sarjapur',                   'Nursery','Class 12','2025-01-15','2025-04-15','open',   false),
-    ('mvm-school-devanahalli',                       'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('canara-gurukula-public-electronic-city',       'Nursery','Class 10','2025-03-01','2025-05-31','open',   false),
-    ('kesar-international-school-bagalur',           'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('ms-dhoni-global-school-hsr-layout',            'Nursery','Class 12','2025-01-01','2025-03-31','open',   false),
-    ('broadvision-world-school-thanisandra',         'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('orchids-international-jalahalli',              'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('orchids-international-btm-layout',             'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('orchids-international-bannerghatta',           'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('orchids-international-haralur',                'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('orchids-international-rajajinagar',            'Nursery','Class 10','2025-01-01','2025-04-30','open',   false),
-    ('vyasa-international-school-vidyaranyapura',    'Nursery','Class 12','2025-02-01','2025-04-30','open',   false),
-    ('amaatra-academy-haralur',                      'Grade 1','Class 12','2025-01-15','2025-04-15','open',   false),
-    ('army-public-school-kamaraj-road',              'Grade 1','Class 12','2025-03-01','2025-05-31','open',   false),
-    ('kendriya-vidyalaya-iisc-malleshwaram',         'Grade 1','Class 12','2025-03-01','2025-04-30','open',   false),
-    ('chrysalis-high-varthur',                       'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('chrysalis-high-whitefield',                    'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('silver-oaks-international-whitefield',         'Nursery','Class 12','2025-01-15','2025-03-31','open',   false),
-    ('tattva-school-kumbalgodu',                     'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('hal-public-school-vimandipura',                'LKG',    'Class 12','2025-02-01','2025-04-30','open',   false),
-    ('air-force-school-hebbal',                      'LKG',    'Class 12','2025-02-15','2025-04-30','open',   false),
-    ('presidency-school-bangalore-south',            'Nursery','Class 12','2025-01-15','2025-04-15','open',   false),
-    ('presidency-school-bangalore-north',            'Nursery','Class 12','2025-01-15','2025-04-15','open',   false),
-    ('samarthanam-high-school-hsr-layout',           'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('insight-academy-marathahalli',                 'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('whitefield-global-school-whitefield',          'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('vibgyor-high-marathahalli',                    'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('vibgyor-high-haralur',                         'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('millennium-world-school-north-bangalore',      'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('sherwood-high-bannerghatta',                   'Nursery','Class 12','2025-01-15','2025-04-30','open',   false),
-    ('soundarya-central-school-nagasandra',          'Nursery','Class 12','2025-02-01','2025-05-31','open',   false),
-    ('ekya-school-btm-layout',                       'Nursery','Class 12','2024-11-01','2025-02-28','open',   false),
-    ('kle-society-school-rajajinagar',               'Nursery','Class 10','2025-01-15','2025-04-15','open',   false),
-    ('sjr-public-school-rajajinagar',                'Grade 1','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('bishop-cotton-boys-ashok-nagar',               'Nursery','Class 12','2024-11-15','2025-01-15','open',   false),
-    ('bishop-cotton-girls-ashok-nagar',              'Nursery','Class 12','2024-11-15','2025-01-15','open',   false),
-    ('st-josephs-boys-high-school-ashok-nagar',      'Nursery','Class 12','2025-01-01','2025-02-28','open',   false),
-    ('paradise-academy-electronic-city',             'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('paradise-international-electronic-city',       'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('new-oxford-international-anekal',              'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('st-germain-academy-frazer-town',               'Nursery','Class 12','2025-01-01','2025-03-15','open',   false),
-    ('national-academy-for-learning-basaveshwar-nagar','Nursery','Class 12','2025-01-01','2025-03-31','open', false),
-    ('venus-international-school-rajajinagar',       'Nursery','Class 12','2025-01-15','2025-05-31','open',   false),
-    ('aadya-academy-yelahanka',                      'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('federal-public-school-yelahanka',              'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('gopalan-international-school-hoodi',           'Nursery','Class 12','2025-01-15','2025-04-30','open',   false),
-    ('greenwood-high-sarjapur-road',                 'Nursery','Class 12','2024-10-01','2025-01-31','open',   false),
-    ('greenwood-high-bannerghatta',                  'Nursery','Class 10','2025-01-01','2025-03-31','open',   false),
-    ('frank-anthony-public-ulsoor',                  'Nursery','Class 12','2025-01-01','2025-03-15','open',   false),
-    ('christ-academy-begur-koppa-road',              'Nursery','Class 12','2025-01-15','2025-04-30','open',   false),
-    ('ryan-international-school-bannerghatta',       'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('ryan-international-school-kundalahalli',       'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('ryan-international-school-yelahanka',          'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('baldwin-boys-high-school-richmond-town',       'Nursery','Class 12','2025-01-01','2025-02-28','open',   false),
-    ('baldwin-girls-high-school-richmond-town',      'Nursery','Class 12','2025-01-01','2025-02-28','open',   false),
-    ('trinity-central-school-electronic-city',       'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('bethany-high-school-koramangala',              'Nursery','Class 12','2025-01-01','2025-03-31','open',   false),
-    ('tenderfoot-international-hsr-layout',          'Nursery','Grade 7', '2025-02-01','2025-05-31','open',   false),
-    ('st-francis-school-koramangala',                'Nursery','Class 10','2025-01-15','2025-04-15','open',   false),
-    ('lawrence-high-school-hsr-layout',              'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('clarence-high-school-frazer-town',             'Nursery','Class 12','2025-01-01','2025-03-31','open',   false),
-    ('cathedral-high-school-richmond-road',          'Nursery','Class 12','2025-01-01','2025-03-15','open',   false),
-    ('sunrise-international-school-electronic-city', 'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('brigade-school-jayanagar',                     'Nursery','Class 10','2025-01-15','2025-04-30','open',   false),
-    ('brigade-school-mahadevapura',                  'Nursery','Class 12','2025-01-15','2025-04-30','open',   false),
-    ('little-flower-public-school-banashankari',     'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('orchids-international-yelahanka',              'Nursery','Class 10','2025-01-01','2025-04-30','open',   false),
-    ('don-bosco-high-school-chitrakala-layout',      'Nursery','Class 10','2025-01-15','2025-04-30','open',   false),
-    ('innisfree-house-school-jp-nagar',              'Nursery','Class 10','2025-01-15','2025-04-30','open',   false),
-    ('green-country-public-school-hbr-layout',       'Nursery','Class 12','2025-02-01','2025-05-31','open',   false),
-    ('st-pauls-english-school-jp-nagar',             'Nursery','Class 12','2025-01-15','2025-04-30','open',   false),
-    ('silicon-city-academy-konanakunte',             'Nursery','Class 12','2025-01-15','2025-04-30','open',   false),
-    ('vibgyor-roots-and-rise-hsr-layout',            'Nursery','Grade 5', '2025-01-01','2025-04-30','open',   false),
-    ('maruthi-vidyalaya-subbanapalya',               'Nursery','Class 10','2025-02-01','2025-05-31','open',   false),
-    ('jain-international-residential-school-kanakapura','Grade 5','Class 12','2024-10-01','2025-02-28','open',false),
-    ('academic-city-school-kanakapura',              'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('redbridge-international-academy-sarjapur-road','Nursery','Class 12','2024-10-01','2025-01-31','open',   false),
-    ('canadian-international-school-yelahanka',      'Nursery','Class 12','2024-09-01','2025-01-31','open',   false),
-    ('naavu-school-whitefield',                      'Nursery','Class 12','2024-11-01','2025-03-31','open',   false),
-    ('tisb-whitefield',                              'Nursery','Class 12','2024-09-01','2025-01-31','open',   false),
-    ('stonehill-international-school-north-bangalore','Nursery','Class 12','2024-09-01','2025-01-31','open',  false),
-    ('harrow-international-school-devanahalli',      'Nursery','Class 12','2024-10-01','2025-02-28','open',   false),
-    ('treamis-world-school-electronic-city',         'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('legacy-school-hennur',                         'Nursery','Class 12','2024-10-01','2025-02-28','open',   false),
-    ('trio-world-academy-sahakar-nagar',             'Nursery','Class 12','2024-10-01','2025-02-28','open',   false),
-    ('primus-public-school-sarjapur-road',           'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('oakridge-international-sarjapur',              'Nursery','Class 12','2024-10-01','2025-02-28','open',   false),
-    ('chrysalis-kids-varthur',                       'Nursery','Grade 5', '2025-01-01','2025-05-31','open',   false),
-    ('inventure-academy-sarjapur-road',              'Nursery','Class 12','2024-10-01','2025-01-31','open',   false),
-    ('indus-international-school-sarjapur',          'Nursery','Class 12','2024-09-01','2025-01-31','open',   false),
-    ('greenwood-high-international-sarjapur-road',   'Nursery','Class 12','2024-10-01','2025-02-28','open',   false),
-    ('ebenezer-international-school-sarjapur',       'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('global-city-international-malleshwaram',       'Nursery','Class 12','2025-01-15','2025-04-30','open',   false),
-    ('bangalore-international-school-hennur',        'Nursery','Class 12','2024-10-01','2025-02-28','open',   false),
-    ('christ-university-junior-college-hosur-road',  'Grade 11','Grade 12','2025-03-15','2025-06-15','upcoming',false),
-    ('royal-public-school-electronic-city',          'Nursery','Class 12','2025-02-01','2025-06-30','open',   false),
-    ('gvs-english-school-electronic-city',           'Nursery','Class 12','2025-02-01','2025-06-30','open',   false),
-    ('st-johns-high-school-frazer-town',             'Nursery','Class 12','2025-02-15','2025-06-30','open',   false),
-    ('new-horizon-high-school-kasturi-nagar',        'Nursery','Class 12','2025-02-01','2025-06-30','open',   false),
-    ('vvs-sardar-patel-high-school-rajajinagar',     'Nursery','Class 12','2025-02-01','2025-06-30','open',   false),
-    ('st-josephs-pu-college-residency-road',         'Grade 11','Grade 12','2025-03-15','2025-06-15','upcoming',false),
-    ('bishop-cotton-pu-college-residency-road',      'Grade 11','Grade 12','2025-03-01','2025-06-15','upcoming',false),
-    ('cathedral-pu-college-richmond-road',           'Grade 11','Grade 12','2025-03-15','2025-06-15','upcoming',false),
-    ('mes-pu-college-malleshwaram',                  'Grade 11','Grade 12','2025-03-01','2025-06-15','upcoming',false),
-    ('mount-carmel-pu-college-vasanth-nagar',        'Grade 11','Grade 12','2025-03-15','2025-06-15','upcoming',false),
-    ('baldwin-methodist-pu-college-richmond-town',   'Grade 11','Grade 12','2025-03-01','2025-06-15','upcoming',false),
-    ('st-charles-high-school-hennur',                'Nursery','Class 12','2025-02-15','2025-06-30','open',   false),
-    ('holy-saint-high-school-jayanagar',             'Nursery','Class 12','2025-02-15','2025-06-30','open',   false),
-    ('cluny-convent-high-school-jallahalli',         'Nursery','Class 12','2025-02-01','2025-06-30','open',   false),
-    ('stella-maris-high-school-gayathrinagar',       'Nursery','Class 12','2025-02-01','2025-06-30','open',   false),
-    ('sophia-opportunity-school-vasanth-nagar',      'Nursery','Class 12','2025-01-15','2025-05-31','open',   false),
-    ('narayana-e-techno-school-jp-nagar',            'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('chaitanya-techno-school-electronic-city',      'Nursery','Class 12','2025-01-01','2025-04-30','open',   false),
-    ('sri-kumaran-childrens-home-basavanagudi',      'Nursery','Class 12','2025-02-01','2025-06-30','open',   false),
-    ('sri-bhagawan-mahaveer-college-vv-puram',       'Nursery','Class 12','2025-02-01','2025-06-30','open',   false),
-    ('nmkrv-pu-college-jayanagar',                   'Grade 11','Grade 12','2025-03-15','2025-06-15','upcoming',false),
-    ('vijaya-high-school-jayanagar',                 'Nursery','Class 12','2025-02-01','2025-06-30','open',   false),
-    ('national-high-school-basavanagudi',            'Nursery','Class 12','2025-02-01','2025-06-30','open',   false),
-    ('bangalore-international-academy-jayanagar',    'Nursery','Class 12','2025-01-15','2025-05-31','open',   false),
-    ('sudarshan-vidya-mandir-jayanagar',             'Nursery','Class 12','2025-01-15','2025-05-31','open',   false),
-    ('clarence-pu-college-frazer-town',              'Grade 11','Grade 12','2025-03-01','2025-06-15','upcoming',false),
-    ('st-annes-girls-high-school-miller-road',       'Nursery','Class 12','2025-02-01','2025-06-30','open',   false),
-    ('baldwin-girls-pu-college-richmond-town',       'Grade 11','Grade 12','2025-03-01','2025-06-15','upcoming',false),
-    ('sarala-birla-academy-bannerghatta',            'Grade 5', 'Class 12','2024-10-01','2025-02-28','open',  false),
-    ('redhouz-international-hennur',                 'Nursery','Grade 8',  '2025-02-01','2025-05-31','open',  false),
-    ('janki-international-school-kengeri',           'Nursery','Class 10', '2025-02-01','2025-05-31','open',  false),
-    ('st-meeras-high-school-rajajinagar',            'Nursery','Class 10', '2025-02-01','2025-05-31','open',  false),
-    ('vidyashilp-academy-yelahanka',                 'Grade 1', 'Class 12','2024-11-01','2025-02-28','open',  false),
-    ('vishwa-vidyapeeth-yelahanka',                  'Nursery','Class 10', '2025-02-01','2025-05-31','open',  false),
-    ('sophia-high-school-vasanth-nagar',             'Nursery','Class 12', '2025-01-01','2025-03-15','open',  false),
-    ('sri-vani-international-rajajinagar',           'Nursery','Class 10', '2025-02-01','2025-05-31','open',  false),
-    ('new-age-world-school-yelahanka',               'Grade 1', 'Class 10','2025-02-01','2025-06-30','open',  false),
-    ('mallya-aditi-international-yelahanka',         'Nursery','Class 12', '2024-10-01','2025-02-28','open',  false),
-    ('new-baldwin-international-krishnarajapura',    'Nursery','Class 12', '2025-01-15','2025-04-30','open',  false)
-  ) AS t(slug, gfrom, gto, opens, closes, status, midyear)
-  LOOP
-    SELECT id INTO sid FROM schools WHERE schools.slug = data.slug;
-    IF sid IS NOT NULL THEN
-      INSERT INTO admission_windows
-        (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
-      VALUES
-        (sid, '2025-26', data.gfrom, data.gto,
-         data.opens::DATE, data.closes::DATE,
-         data.status::admission_status, data.midyear)
-      ON CONFLICT DO NOTHING;
-    END IF;
-  END LOOP;
-END $$;
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-03-31','open'::admission_status,false FROM schools WHERE slug='delhi-public-school-north-yelahanka' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-03-31','open'::admission_status,false FROM schools WHERE slug='delhi-public-school-south-konanakunte' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-20','2025-04-15','open'::admission_status,false FROM schools WHERE slug='delhi-public-school-east-sarjapur-road' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-11-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='cambridge-international-school-whitefield' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-11-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='cambridge-international-school-sarjapur-road' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-10','2025-03-20','open'::admission_status,false FROM schools WHERE slug='new-horizon-gurukul-marathahalli' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='wisdomwood-high-begur-lake' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-12-01','2025-01-31','open'::admission_status,false FROM schools WHERE slug='national-public-school-indiranagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-12-01','2025-01-31','open'::admission_status,false FROM schools WHERE slug='national-public-school-rajajinagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-12-01','2025-01-31','open'::admission_status,false FROM schools WHERE slug='national-public-school-hsr-layout' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-12-01','2025-01-31','open'::admission_status,false FROM schools WHERE slug='national-public-school-koramangala' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2024-12-01','2025-01-31','open'::admission_status,false FROM schools WHERE slug='national-public-school-jayanagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='goldenbee-global-school-bannerghatta' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='goldenbee-global-school-btm-layout' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='goldenbee-global-school-horamavu' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Grade 9','2025-02-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='podar-global-school-yelahanka' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-04-15','open'::admission_status,false FROM schools WHERE slug='new-oxford-school-sarjapur' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='mvm-school-devanahalli' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-03-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='canara-gurukula-public-electronic-city' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='kesar-international-school-bagalur' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-03-31','open'::admission_status,false FROM schools WHERE slug='ms-dhoni-global-school-hsr-layout' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='broadvision-world-school-thanisandra' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='orchids-international-jalahalli' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='orchids-international-btm-layout' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='orchids-international-bannerghatta' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='orchids-international-haralur' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='orchids-international-rajajinagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='vyasa-international-school-vidyaranyapura' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 1','Class 12','2025-01-15','2025-04-15','open'::admission_status,false FROM schools WHERE slug='amaatra-academy-haralur' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 1','Class 12','2025-03-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='army-public-school-kamaraj-road' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 1','Class 12','2025-03-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='kendriya-vidyalaya-iisc-malleshwaram' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='chrysalis-high-varthur' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='chrysalis-high-whitefield' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-03-31','open'::admission_status,false FROM schools WHERE slug='silver-oaks-international-whitefield' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='tattva-school-kumbalgodu' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','LKG','Class 12','2025-02-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='hal-public-school-vimandipura' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','LKG','Class 12','2025-02-15','2025-04-30','open'::admission_status,false FROM schools WHERE slug='air-force-school-hebbal' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-04-15','open'::admission_status,false FROM schools WHERE slug='presidency-school-bangalore-south' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-04-15','open'::admission_status,false FROM schools WHERE slug='presidency-school-bangalore-north' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='samarthanam-high-school-hsr-layout' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='insight-academy-marathahalli' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='whitefield-global-school-whitefield' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='vibgyor-high-marathahalli' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='vibgyor-high-haralur' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='millennium-world-school-north-bangalore' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-04-30','open'::admission_status,false FROM schools WHERE slug='sherwood-high-bannerghatta' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='soundarya-central-school-nagasandra' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-11-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='ekya-school-btm-layout' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-01-15','2025-04-15','open'::admission_status,false FROM schools WHERE slug='kle-society-school-rajajinagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 1','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='sjr-public-school-rajajinagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-11-15','2025-01-15','open'::admission_status,false FROM schools WHERE slug='bishop-cotton-boys-ashok-nagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-11-15','2025-01-15','open'::admission_status,false FROM schools WHERE slug='bishop-cotton-girls-ashok-nagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='st-josephs-boys-high-school-ashok-nagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='paradise-academy-electronic-city' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='paradise-international-electronic-city' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='new-oxford-international-anekal' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-03-15','open'::admission_status,false FROM schools WHERE slug='st-germain-academy-frazer-town' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-03-31','open'::admission_status,false FROM schools WHERE slug='national-academy-for-learning-basaveshwar-nagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-05-31','open'::admission_status,false FROM schools WHERE slug='venus-international-school-rajajinagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='aadya-academy-yelahanka' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='federal-public-school-yelahanka' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-04-30','open'::admission_status,false FROM schools WHERE slug='gopalan-international-school-hoodi' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-10-01','2025-01-31','open'::admission_status,false FROM schools WHERE slug='greenwood-high-sarjapur-road' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-01-01','2025-03-31','open'::admission_status,false FROM schools WHERE slug='greenwood-high-bannerghatta' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-03-15','open'::admission_status,false FROM schools WHERE slug='frank-anthony-public-ulsoor' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-04-30','open'::admission_status,false FROM schools WHERE slug='christ-academy-begur-koppa-road' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='ryan-international-school-bannerghatta' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='ryan-international-school-kundalahalli' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='ryan-international-school-yelahanka' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='baldwin-boys-high-school-richmond-town' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='baldwin-girls-high-school-richmond-town' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='trinity-central-school-electronic-city' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-03-31','open'::admission_status,false FROM schools WHERE slug='bethany-high-school-koramangala' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Grade 7','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='tenderfoot-international-hsr-layout' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-01-15','2025-04-15','open'::admission_status,false FROM schools WHERE slug='st-francis-school-koramangala' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='lawrence-high-school-hsr-layout' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-03-31','open'::admission_status,false FROM schools WHERE slug='clarence-high-school-frazer-town' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-03-15','open'::admission_status,false FROM schools WHERE slug='cathedral-high-school-richmond-road' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='sunrise-international-school-electronic-city' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-01-15','2025-04-30','open'::admission_status,false FROM schools WHERE slug='brigade-school-jayanagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-04-30','open'::admission_status,false FROM schools WHERE slug='brigade-school-mahadevapura' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='little-flower-public-school-banashankari' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='orchids-international-yelahanka' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-01-15','2025-04-30','open'::admission_status,false FROM schools WHERE slug='don-bosco-high-school-chitrakala-layout' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-01-15','2025-04-30','open'::admission_status,false FROM schools WHERE slug='innisfree-house-school-jp-nagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='green-country-public-school-hbr-layout' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-04-30','open'::admission_status,false FROM schools WHERE slug='st-pauls-english-school-jp-nagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-04-30','open'::admission_status,false FROM schools WHERE slug='silicon-city-academy-konanakunte' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Grade 5','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='vibgyor-roots-and-rise-hsr-layout' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='maruthi-vidyalaya-subbanapalya' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 5','Class 12','2024-10-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='jain-international-residential-school-kanakapura' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='academic-city-school-kanakapura' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-10-01','2025-01-31','open'::admission_status,false FROM schools WHERE slug='redbridge-international-academy-sarjapur-road' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-09-01','2025-01-31','open'::admission_status,false FROM schools WHERE slug='canadian-international-school-yelahanka' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-11-01','2025-03-31','open'::admission_status,false FROM schools WHERE slug='naavu-school-whitefield' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-09-01','2025-01-31','open'::admission_status,false FROM schools WHERE slug='tisb-whitefield' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-09-01','2025-01-31','open'::admission_status,false FROM schools WHERE slug='stonehill-international-school-north-bangalore' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-10-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='harrow-international-school-devanahalli' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='treamis-world-school-electronic-city' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-10-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='legacy-school-hennur' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-10-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='trio-world-academy-sahakar-nagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='primus-public-school-sarjapur-road' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-10-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='oakridge-international-sarjapur' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Grade 5','2025-01-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='chrysalis-kids-varthur' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-10-01','2025-01-31','open'::admission_status,false FROM schools WHERE slug='inventure-academy-sarjapur-road' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-09-01','2025-01-31','open'::admission_status,false FROM schools WHERE slug='indus-international-school-sarjapur' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-10-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='greenwood-high-international-sarjapur-road' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='ebenezer-international-school-sarjapur' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-04-30','open'::admission_status,false FROM schools WHERE slug='global-city-international-malleshwaram' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-10-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='bangalore-international-school-hennur' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 11','Grade 12','2025-03-15','2025-06-15','upcoming'::admission_status,false FROM schools WHERE slug='christ-university-junior-college-hosur-road' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-01','2025-06-30','open'::admission_status,false FROM schools WHERE slug='royal-public-school-electronic-city' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-01','2025-06-30','open'::admission_status,false FROM schools WHERE slug='gvs-english-school-electronic-city' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-15','2025-06-30','open'::admission_status,false FROM schools WHERE slug='st-johns-high-school-frazer-town' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-01','2025-06-30','open'::admission_status,false FROM schools WHERE slug='new-horizon-high-school-kasturi-nagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-01','2025-06-30','open'::admission_status,false FROM schools WHERE slug='vvs-sardar-patel-high-school-rajajinagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 11','Grade 12','2025-03-15','2025-06-15','upcoming'::admission_status,false FROM schools WHERE slug='st-josephs-pu-college-residency-road' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 11','Grade 12','2025-03-01','2025-06-15','upcoming'::admission_status,false FROM schools WHERE slug='bishop-cotton-pu-college-residency-road' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 11','Grade 12','2025-03-15','2025-06-15','upcoming'::admission_status,false FROM schools WHERE slug='cathedral-pu-college-richmond-road' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 11','Grade 12','2025-03-01','2025-06-15','upcoming'::admission_status,false FROM schools WHERE slug='mes-pu-college-malleshwaram' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 11','Grade 12','2025-03-15','2025-06-15','upcoming'::admission_status,false FROM schools WHERE slug='mount-carmel-pu-college-vasanth-nagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 11','Grade 12','2025-03-01','2025-06-15','upcoming'::admission_status,false FROM schools WHERE slug='baldwin-methodist-pu-college-richmond-town' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-15','2025-06-30','open'::admission_status,false FROM schools WHERE slug='st-charles-high-school-hennur' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-15','2025-06-30','open'::admission_status,false FROM schools WHERE slug='holy-saint-high-school-jayanagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-01','2025-06-30','open'::admission_status,false FROM schools WHERE slug='cluny-convent-high-school-jallahalli' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-01','2025-06-30','open'::admission_status,false FROM schools WHERE slug='stella-maris-high-school-gayathrinagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-05-31','open'::admission_status,false FROM schools WHERE slug='sophia-opportunity-school-vasanth-nagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='narayana-e-techno-school-jp-nagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-04-30','open'::admission_status,false FROM schools WHERE slug='chaitanya-techno-school-electronic-city' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-01','2025-06-30','open'::admission_status,false FROM schools WHERE slug='sri-kumaran-childrens-home-basavanagudi' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-01','2025-06-30','open'::admission_status,false FROM schools WHERE slug='sri-bhagawan-mahaveer-college-vv-puram' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 11','Grade 12','2025-03-15','2025-06-15','upcoming'::admission_status,false FROM schools WHERE slug='nmkrv-pu-college-jayanagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-01','2025-06-30','open'::admission_status,false FROM schools WHERE slug='vijaya-high-school-jayanagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-01','2025-06-30','open'::admission_status,false FROM schools WHERE slug='national-high-school-basavanagudi' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-05-31','open'::admission_status,false FROM schools WHERE slug='bangalore-international-academy-jayanagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-05-31','open'::admission_status,false FROM schools WHERE slug='sudarshan-vidya-mandir-jayanagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 11','Grade 12','2025-03-01','2025-06-15','upcoming'::admission_status,false FROM schools WHERE slug='clarence-pu-college-frazer-town' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-02-01','2025-06-30','open'::admission_status,false FROM schools WHERE slug='st-annes-girls-high-school-miller-road' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 11','Grade 12','2025-03-01','2025-06-15','upcoming'::admission_status,false FROM schools WHERE slug='baldwin-girls-pu-college-richmond-town' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 5','Class 12','2024-10-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='sarala-birla-academy-bannerghatta' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Grade 8','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='redhouz-international-hennur' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='janki-international-school-kengeri' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='st-meeras-high-school-rajajinagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 1','Class 12','2024-11-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='vidyashilp-academy-yelahanka' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='vishwa-vidyapeeth-yelahanka' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-01','2025-03-15','open'::admission_status,false FROM schools WHERE slug='sophia-high-school-vasanth-nagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 10','2025-02-01','2025-05-31','open'::admission_status,false FROM schools WHERE slug='sri-vani-international-rajajinagar' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Grade 1','Class 10','2025-02-01','2025-06-30','open'::admission_status,false FROM schools WHERE slug='new-age-world-school-yelahanka' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2024-10-01','2025-02-28','open'::admission_status,false FROM schools WHERE slug='mallya-aditi-international-yelahanka' ON CONFLICT DO NOTHING;
+
+INSERT INTO admission_windows (school_id, academic_year, grade_from, grade_to, opens_at, closes_at, status, is_mid_year)
+SELECT id,'2025-26','Nursery','Class 12','2025-01-15','2025-04-30','open'::admission_status,false FROM schools WHERE slug='new-baldwin-international-krishnarajapura' ON CONFLICT DO NOTHING;
