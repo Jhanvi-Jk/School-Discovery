@@ -116,6 +116,16 @@ const BANGALORE_AREAS = [
     center: [12.783, 77.792] as [number, number],
   },
   {
+    name: "Anekal",
+    color: "#059669",
+    fillOpacity: 0.15,
+    coords: [
+      [12.692, 77.668], [12.692, 77.722],
+      [12.728, 77.722], [12.728, 77.668],
+    ] as [number, number][],
+    center: [12.710, 77.697] as [number, number],
+  },
+  {
     name: "HSR Layout",
     color: "#A855F7",
     fillOpacity: 0.15,

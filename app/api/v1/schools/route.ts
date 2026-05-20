@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   const mid_year = searchParams.get("mid_year");
   const sort = (searchParams.get("sort") || "relevance") as SortOption;
   const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "12");
+  const limit = parseInt(searchParams.get("limit") || "200");
   const offset = (page - 1) * limit;
 
   try {
