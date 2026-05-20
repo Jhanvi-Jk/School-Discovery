@@ -1,0 +1,220 @@
+-- ================================================================
+-- 002_upsert_schools.sql
+-- Paste the ENTIRE file into the Supabase SQL Editor and click Run
+-- ================================================================
+
+-- Helper: upsert one school + details + curricula + grades
+CREATE OR REPLACE FUNCTION _upsert_school(
+  p_slug TEXT, p_name TEXT, p_desc TEXT,
+  p_type school_type, p_gender school_gender,
+  p_area TEXT, p_pincode TEXT,
+  p_ratio DECIMAL,
+  p_start TEXT, p_end TEXT,
+  p_fees_min INT, p_fees_max INT,
+  p_grade_from TEXT, p_grade_to TEXT,
+  p_curricula curriculum_type[]
+) RETURNS VOID LANGUAGE plpgsql AS $$
+DECLARE v UUID;
+BEGIN
+  INSERT INTO schools (slug,name,description,type,gender,area,city,pincode,verified)
+  VALUES (p_slug,p_name,p_desc,p_type,p_gender,p_area,'Bengaluru',p_pincode,true)
+  ON CONFLICT (slug) DO UPDATE SET
+    description=EXCLUDED.description, area=EXCLUDED.area,
+    pincode=EXCLUDED.pincode, updated_at=NOW()
+  RETURNING id INTO v;
+
+  INSERT INTO school_details
+    (school_id,student_teacher_ratio,school_hours_start,school_hours_end,total_fees_min,total_fees_max,has_transport)
+  VALUES (v, p_ratio,
+    CASE WHEN p_start IS NULL THEN NULL ELSE p_start::TIME END,
+    CASE WHEN p_end   IS NULL THEN NULL ELSE p_end::TIME   END,
+    p_fees_min, p_fees_max, true)
+  ON CONFLICT (school_id) DO UPDATE SET
+    student_teacher_ratio=EXCLUDED.student_teacher_ratio,
+    school_hours_start=EXCLUDED.school_hours_start,
+    school_hours_end=EXCLUDED.school_hours_end,
+    total_fees_min=EXCLUDED.total_fees_min,
+    total_fees_max=EXCLUDED.total_fees_max;
+
+  DELETE FROM school_curricula WHERE school_id=v;
+  IF p_curricula IS NOT NULL AND array_length(p_curricula,1)>0 THEN
+    INSERT INTO school_curricula(school_id,curriculum)
+    SELECT v,c FROM unnest(p_curricula) c ON CONFLICT DO NOTHING;
+  END IF;
+
+  DELETE FROM school_grades WHERE school_id=v;
+  IF p_grade_from IS NOT NULL THEN
+    INSERT INTO school_grades(school_id,grade_from,grade_to)
+    VALUES(v,p_grade_from,p_grade_to) ON CONFLICT DO NOTHING;
+  END IF;
+
+  INSERT INTO school_languages(school_id,language,type)
+  VALUES(v,'English','medium_of_instruction') ON CONFLICT DO NOTHING;
+END $$;
+
+-- ================================================================
+-- SCHOOLS 1–50
+-- ================================================================
+SELECT _upsert_school('delhi-public-school-north-yelahanka','Delhi Public School (North)','High academic rigor; large campus.','private','coed','Yelahanka','560064',25.0,'07:30','14:30',76000,105000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('delhi-public-school-south-konanakunte','Delhi Public School (South)','Excellent sports infrastructure; highly competitive.','private','coed','JP Nagar','560062',19.0,'07:45','14:45',70000,97000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('delhi-public-school-east-sarjapur-road','Delhi Public School (East)','Highly rated; dense classroom numbers.','private','coed','Sarjapur','562125',22.0,'07:40','14:40',80000,110000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('cambridge-international-school-whitefield','The Cambridge International School','Noted for German language track; high satisfaction.','international','coed','Whitefield','560066',10.0,'08:00','15:00',180000,220000,'Nursery','Class 12',ARRAY['igcse','cambridge']::curriculum_type[]);
+SELECT _upsert_school('cambridge-international-school-sarjapur-road','The Cambridge International School Sarjapur','Progressive inquiry-based approach; premium fees.','international','coed','Sarjapur','560035',10.0,'08:00','15:00',180000,285000,'Nursery','Class 12',ARRAY['igcse','cambridge']::curriculum_type[]);
+SELECT _upsert_school('new-horizon-gurukul-marathahalli','New Horizon Gurukul','Integrates spiritual values with tech; popular IT choice.','private','coed','Marathahalli','560103',25.0,'08:00','15:15',140000,145000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('wisdomwood-high-begur-lake','WisdomWood High','Praised for modern, highly responsive individual care.','private','coed','Bannerghatta Road','560068',15.0,'08:30','15:00',40000,116000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('national-public-school-indiranagar','National Public School Indiranagar','Elite reputation; strict academic focus.','private','coed','Indiranagar','560008',17.0,'08:00','14:10',141000,166000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('national-public-school-rajajinagar','National Public School Rajajinagar','Legacy campus; heavy focus on board exam rankings.','private','coed','Rajajinagar','560010',18.0,'08:00','14:15',135000,160000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('national-public-school-hsr-layout','National Public School HSR Layout','Extremely popular in startup hubs; tough entrance criteria.','private','coed','HSR Layout','560102',16.0,'08:00','14:00',145000,170000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('national-public-school-koramangala','National Public School Koramangala','Favorable student ratio; highly rated for board results.','private','coed','Koramangala','560034',13.0,'08:00','14:15',164000,189000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('national-public-school-jayanagar','National Public School Jayanagar','Strong foundational care; highly clean campus.','private','coed','Jayanagar','560011',17.0,'08:15','14:30',153000,183000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('goldenbee-global-school-bannerghatta','Goldenbee Global School Bannerghatta','Specialised AI and robotics labs.','private','coed','Bannerghatta Road','560076',14.0,'08:30','15:30',76000,240000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('goldenbee-global-school-btm-layout','Goldenbee Global School BTM Layout','Advanced AV spaces; highly interactive learning.','private','coed','BTM Layout','560076',12.0,'08:30','15:30',76000,240000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('goldenbee-global-school-horamavu','Goldenbee Global School Horamavu','Emerging campus; high parent interaction.','private','coed','Marathahalli','560043',12.0,'08:30','15:30',76000,160000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('podar-global-school-yelahanka','Podar Global School','Well-structured corporate system; mixed peer reviews.','private','coed','Yelahanka','560064',30.0,'08:15','15:15',110000,150000,'Nursery','Class 9',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('new-oxford-school-sarjapur','New Oxford School','Strong value-for-money focus; robust lab spaces.','private','coed','Sarjapur','562125',25.0,'08:30','15:30',53000,84000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('mvm-school-devanahalli','MVM School','Noted for high individual teacher-attention.','private','coed','Yelahanka','562110',12.0,'08:30','15:15',50000,97000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('canara-gurukula-public-electronic-city','Canara Gurukula Public School','Solid reliable neighbourhood choice for mid-budgets.','private','coed','Electronic City','560100',20.0,'08:30','15:00',40000,70000,'Nursery','Class 10',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('kesar-international-school-bagalur','Kesar The International School','Positive framework rating for peaceful suburban setup.','private','coed','Yelahanka','562149',12.0,'08:15','15:00',50000,92000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('ms-dhoni-global-school-hsr-layout','MS Dhoni Global School','High praise for modern sports and training systems.','private','coed','HSR Layout','560102',20.0,'08:00','15:15',154000,160000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('broadvision-world-school-thanisandra','Broadvision World School','Low ratio award-winner; exceptional custom care.','private','coed','Hebbal','560077',8.0,'08:30','15:30',75000,115000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('orchids-international-jalahalli','Orchids The International School Jalahalli','Mixed reviews on operational fees.','private','coed','Rajajinagar','560015',14.0,'08:00','15:00',105000,162000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('orchids-international-btm-layout','Orchids The International School BTM Layout','Excellent STEM modules; standard corporate structure.','private','coed','BTM Layout','560076',14.0,'08:00','15:00',130000,201000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('orchids-international-bannerghatta','Orchids The International School Bannerghatta','Highly interactive tech; standard uniform model.','private','coed','Bannerghatta Road','560083',14.0,'08:00','15:00',108000,160000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('orchids-international-haralur','Orchids The International School Haralur','Modern campus layout; diverse extracurricular tracks.','private','coed','HSR Layout','560102',15.0,'08:00','15:00',112000,170000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('orchids-international-rajajinagar','Orchids The International School Rajajinagar','Eco-friendly campus; strong digital updates.','private','coed','Rajajinagar','560010',15.0,'08:15','15:00',92000,137000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('vyasa-international-school-vidyaranyapura','Vyasa International School','Progressive global framework; highly supportive staff.','private','coed','Hebbal','560097',25.0,'08:15','15:00',90000,165000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('amaatra-academy-haralur','The Amaatra Academy','Balanced residential options; good athletic facilities.','private','coed','HSR Layout','560102',18.0,'08:00','15:30',120000,180000,'Class 1','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('army-public-school-kamaraj-road','Army Public School','Highly disciplined legacy school; value fee tier.','government','coed','Indiranagar','560042',30.0,'07:50','14:10',35000,60000,'Class 1','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('kendriya-vidyalaya-iisc-malleshwaram','Kendriya Vidyalaya IISc','Top central government legacy; rigorous selection.','government','coed','Malleswaram','560012',35.0,'08:00','14:00',15000,25000,'Class 1','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('chrysalis-high-varthur','Chrysalis High Varthur','Secure transit framework; positive parent marks.','private','coed','Whitefield','560087',15.0,'08:15','15:00',95000,140000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('chrysalis-high-whitefield','Chrysalis High Whitefield','Spacious modern labs; semi-sports tracking.','private','coed','Whitefield','560066',16.0,'08:15','15:00',100000,150000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('silver-oaks-international-whitefield','Silver Oaks International School','Character-building core model; clean environment.','private','coed','Whitefield','560067',20.0,'08:00','14:45',130000,180000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('tattva-school-kumbalgodu','Tattva School','Highly functional suburban infrastructure focus.','private','coed','Kengeri','560074',22.0,'08:30','15:15',60000,90000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('hal-public-school-vimandipura','HAL Public School','Legacy public sector foundation; highly reliable faculty.','government','coed','Whitefield','560017',28.0,'08:00','14:30',45000,65000,'LKG','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('air-force-school-hebbal','Air Force School','Sprawling military grounds; structured discipline.','government','coed','Hebbal','560006',30.0,'07:45','14:15',40000,65000,'LKG','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('presidency-school-bangalore-south','Presidency School Bangalore South','Active co-curricular focus; well-received by families.','private','coed','JP Nagar','560062',25.0,'08:15','15:00',99000,222000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('presidency-school-bangalore-north','Presidency School Bangalore North','Highly interactive pedagogy; strong reputation.','private','coed','Yelahanka','560064',18.0,'08:00','14:45',95000,140000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('samarthanam-high-school-hsr-layout','Samarthanam High School','Exceptional inclusivity profile and community care.','private','coed','HSR Layout','560102',25.0,'08:40','15:30',30000,50000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('insight-academy-marathahalli','Insight Academy','Dependable neighbourhood option for mid-scale budget.','private','coed','Marathahalli','560037',20.0,'08:30','15:15',65000,95000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('whitefield-global-school-whitefield','Whitefield Global School','Advanced internal IT systems; high rating metrics.','private','coed','Whitefield','560066',18.0,'08:00','15:00',110000,160000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('vibgyor-high-marathahalli','VIBGYOR High Marathahalli','Air-conditioned facilities; individual care prioritised.','private','coed','Marathahalli','560037',10.0,'08:15','15:00',138000,138000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('vibgyor-high-haralur','VIBGYOR High Haralur','Strong focus on field sports and performance stages.','private','coed','HSR Layout','560102',14.0,'08:15','15:00',125000,190000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('millennium-world-school-north-bangalore','Millennium World School','Emerging layout; highly digitised classrooms.','private','coed','Yelahanka','562157',15.0,'08:30','15:30',85000,130000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('sherwood-high-bannerghatta','Sherwood High','Wide open playground layouts; excellent security.','private','coed','Bannerghatta Road','560083',20.0,'08:15','15:15',110000,155000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('soundarya-central-school-nagasandra','Soundarya Central School','Highly systematic disciplined local performance history.','private','coed','Rajajinagar','560073',22.0,'08:30','15:15',70000,110000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('ekya-school-btm-layout','Ekya School BTM Layout','Creative global teaching blends; solid parent reviews.','private','coed','BTM Layout','560076',13.0,'08:00','14:30',190000,210000,'Nursery','Class 12',ARRAY['cbse','ib']::curriculum_type[]);
+SELECT _upsert_school('kle-society-school-rajajinagar','KLE Society School','Highly structured digital tools; transparent tracking.','private','coed','Rajajinagar','560010',15.0,'08:15','14:45',107000,115000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('sjr-public-school-rajajinagar','SJR Public School','Highly consistent local reputation; focused academics.','private','coed','Rajajinagar','560010',19.0,'08:30','15:00',66600,66600,'Class 1','Class 10',ARRAY['cbse']::curriculum_type[]);
+
+-- ================================================================
+-- SCHOOLS 51–100
+-- ================================================================
+SELECT _upsert_school('bishop-cotton-boys-ashok-nagar','Bishop Cotton Boys'' School','Ranked #1 legacy school; deep network; high prestige.','private','boys','Indiranagar','560025',17.0,'07:50','14:30',130000,130000,'Nursery','Class 12',ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('bishop-cotton-girls-ashok-nagar','Bishop Cotton Girls'' School','Highly rated for leadership tracks; vintage heritage.','private','girls','Indiranagar','560025',20.0,'07:50','14:30',185000,185000,'Nursery','Class 12',ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('st-josephs-boys-high-school-ashok-nagar','St. Joseph''s Boys'' High School','500-year Jesuit pedagogical legacy; stellar MUN track.','private','boys','Indiranagar','560025',23.0,'08:00','14:15',NULL,NULL,'Nursery','Class 12',ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('paradise-academy-electronic-city','The Paradise Academy','Practical workspace focus; friendly community score.','private','coed','Electronic City','560100',18.0,'08:30','15:15',NULL,NULL,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('paradise-international-electronic-city','The Paradise International','Highly supportive local system environment rating.','private','coed','Electronic City','560100',18.0,'08:30','15:15',NULL,NULL,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('new-oxford-international-anekal','New Oxford International','Emerging regional cluster track; reliable labs.','private','coed','Anekal','562106',25.0,'08:30','15:30',50000,85000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('st-germain-academy-frazer-town','St. Germain Academy','Landmark Anglo-Indian institution; high inclusivity.','private','coed','Indiranagar','560005',18.0,'08:15','14:45',315000,315000,'Nursery','Class 12',ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('national-academy-for-learning-basaveshwar-nagar','National Academy for Learning','Sister track to NPS; highly analytical model.','private','coed','Rajajinagar','560079',20.0,'08:15','14:30',139000,159000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('venus-international-school-rajajinagar','Venus International School','Flexible co-ed setup; active focus on life skills.','private','coed','Rajajinagar','560010',30.0,'08:30','15:30',65000,175000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('sophia-high-school-vasanth-nagar','Sophia High School','Celebrated convent values; language skills excellence.','private','girls','Sadashivanagar','560001',18.0,'08:10','14:30',NULL,NULL,'Nursery','Class 12',ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('sri-vani-international-rajajinagar','Sri Vani International','Traditional values; well-balanced co-curricular index.','private','coed','Rajajinagar','560010',15.0,'08:30','15:00',NULL,NULL,'Nursery','Class 10',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('aadya-academy-yelahanka','Aadya Academy — The World','High parent marks for open growth-mindset tasks.','private','coed','Yelahanka','560064',15.0,'08:15','15:15',79000,109000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('federal-public-school-yelahanka','Federal Public School','Safe neighbourhood profile; solid board preparations.','private','coed','Yelahanka','560064',30.0,'08:30','15:00',77000,90500,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('gopalan-international-school-hoodi','Gopalan International School','Strongly managed campus; excellent art tracks.','private','coed','Whitefield','560048',20.0,'08:15','15:00',110000,160000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('greenwood-high-sarjapur-road','Greenwood High Sarjapur Road','Elite index ranking; premium modern facilities.','private','coed','Sarjapur','560087',12.0,'08:00','15:15',180000,350000,'Nursery','Class 12',ARRAY['cbse','ib']::curriculum_type[]);
+SELECT _upsert_school('greenwood-high-bannerghatta','Greenwood High Bannerghatta','Excellent specialised math and language curriculum.','private','coed','Bannerghatta Road','560083',14.0,'08:15','15:00',160000,290000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('frank-anthony-public-ulsoor','The Frank Anthony Public School','Renowned English-medium history; top debating culture.','private','coed','Indiranagar','560008',20.0,'08:00','14:15',90000,130000,'Nursery','Class 12',ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('christ-academy-begur-koppa-road','Christ Academy','Sprawling clean campus; strong discipline framework.','private','coed','Bannerghatta Road','560083',18.0,'08:30','15:15',85000,140000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('ryan-international-school-bannerghatta','Ryan International School Bannerghatta','Highly engaging community events; extensive sports.','private','coed','Bannerghatta Road','560083',25.0,'08:15','14:50',90000,145000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('ryan-international-school-kundalahalli','Ryan International School Kundalahalli','Well-integrated local neighbourhood IT track.','private','coed','Marathahalli','560037',24.0,'08:15','14:50',95000,150000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('ryan-international-school-yelahanka','Ryan International School Yelahanka','Holistic focus layout; active peer review engagement.','private','coed','Yelahanka','560064',35.0,'08:15','15:00',50500,132000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('baldwin-boys-high-school-richmond-town','Baldwin Boys'' High School','140+ year legacy; highly valued central location.','private','boys','Basavanagudi','560025',22.0,'08:00','14:30',110000,150000,'Nursery','Class 12',ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('baldwin-girls-high-school-richmond-town','Baldwin Girls'' High School','Championship swimming pools; emphasis on morals.','private','girls','Basavanagudi','560025',20.0,'08:00','14:30',110000,150000,'Nursery','Class 12',ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('trinity-central-school-electronic-city','Trinity Central School','Dependable family-centric community school.','private','coed','Electronic City','560100',18.0,'08:30','15:15',60000,95000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('bethany-high-school-koramangala','Bethany High School','Elite choir and performing arts programs; very popular.','private','coed','Koramangala','560034',15.0,'08:00','14:30',120000,170000,'Nursery','Class 12',ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('tenderfoot-international-hsr-layout','Tenderfoot International','Nurturing primary child development design.','private','coed','HSR Layout','560102',12.0,'08:45','13:30',75000,110000,'Nursery','Class 7',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('st-francis-school-koramangala','St. Francis School','Highly consistent academic output profile.','private','coed','Koramangala','560034',22.0,'08:15','14:45',65000,100000,'Nursery','Class 10',ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('lawrence-high-school-hsr-layout','Lawrence High School','Well-rounded layout; positive suburban operations.','private','coed','HSR Layout','560102',20.0,'08:15','15:00',70000,110000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('clarence-high-school-frazer-town','Clarence High School','Strong heritage focus on deep character building.','private','coed','Indiranagar','560005',18.0,'08:00','14:30',80000,120000,'Nursery','Class 12',ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('cathedral-high-school-richmond-road','Cathedral High School','Clean legacy campus tracking; high localised scores.','private','coed','Basavanagudi','560025',25.0,'08:15','14:15',60000,95000,'Nursery','Class 12',ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('sunrise-international-school-electronic-city','Sunrise International School','Responsive management; strong basic tracking.','private','coed','Electronic City','560100',15.0,'08:30','15:00',70000,105000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('brigade-school-jayanagar','Brigade School Jayanagar','Highly systematic corporatised campus layout.','private','coed','Jayanagar','560082',18.0,'08:15','14:45',115000,160000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('brigade-school-mahadevapura','Brigade School Mahadevapura','Exceptionally well-equipped science and research spaces.','private','coed','Marathahalli','560048',17.0,'08:15','14:45',120000,165000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('little-flower-public-school-banashankari','Little Flower Public School','Reliable domestic academic success rate metrics.','private','coed','JP Nagar','560085',22.0,'08:30','15:00',75000,115000,'Nursery','Class 10',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('st-meeras-high-school-rajajinagar','St. Meera''s High School','Emphasis on individual student potential and tracking.','private','coed','Rajajinagar','560010',30.0,'08:15','14:45',NULL,NULL,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('orchids-international-yelahanka','Orchids The International School Yelahanka','Comprehensive trilingual program; standard tech focus.','private','coed','Yelahanka','560064',14.0,'08:00','15:00',62500,82500,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('vidyashilp-academy-yelahanka','Vidyashilp Academy','Inquiry-based layout; strong critical thinking reviews.','private','coed','Yelahanka','560064',20.0,'08:30','15:30',NULL,NULL,'Class 1','Class 12',ARRAY['cbse','ib']::curriculum_type[]);
+SELECT _upsert_school('vishwa-vidyapeeth-yelahanka','Vishwa Vidyapeeth','Holistic synthesis of values and modern tech.','private','coed','Yelahanka','560064',30.0,'08:15','15:00',NULL,NULL,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('new-age-world-school-yelahanka','New Age World School','Standard local framework choice; good parent reviews.','private','coed','Yelahanka','560064',30.0,'08:30','15:15',48000,48000,'Class 1','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('mallya-aditi-international-yelahanka','Mallya Aditi International School','Celebrated 40-year legacy; exceptional arts placement.','international','coed','Yelahanka','560064',7.0,'08:00','14:30',NULL,NULL,'Nursery','Class 12',ARRAY['ib','igcse']::curriculum_type[]);
+SELECT _upsert_school('don-bosco-high-school-chitrakala-layout','Don Bosco High School','Disciplined stable infrastructure tracking metrics.','private','coed','Malleswaram','560072',25.0,'08:30','15:15',55000,85000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('sarala-birla-academy-bannerghatta','Sarala Birla Academy','Ultra-premium Oxford architecture campus; elite boarding.','private','boys','Bannerghatta Road','560083',10.0,NULL,NULL,997000,1072000,'Class 5','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('innisfree-house-school-jp-nagar','Innisfree House School','Excellent cosy traditional setup with steady faculty.','private','coed','JP Nagar','560078',15.0,'08:15','14:30',80000,120000,'Nursery','Class 10',ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('green-country-public-school-hbr-layout','Green Country Public School','Family-oriented local scale school layout scores.','private','coed','Marathahalli','560043',20.0,'08:30','15:00',60000,95000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('st-pauls-english-school-jp-nagar','St. Paul''s English School','Consistently highly ranked; strong academic output.','private','coed','JP Nagar','560078',18.0,'08:00','14:15',90000,135000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('redhouz-international-hennur','Redhouz International','Cosy foundational layout framework metrics.','private','coed','Hebbal','560043',12.0,'08:45','14:00',NULL,NULL,'Nursery','Class 8',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('silicon-city-academy-konanakunte','Silicon City Academy','Sprawling suburban campus; practical emphasis.','private','coed','JP Nagar','560062',22.0,'08:15','15:15',75000,110000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('janki-international-school-kengeri','Janki International School','Strong traditional integration profiles online.','private','coed','Kengeri','560060',18.0,'08:30','15:00',NULL,NULL,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('vibgyor-roots-and-rise-hsr-layout','Vibgyor Roots and Rise','Specialised target layout for early learning.','private','coed','HSR Layout','560102',10.0,'08:30','13:30',110000,150000,'Nursery','Class 5',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('maruthi-vidyalaya-subbanapalya','Maruthi Vidyalaya','Dependable performance legacy tracking choices.','private','coed','Marathahalli','560033',24.0,'08:15','14:30',70000,105000,'Nursery','Class 10',ARRAY['cbse']::curriculum_type[]);
+
+-- ================================================================
+-- SCHOOLS 101–150
+-- ================================================================
+SELECT _upsert_school('jain-international-residential-school-kanakapura','JAIN International Residential School','Ranked #1 state boarding layout; massive infrastructure.','private','coed','JP Nagar',NULL,10.0,NULL,NULL,450000,700000,'Class 5','Class 12',ARRAY['cbse','ib','igcse']::curriculum_type[]);
+SELECT _upsert_school('academic-city-school-kanakapura','The Academic City School','Focus on elite sports and global tech transitions.','international','coed','JP Nagar',NULL,12.0,NULL,NULL,NULL,NULL,NULL,NULL,ARRAY['cbse','ib']::curriculum_type[]);
+SELECT _upsert_school('redbridge-international-academy-sarjapur-road','Redbridge International Academy','18-acre green campus; modern organic farming labs.','international','coed','Sarjapur',NULL,12.0,'08:15','15:30',250000,480000,'Nursery','Class 12',ARRAY['ib','igcse','icse']::curriculum_type[]);
+SELECT _upsert_school('canadian-international-school-yelahanka','Canadian International School','Apple Distinguished Tech School layout; premium tier.','international','coed','Yelahanka','560064',8.0,'08:30','15:30',500000,1000000,'Nursery','Class 12',ARRAY['ib','igcse']::curriculum_type[]);
+SELECT _upsert_school('naavu-school-whitefield','Naavu School','Inquiry-driven tech-forward startup track design.','international','coed','Whitefield',NULL,12.0,'08:30','15:00',375000,1080000,'Nursery','Class 12',ARRAY['ib']::curriculum_type[]);
+SELECT _upsert_school('tisb-whitefield','The International School Bangalore (TISB)','Exceptional Ivy League placement metrics globally.','international','coed','Whitefield',NULL,9.0,'08:00','15:30',600000,1100000,'Nursery','Class 12',ARRAY['ib','igcse']::curriculum_type[]);
+SELECT _upsert_school('stonehill-international-school-north-bangalore','Stonehill International School','Celebrated global citizenship culture; elite tier.','international','coed','Yelahanka',NULL,8.0,'08:30','15:30',600000,1200000,'Nursery','Class 12',ARRAY['ib']::curriculum_type[]);
+SELECT _upsert_school('harrow-international-school-devanahalli','Harrow International School','Prestigious British legacy model house structures.','international','coed','Yelahanka',NULL,8.0,'08:15','16:00',NULL,NULL,'Nursery','Class 12',ARRAY['igcse']::curriculum_type[]);
+SELECT _upsert_school('treamis-world-school-electronic-city','Treamis World School','Project-driven structure; outstanding Cambridge awards.','private','coed','Electronic City',NULL,12.0,'08:30','15:40',250000,450000,'Nursery','Class 12',ARRAY['cbse','ib','igcse']::curriculum_type[]);
+SELECT _upsert_school('new-baldwin-international-krishnarajapura','New Baldwin International','Value-based multicultural design frameworks.','private','coed','Marathahalli',NULL,18.0,'08:15','15:30',NULL,NULL,'Nursery','Class 12',ARRAY['igcse']::curriculum_type[]);
+SELECT _upsert_school('legacy-school-hennur','Legacy School','Excellent student flexibility; progressive profiles.','international','coed','Hebbal',NULL,10.0,'08:15','15:15',220000,400000,'Nursery','Class 12',ARRAY['ib','igcse']::curriculum_type[]);
+SELECT _upsert_school('trio-world-academy-sahakar-nagar','Trio World Academy','Strong international focus; safe transit index.','international','coed','Hebbal',NULL,10.0,'08:30','15:30',250000,500000,'Nursery','Class 12',ARRAY['ib','igcse']::curriculum_type[]);
+SELECT _upsert_school('primus-public-school-sarjapur-road','Primus Public School','Balanced practical application layout parameters.','private','coed','Sarjapur',NULL,15.0,'08:00','15:00',130000,210000,'Nursery','Class 12',ARRAY['igcse','cbse']::curriculum_type[]);
+SELECT _upsert_school('oakridge-international-sarjapur','Oakridge International School','Nord Anglia global network integration platform.','international','coed','Sarjapur',NULL,11.0,'08:15','15:15',300000,550000,'Nursery','Class 12',ARRAY['ib']::curriculum_type[]);
+SELECT _upsert_school('chrysalis-kids-varthur','Chrysalis Kids','Specialised focus profiles for early development.','private','coed','Whitefield',NULL,10.0,'08:45','13:30',80000,120000,'Nursery','Class 5',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('inventure-academy-sarjapur-road','Inventure Academy','Top-tier ranking metrics; excellent performance labs.','private','coed','Sarjapur',NULL,15.0,'08:00','15:30',372000,749000,'Nursery','Class 12',ARRAY['icse','igcse']::curriculum_type[]);
+SELECT _upsert_school('indus-international-school-sarjapur','Indus International School','Highly acclaimed leadership training and startup tracks.','international','coed','Sarjapur',NULL,9.0,'08:30','15:30',450000,850000,'Nursery','Class 12',ARRAY['ib']::curriculum_type[]);
+SELECT _upsert_school('greenwood-high-international-sarjapur-road','Greenwood High International School','Massively successful IB diploma placements history.','international','coed','Sarjapur',NULL,10.0,'08:15','15:15',300000,600000,'Nursery','Class 12',ARRAY['ib','igcse']::curriculum_type[]);
+SELECT _upsert_school('ebenezer-international-school-sarjapur','Ebenezer International School','Well-rounded global layout; top athletic infrastructure.','international','coed','Sarjapur',NULL,12.0,'08:00','15:30',210000,380000,'Nursery','Class 12',ARRAY['icse','igcse','ib']::curriculum_type[]);
+SELECT _upsert_school('global-city-international-malleshwaram','Global City International School','Well-located urban international blend profiles.','private','coed','Malleswaram',NULL,15.0,'08:15','15:00',110000,160000,'Nursery','Class 12',ARRAY['cbse','igcse']::curriculum_type[]);
+SELECT _upsert_school('bangalore-international-school-hennur','Bangalore International School','Rich historic international student diversity.','international','coed','Hebbal',NULL,8.0,'08:30','15:15',350000,700000,'Nursery','Class 12',ARRAY['ib','igcse']::curriculum_type[]);
+SELECT _upsert_school('christ-university-junior-college-hosur-road','Christ University Junior College','Massive regional pipeline; highly focused academics.','private','coed','Electronic City',NULL,45.0,'08:30','15:30',40000,60000,'Class 11','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('royal-public-school-electronic-city','Royal Public School','Popular localised budget choice; dependable faculty.','private','coed','Electronic City',NULL,35.0,'08:40','15:15',38000,60000,'Nursery','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('gvs-english-school-electronic-city','GVS English School & College','Highly economical tier index tracking choice.','private','coed','Electronic City',NULL,50.0,'08:30','15:30',30000,50000,'Nursery','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('st-johns-high-school-frazer-town','St. John''s High School','Classic traditional institution; strong neighbourhood ties.','private','coed','Indiranagar',NULL,40.0,'08:15','14:30',25000,45000,'Nursery','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('new-horizon-high-school-kasturi-nagar','New Horizon High School','Reliable regional track success rates index.','private','coed','Marathahalli',NULL,30.0,'08:15','15:00',45000,70000,'Nursery','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('vvs-sardar-patel-high-school-rajajinagar','VVS Sardar Patel High School','Respected traditional framework layout scores.','private','coed','Rajajinagar',NULL,16.0,'08:30','15:00',39600,39600,'Nursery','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('st-josephs-pu-college-residency-road','St. Joseph''s PU College','Exceptional high school pipeline transition reputation.','private','coed','Basavanagudi',NULL,50.0,'08:15','15:00',30000,55000,'Class 11','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('bishop-cotton-pu-college-residency-road','Bishop Cotton PU College','Historic legacy brand extension tracking data.','private','coed','Basavanagudi',NULL,45.0,'08:00','14:30',40000,65000,'Class 11','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('cathedral-pu-college-richmond-road','Cathedral PU College','Centrally located baseline structure value choice.','private','coed','Basavanagudi',NULL,40.0,'08:15','14:30',35000,55000,'Class 11','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('mes-pu-college-malleshwaram','MES PU College','Top-tier competitive rank tracker for science tracks.','private','coed','Malleswaram',NULL,55.0,'08:00','15:00',25000,45000,'Class 11','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('mount-carmel-pu-college-vasanth-nagar','Mount Carmel PU College','Highly sought-after legacy choice for girls'' tracks.','private','girls','Sadashivanagar',NULL,45.0,'08:15','15:00',NULL,NULL,'Class 11','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('baldwin-methodist-pu-college-richmond-town','Baldwin Methodist PU College','Strong core values orientation focus index.','private','coed','Basavanagudi',NULL,45.0,'08:15','14:45',40000,60000,'Class 11','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('st-charles-high-school-hennur','St. Charles High School','Highly systematic community values model.','private','coed','Hebbal',NULL,40.0,'08:30','15:15',25000,40000,'Nursery','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('holy-saint-high-school-jayanagar','Holy Saint High School','Dependable regional performance index ranking.','private','coed','Jayanagar',NULL,35.0,'08:30','15:00',30000,50000,'Nursery','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('cluny-convent-high-school-jallahalli','Cluny Convent High School','Celebrated disciplined track parameters.','private','girls','Rajajinagar',NULL,38.0,'08:15','14:30',25000,45000,'Nursery','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('stella-maris-high-school-gayathrinagar','Stella Maris High School','Strong local girls'' primary pipeline setup.','private','girls','Hebbal',NULL,40.0,'08:30','15:15',28000,48000,'Nursery','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('sophia-opportunity-school-vasanth-nagar','Sophia Opportunity School','Renowned inclusion and special education framework.','private','coed','Sadashivanagar',NULL,8.0,'08:45','13:30',NULL,NULL,'Nursery','Class 12',NULL);
+SELECT _upsert_school('narayana-e-techno-school-jp-nagar','Narayana E-Techno School','Highly tailored focus for IIT-JEE/NEET testing.','private','coed','JP Nagar',NULL,25.0,'08:00','16:00',50000,110000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('chaitanya-techno-school-electronic-city','Chaitanya Techno School','Rigorous competitive examination drill tracking.','private','coed','Electronic City',NULL,26.0,'08:00','16:30',55000,115000,'Nursery','Class 12',ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('sri-kumaran-childrens-home-basavanagudi','Sri Kumaran Children''s Home','Exceptional regional legacy brand value scores.','private','coed','Basavanagudi',NULL,30.0,'08:15','14:45',40000,65000,'Nursery','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('sri-bhagawan-mahaveer-college-vv-puram','Sri Bhagawan Mahaveer College','JAIN Group pipeline; very high student volume.','private','coed','Basavanagudi',NULL,50.0,'08:30','15:30',35000,60000,'Nursery','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('nmkrv-pu-college-jayanagar','NMKRV PU College','Highly reliable cultural and educational legacy.','private','coed','Jayanagar',NULL,48.0,'08:15','14:30',22000,40000,'Class 11','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('vijaya-high-school-jayanagar','Vijaya High School','Historic neighbourhood layout value fit.','private','coed','Jayanagar',NULL,45.0,'08:30','15:15',20000,35000,'Nursery','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('national-high-school-basavanagudi','National High School','Celebrated 100-year local foundational history.','private','coed','Basavanagudi',NULL,40.0,'08:30','15:00',20000,38000,'Nursery','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('bangalore-international-academy-jayanagar','Bangalore International Academy','Balanced lifestyle track parameters; positive reviews.','private','coed','Jayanagar',NULL,20.0,'08:15','14:45',NULL,NULL,'Nursery','Class 12',ARRAY['cbse','state_board']::curriculum_type[]);
+SELECT _upsert_school('sudarshan-vidya-mandir-jayanagar','Sudarshan Vidya Mandir','Values-oriented framework metrics; high support.','private','coed','Jayanagar',NULL,22.0,'08:30','15:00',NULL,NULL,'Nursery','Class 12',ARRAY['cbse','state_board']::curriculum_type[]);
+SELECT _upsert_school('clarence-pu-college-frazer-town','Clarence PU College','Systematic highly supportive individual academic care.','private','coed','Indiranagar',NULL,40.0,'08:00','14:30',40000,60000,'Class 11','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('st-annes-girls-high-school-miller-road','St. Anne''s Girls High School','Safe highly disciplined traditional setup profile.','private','girls','Indiranagar',NULL,42.0,'08:30','15:15',22000,38000,'Nursery','Class 12',ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('baldwin-girls-pu-college-richmond-town','Baldwin Girls'' PU College','Strong leadership layout parameters for women''s tracks.','private','girls','Basavanagudi',NULL,45.0,'08:00','14:30',45000,65000,'Class 11','Class 12',ARRAY['state_board']::curriculum_type[]);
+
+-- ================================================================
+-- Clean up helper function
+-- ================================================================
+DROP FUNCTION _upsert_school;
