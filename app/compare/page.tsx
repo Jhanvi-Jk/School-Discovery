@@ -36,7 +36,7 @@ export default function ComparePage() {
           .then((json) => {
             if (!json.success) return s;
             const d = json.data;
-            const sd = d.school_details || {};
+            const sd = (Array.isArray(d.school_details) ? d.school_details[0] : d.school_details) || {};
             return {
               ...s,
               student_teacher_ratio: sd.student_teacher_ratio ?? s.student_teacher_ratio,
