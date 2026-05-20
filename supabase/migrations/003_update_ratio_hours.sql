@@ -1,171 +1,153 @@
 -- ================================================================
 -- 003_update_ratio_hours.sql
--- Paste into Supabase SQL Editor and click Run.
--- Updates ONLY student_teacher_ratio and school_hours for all 150 schools.
+-- Plain UPDATE statements — paste into Supabase SQL Editor and Run.
 -- ================================================================
 
-DO $$
-DECLARE
-  data RECORD;
-BEGIN
-  FOR data IN (VALUES
-    ('delhi-public-school-north-yelahanka',         25.0, '07:30'::TIME, '14:30'::TIME),
-    ('delhi-public-school-south-konanakunte',        19.0, '07:45'::TIME, '14:45'::TIME),
-    ('delhi-public-school-east-sarjapur-road',       22.0, '07:40'::TIME, '14:40'::TIME),
-    ('cambridge-international-school-whitefield',    10.0, '08:00'::TIME, '15:00'::TIME),
-    ('cambridge-international-school-sarjapur-road', 10.0, '08:00'::TIME, '15:00'::TIME),
-    ('new-horizon-gurukul-marathahalli',             25.0, '08:00'::TIME, '15:15'::TIME),
-    ('wisdomwood-high-begur-lake',                   15.0, '08:30'::TIME, '15:00'::TIME),
-    ('national-public-school-indiranagar',           17.0, '08:00'::TIME, '14:10'::TIME),
-    ('national-public-school-rajajinagar',           18.0, '08:00'::TIME, '14:15'::TIME),
-    ('national-public-school-hsr-layout',            16.0, '08:00'::TIME, '14:00'::TIME),
-    ('national-public-school-koramangala',           13.0, '08:00'::TIME, '14:15'::TIME),
-    ('national-public-school-jayanagar',             17.0, '08:15'::TIME, '14:30'::TIME),
-    ('goldenbee-global-school-bannerghatta',         14.0, '08:30'::TIME, '15:30'::TIME),
-    ('goldenbee-global-school-btm-layout',           12.0, '08:30'::TIME, '15:30'::TIME),
-    ('goldenbee-global-school-horamavu',             12.0, '08:30'::TIME, '15:30'::TIME),
-    ('podar-global-school-yelahanka',                30.0, '08:15'::TIME, '15:15'::TIME),
-    ('new-oxford-school-sarjapur',                   25.0, '08:30'::TIME, '15:30'::TIME),
-    ('mvm-school-devanahalli',                       12.0, '08:30'::TIME, '15:15'::TIME),
-    ('canara-gurukula-public-electronic-city',       20.0, '08:30'::TIME, '15:00'::TIME),
-    ('kesar-international-school-bagalur',           12.0, '08:15'::TIME, '15:00'::TIME),
-    ('ms-dhoni-global-school-hsr-layout',            20.0, '08:00'::TIME, '15:15'::TIME),
-    ('broadvision-world-school-thanisandra',          8.0, '08:30'::TIME, '15:30'::TIME),
-    ('orchids-international-jalahalli',              14.0, '08:00'::TIME, '15:00'::TIME),
-    ('orchids-international-btm-layout',             14.0, '08:00'::TIME, '15:00'::TIME),
-    ('orchids-international-bannerghatta',           14.0, '08:00'::TIME, '15:00'::TIME),
-    ('orchids-international-haralur',                15.0, '08:00'::TIME, '15:00'::TIME),
-    ('orchids-international-rajajinagar',            15.0, '08:15'::TIME, '15:00'::TIME),
-    ('vyasa-international-school-vidyaranyapura',    25.0, '08:15'::TIME, '15:00'::TIME),
-    ('amaatra-academy-haralur',                      18.0, '08:00'::TIME, '15:30'::TIME),
-    ('army-public-school-kamaraj-road',              30.0, '07:50'::TIME, '14:10'::TIME),
-    ('kendriya-vidyalaya-iisc-malleshwaram',         35.0, '08:00'::TIME, '14:00'::TIME),
-    ('chrysalis-high-varthur',                       15.0, '08:15'::TIME, '15:00'::TIME),
-    ('chrysalis-high-whitefield',                    16.0, '08:15'::TIME, '15:00'::TIME),
-    ('silver-oaks-international-whitefield',         20.0, '08:00'::TIME, '14:45'::TIME),
-    ('tattva-school-kumbalgodu',                     22.0, '08:30'::TIME, '15:15'::TIME),
-    ('hal-public-school-vimandipura',                28.0, '08:00'::TIME, '14:30'::TIME),
-    ('air-force-school-hebbal',                      30.0, '07:45'::TIME, '14:15'::TIME),
-    ('presidency-school-bangalore-south',            25.0, '08:15'::TIME, '15:00'::TIME),
-    ('presidency-school-bangalore-north',            18.0, '08:00'::TIME, '14:45'::TIME),
-    ('samarthanam-high-school-hsr-layout',           25.0, '08:40'::TIME, '15:30'::TIME),
-    ('insight-academy-marathahalli',                 20.0, '08:30'::TIME, '15:15'::TIME),
-    ('whitefield-global-school-whitefield',          18.0, '08:00'::TIME, '15:00'::TIME),
-    ('vibgyor-high-marathahalli',                    10.0, '08:15'::TIME, '15:00'::TIME),
-    ('vibgyor-high-haralur',                         14.0, '08:15'::TIME, '15:00'::TIME),
-    ('millennium-world-school-north-bangalore',      15.0, '08:30'::TIME, '15:30'::TIME),
-    ('sherwood-high-bannerghatta',                   20.0, '08:15'::TIME, '15:15'::TIME),
-    ('soundarya-central-school-nagasandra',          22.0, '08:30'::TIME, '15:15'::TIME),
-    ('ekya-school-btm-layout',                       13.0, '08:00'::TIME, '14:30'::TIME),
-    ('kle-society-school-rajajinagar',               15.0, '08:15'::TIME, '14:45'::TIME),
-    ('sjr-public-school-rajajinagar',                19.0, '08:30'::TIME, '15:00'::TIME),
-    ('bishop-cotton-boys-ashok-nagar',               17.0, '07:50'::TIME, '14:30'::TIME),
-    ('bishop-cotton-girls-ashok-nagar',              20.0, '07:50'::TIME, '14:30'::TIME),
-    ('st-josephs-boys-high-school-ashok-nagar',      23.0, '08:00'::TIME, '14:15'::TIME),
-    ('paradise-academy-electronic-city',             18.0, '08:30'::TIME, '15:15'::TIME),
-    ('paradise-international-electronic-city',       18.0, '08:30'::TIME, '15:15'::TIME),
-    ('new-oxford-international-anekal',              25.0, '08:30'::TIME, '15:30'::TIME),
-    ('st-germain-academy-frazer-town',               18.0, '08:15'::TIME, '14:45'::TIME),
-    ('national-academy-for-learning-basaveshwar-nagar', 20.0, '08:15'::TIME, '14:30'::TIME),
-    ('venus-international-school-rajajinagar',       30.0, '08:30'::TIME, '15:30'::TIME),
-    ('aadya-academy-yelahanka',                      15.0, '08:15'::TIME, '15:15'::TIME),
-    ('federal-public-school-yelahanka',              30.0, '08:30'::TIME, '15:00'::TIME),
-    ('gopalan-international-school-hoodi',           20.0, '08:15'::TIME, '15:00'::TIME),
-    ('greenwood-high-sarjapur-road',                 12.0, '08:00'::TIME, '15:15'::TIME),
-    ('greenwood-high-bannerghatta',                  14.0, '08:15'::TIME, '15:00'::TIME),
-    ('frank-anthony-public-ulsoor',                  20.0, '08:00'::TIME, '14:15'::TIME),
-    ('christ-academy-begur-koppa-road',              18.0, '08:30'::TIME, '15:15'::TIME),
-    ('ryan-international-school-bannerghatta',       25.0, '08:15'::TIME, '14:50'::TIME),
-    ('ryan-international-school-kundalahalli',       24.0, '08:15'::TIME, '14:50'::TIME),
-    ('ryan-international-school-yelahanka',          35.0, '08:15'::TIME, '15:00'::TIME),
-    ('baldwin-boys-high-school-richmond-town',       22.0, '08:00'::TIME, '14:30'::TIME),
-    ('baldwin-girls-high-school-richmond-town',      20.0, '08:00'::TIME, '14:30'::TIME),
-    ('trinity-central-school-electronic-city',       18.0, '08:30'::TIME, '15:15'::TIME),
-    ('bethany-high-school-koramangala',              15.0, '08:00'::TIME, '14:30'::TIME),
-    ('tenderfoot-international-hsr-layout',          12.0, '08:45'::TIME, '13:30'::TIME),
-    ('st-francis-school-koramangala',                22.0, '08:15'::TIME, '14:45'::TIME),
-    ('lawrence-high-school-hsr-layout',              20.0, '08:15'::TIME, '15:00'::TIME),
-    ('clarence-high-school-frazer-town',             18.0, '08:00'::TIME, '14:30'::TIME),
-    ('cathedral-high-school-richmond-road',          25.0, '08:15'::TIME, '14:15'::TIME),
-    ('sunrise-international-school-electronic-city', 15.0, '08:30'::TIME, '15:00'::TIME),
-    ('brigade-school-jayanagar',                     18.0, '08:15'::TIME, '14:45'::TIME),
-    ('brigade-school-mahadevapura',                  17.0, '08:15'::TIME, '14:45'::TIME),
-    ('little-flower-public-school-banashankari',     22.0, '08:30'::TIME, '15:00'::TIME),
-    ('orchids-international-yelahanka',              14.0, '08:00'::TIME, '15:00'::TIME),
-    ('don-bosco-high-school-chitrakala-layout',      25.0, '08:30'::TIME, '15:15'::TIME),
-    ('innisfree-house-school-jp-nagar',              15.0, '08:15'::TIME, '14:30'::TIME),
-    ('green-country-public-school-hbr-layout',      20.0, '08:30'::TIME, '15:00'::TIME),
-    ('st-pauls-english-school-jp-nagar',             18.0, '08:00'::TIME, '14:15'::TIME),
-    ('silicon-city-academy-konanakunte',             22.0, '08:15'::TIME, '15:15'::TIME),
-    ('vibgyor-roots-and-rise-hsr-layout',            10.0, '08:30'::TIME, '13:30'::TIME),
-    ('maruthi-vidyalaya-subbanapalya',               24.0, '08:15'::TIME, '14:30'::TIME),
-    ('jain-international-residential-school-kanakapura', 10.0, NULL,       NULL),
-    ('redbridge-international-academy-sarjapur-road', 12.0, '08:15'::TIME, '15:30'::TIME),
-    ('canadian-international-school-yelahanka',       8.0, '08:30'::TIME, '15:30'::TIME),
-    ('naavu-school-whitefield',                       12.0, '08:30'::TIME, '15:00'::TIME),
-    ('tisb-whitefield',                               9.0, '08:00'::TIME, '15:30'::TIME),
-    ('stonehill-international-school-north-bangalore', 8.0, '08:30'::TIME, '15:30'::TIME),
-    ('harrow-international-school-devanahalli',        8.0, '08:15'::TIME, '16:00'::TIME),
-    ('treamis-world-school-electronic-city',          12.0, '08:30'::TIME, '15:40'::TIME),
-    ('legacy-school-hennur',                          10.0, '08:15'::TIME, '15:15'::TIME),
-    ('trio-world-academy-sahakar-nagar',              10.0, '08:30'::TIME, '15:30'::TIME),
-    ('primus-public-school-sarjapur-road',            15.0, '08:00'::TIME, '15:00'::TIME),
-    ('oakridge-international-sarjapur',               11.0, '08:15'::TIME, '15:15'::TIME),
-    ('chrysalis-kids-varthur',                        10.0, '08:45'::TIME, '13:30'::TIME),
-    ('inventure-academy-sarjapur-road',               15.0, '08:00'::TIME, '15:30'::TIME),
-    ('indus-international-school-sarjapur',            9.0, '08:30'::TIME, '15:30'::TIME),
-    ('greenwood-high-international-sarjapur-road',    10.0, '08:15'::TIME, '15:15'::TIME),
-    ('ebenezer-international-school-sarjapur',        12.0, '08:00'::TIME, '15:30'::TIME),
-    ('global-city-international-malleshwaram',        15.0, '08:15'::TIME, '15:00'::TIME),
-    ('bangalore-international-school-hennur',          8.0, '08:30'::TIME, '15:15'::TIME),
-    ('christ-university-junior-college-hosur-road',   45.0, '08:30'::TIME, '15:30'::TIME),
-    ('royal-public-school-electronic-city',           35.0, '08:40'::TIME, '15:15'::TIME),
-    ('gvs-english-school-electronic-city',            50.0, '08:30'::TIME, '15:30'::TIME),
-    ('st-johns-high-school-frazer-town',              40.0, '08:15'::TIME, '14:30'::TIME),
-    ('new-horizon-high-school-kasturi-nagar',         30.0, '08:15'::TIME, '15:00'::TIME),
-    ('vvs-sardar-patel-high-school-rajajinagar',      16.0, '08:30'::TIME, '15:00'::TIME),
-    ('st-josephs-pu-college-residency-road',          50.0, '08:15'::TIME, '15:00'::TIME),
-    ('bishop-cotton-pu-college-residency-road',       45.0, '08:00'::TIME, '14:30'::TIME),
-    ('cathedral-pu-college-richmond-road',            40.0, '08:15'::TIME, '14:30'::TIME),
-    ('mes-pu-college-malleshwaram',                   55.0, '08:00'::TIME, '15:00'::TIME),
-    ('baldwin-methodist-pu-college-richmond-town',    45.0, '08:15'::TIME, '14:45'::TIME),
-    ('st-charles-high-school-hennur',                 40.0, '08:30'::TIME, '15:15'::TIME),
-    ('holy-saint-high-school-jayanagar',              35.0, '08:30'::TIME, '15:00'::TIME),
-    ('cluny-convent-high-school-jallahalli',          38.0, '08:15'::TIME, '14:30'::TIME),
-    ('stella-maris-high-school-gayathrinagar',        40.0, '08:30'::TIME, '15:15'::TIME),
-    ('sophia-opportunity-school-vasanth-nagar',        8.0, '08:45'::TIME, '13:30'::TIME),
-    ('narayana-e-techno-school-jp-nagar',             25.0, '08:00'::TIME, '16:00'::TIME),
-    ('chaitanya-techno-school-electronic-city',       26.0, '08:00'::TIME, '16:30'::TIME),
-    ('sri-kumaran-childrens-home-basavanagudi',       30.0, '08:15'::TIME, '14:45'::TIME),
-    ('sri-bhagawan-mahaveer-college-vv-puram',        50.0, '08:30'::TIME, '15:30'::TIME),
-    ('nmkrv-pu-college-jayanagar',                    48.0, '08:15'::TIME, '14:30'::TIME),
-    ('vijaya-high-school-jayanagar',                  45.0, '08:30'::TIME, '15:15'::TIME),
-    ('national-high-school-basavanagudi',             40.0, '08:30'::TIME, '15:00'::TIME),
-    ('clarence-pu-college-frazer-town',               40.0, '08:00'::TIME, '14:30'::TIME),
-    ('st-annes-girls-high-school-miller-road',        42.0, '08:30'::TIME, '15:15'::TIME),
-    ('baldwin-girls-pu-college-richmond-town',        45.0, '08:00'::TIME, '14:30'::TIME),
-    ('academic-city-school-kanakapura',               12.0, NULL,           NULL),
-    ('new-baldwin-international-krishnarajapura',     18.0, '08:15'::TIME, '15:30'::TIME),
-    ('mount-carmel-pu-college-vasanth-nagar',         45.0, '08:15'::TIME, '15:00'::TIME),
-    ('vidyashilp-academy-yelahanka',                  20.0, '08:30'::TIME, '15:30'::TIME),
-    ('vishwa-vidyapeeth-yelahanka',                   30.0, '08:15'::TIME, '15:00'::TIME),
-    ('sri-vani-international-rajajinagar',            15.0, '08:30'::TIME, '15:00'::TIME),
-    ('sophia-high-school-vasanth-nagar',              18.0, '08:10'::TIME, '14:30'::TIME),
-    ('sarala-birla-academy-bannerghatta',             10.0, NULL,           NULL),
-    ('redhouz-international-hennur',                  12.0, '08:45'::TIME, '14:00'::TIME),
-    ('janki-international-school-kengeri',            18.0, '08:30'::TIME, '15:00'::TIME),
-    ('st-meeras-high-school-rajajinagar',             30.0, '08:15'::TIME, '14:45'::TIME),
-    ('bangalore-international-academy-jayanagar',     20.0, '08:15'::TIME, '14:45'::TIME),
-    ('sudarshan-vidya-mandir-jayanagar',              22.0, '08:30'::TIME, '15:00'::TIME)
-  ) AS t(slug, ratio, h_start, h_end)
-  LOOP
-    UPDATE school_details sd
-    SET
-      student_teacher_ratio = data.ratio,
-      school_hours_start    = data.h_start,
-      school_hours_end      = data.h_end
-    FROM schools s
-    WHERE sd.school_id = s.id
-      AND s.slug = data.slug;
-  END LOOP;
-END $$;
+UPDATE school_details sd SET student_teacher_ratio=25.0, school_hours_start='07:30', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='delhi-public-school-north-yelahanka';
+UPDATE school_details sd SET student_teacher_ratio=19.0, school_hours_start='07:45', school_hours_end='14:45' FROM schools s WHERE sd.school_id=s.id AND s.slug='delhi-public-school-south-konanakunte';
+UPDATE school_details sd SET student_teacher_ratio=22.0, school_hours_start='07:40', school_hours_end='14:40' FROM schools s WHERE sd.school_id=s.id AND s.slug='delhi-public-school-east-sarjapur-road';
+UPDATE school_details sd SET student_teacher_ratio=10.0, school_hours_start='08:00', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='cambridge-international-school-whitefield';
+UPDATE school_details sd SET student_teacher_ratio=10.0, school_hours_start='08:00', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='cambridge-international-school-sarjapur-road';
+UPDATE school_details sd SET student_teacher_ratio=25.0, school_hours_start='08:00', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='new-horizon-gurukul-marathahalli';
+UPDATE school_details sd SET student_teacher_ratio=15.0, school_hours_start='08:30', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='wisdomwood-high-begur-lake';
+UPDATE school_details sd SET student_teacher_ratio=17.0, school_hours_start='08:00', school_hours_end='14:10' FROM schools s WHERE sd.school_id=s.id AND s.slug='national-public-school-indiranagar';
+UPDATE school_details sd SET student_teacher_ratio=18.0, school_hours_start='08:00', school_hours_end='14:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='national-public-school-rajajinagar';
+UPDATE school_details sd SET student_teacher_ratio=16.0, school_hours_start='08:00', school_hours_end='14:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='national-public-school-hsr-layout';
+UPDATE school_details sd SET student_teacher_ratio=13.0, school_hours_start='08:00', school_hours_end='14:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='national-public-school-koramangala';
+UPDATE school_details sd SET student_teacher_ratio=17.0, school_hours_start='08:15', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='national-public-school-jayanagar';
+UPDATE school_details sd SET student_teacher_ratio=14.0, school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='goldenbee-global-school-bannerghatta';
+UPDATE school_details sd SET student_teacher_ratio=12.0, school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='goldenbee-global-school-btm-layout';
+UPDATE school_details sd SET student_teacher_ratio=12.0, school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='goldenbee-global-school-horamavu';
+UPDATE school_details sd SET student_teacher_ratio=30.0, school_hours_start='08:15', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='podar-global-school-yelahanka';
+UPDATE school_details sd SET student_teacher_ratio=25.0, school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='new-oxford-school-sarjapur';
+UPDATE school_details sd SET student_teacher_ratio=12.0, school_hours_start='08:30', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='mvm-school-devanahalli';
+UPDATE school_details sd SET student_teacher_ratio=20.0, school_hours_start='08:30', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='canara-gurukula-public-electronic-city';
+UPDATE school_details sd SET student_teacher_ratio=12.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='kesar-international-school-bagalur';
+UPDATE school_details sd SET student_teacher_ratio=20.0, school_hours_start='08:00', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='ms-dhoni-global-school-hsr-layout';
+UPDATE school_details sd SET student_teacher_ratio=8.0,  school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='broadvision-world-school-thanisandra';
+UPDATE school_details sd SET student_teacher_ratio=14.0, school_hours_start='08:00', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='orchids-international-jalahalli';
+UPDATE school_details sd SET student_teacher_ratio=14.0, school_hours_start='08:00', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='orchids-international-btm-layout';
+UPDATE school_details sd SET student_teacher_ratio=14.0, school_hours_start='08:00', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='orchids-international-bannerghatta';
+UPDATE school_details sd SET student_teacher_ratio=15.0, school_hours_start='08:00', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='orchids-international-haralur';
+UPDATE school_details sd SET student_teacher_ratio=15.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='orchids-international-rajajinagar';
+UPDATE school_details sd SET student_teacher_ratio=25.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='vyasa-international-school-vidyaranyapura';
+UPDATE school_details sd SET student_teacher_ratio=18.0, school_hours_start='08:00', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='amaatra-academy-haralur';
+UPDATE school_details sd SET student_teacher_ratio=30.0, school_hours_start='07:50', school_hours_end='14:10' FROM schools s WHERE sd.school_id=s.id AND s.slug='army-public-school-kamaraj-road';
+UPDATE school_details sd SET student_teacher_ratio=35.0, school_hours_start='08:00', school_hours_end='14:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='kendriya-vidyalaya-iisc-malleshwaram';
+UPDATE school_details sd SET student_teacher_ratio=15.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='chrysalis-high-varthur';
+UPDATE school_details sd SET student_teacher_ratio=16.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='chrysalis-high-whitefield';
+UPDATE school_details sd SET student_teacher_ratio=20.0, school_hours_start='08:00', school_hours_end='14:45' FROM schools s WHERE sd.school_id=s.id AND s.slug='silver-oaks-international-whitefield';
+UPDATE school_details sd SET student_teacher_ratio=22.0, school_hours_start='08:30', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='tattva-school-kumbalgodu';
+UPDATE school_details sd SET student_teacher_ratio=28.0, school_hours_start='08:00', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='hal-public-school-vimandipura';
+UPDATE school_details sd SET student_teacher_ratio=30.0, school_hours_start='07:45', school_hours_end='14:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='air-force-school-hebbal';
+UPDATE school_details sd SET student_teacher_ratio=25.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='presidency-school-bangalore-south';
+UPDATE school_details sd SET student_teacher_ratio=18.0, school_hours_start='08:00', school_hours_end='14:45' FROM schools s WHERE sd.school_id=s.id AND s.slug='presidency-school-bangalore-north';
+UPDATE school_details sd SET student_teacher_ratio=25.0, school_hours_start='08:40', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='samarthanam-high-school-hsr-layout';
+UPDATE school_details sd SET student_teacher_ratio=20.0, school_hours_start='08:30', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='insight-academy-marathahalli';
+UPDATE school_details sd SET student_teacher_ratio=18.0, school_hours_start='08:00', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='whitefield-global-school-whitefield';
+UPDATE school_details sd SET student_teacher_ratio=10.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='vibgyor-high-marathahalli';
+UPDATE school_details sd SET student_teacher_ratio=14.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='vibgyor-high-haralur';
+UPDATE school_details sd SET student_teacher_ratio=15.0, school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='millennium-world-school-north-bangalore';
+UPDATE school_details sd SET student_teacher_ratio=20.0, school_hours_start='08:15', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='sherwood-high-bannerghatta';
+UPDATE school_details sd SET student_teacher_ratio=22.0, school_hours_start='08:30', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='soundarya-central-school-nagasandra';
+UPDATE school_details sd SET student_teacher_ratio=13.0, school_hours_start='08:00', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='ekya-school-btm-layout';
+UPDATE school_details sd SET student_teacher_ratio=15.0, school_hours_start='08:15', school_hours_end='14:45' FROM schools s WHERE sd.school_id=s.id AND s.slug='kle-society-school-rajajinagar';
+UPDATE school_details sd SET student_teacher_ratio=19.0, school_hours_start='08:30', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='sjr-public-school-rajajinagar';
+UPDATE school_details sd SET student_teacher_ratio=17.0, school_hours_start='07:50', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='bishop-cotton-boys-ashok-nagar';
+UPDATE school_details sd SET student_teacher_ratio=20.0, school_hours_start='07:50', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='bishop-cotton-girls-ashok-nagar';
+UPDATE school_details sd SET student_teacher_ratio=23.0, school_hours_start='08:00', school_hours_end='14:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='st-josephs-boys-high-school-ashok-nagar';
+UPDATE school_details sd SET student_teacher_ratio=18.0, school_hours_start='08:30', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='paradise-academy-electronic-city';
+UPDATE school_details sd SET student_teacher_ratio=18.0, school_hours_start='08:30', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='paradise-international-electronic-city';
+UPDATE school_details sd SET student_teacher_ratio=25.0, school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='new-oxford-international-anekal';
+UPDATE school_details sd SET student_teacher_ratio=18.0, school_hours_start='08:15', school_hours_end='14:45' FROM schools s WHERE sd.school_id=s.id AND s.slug='st-germain-academy-frazer-town';
+UPDATE school_details sd SET student_teacher_ratio=20.0, school_hours_start='08:15', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='national-academy-for-learning-basaveshwar-nagar';
+UPDATE school_details sd SET student_teacher_ratio=30.0, school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='venus-international-school-rajajinagar';
+UPDATE school_details sd SET student_teacher_ratio=15.0, school_hours_start='08:15', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='aadya-academy-yelahanka';
+UPDATE school_details sd SET student_teacher_ratio=30.0, school_hours_start='08:30', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='federal-public-school-yelahanka';
+UPDATE school_details sd SET student_teacher_ratio=20.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='gopalan-international-school-hoodi';
+UPDATE school_details sd SET student_teacher_ratio=12.0, school_hours_start='08:00', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='greenwood-high-sarjapur-road';
+UPDATE school_details sd SET student_teacher_ratio=14.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='greenwood-high-bannerghatta';
+UPDATE school_details sd SET student_teacher_ratio=20.0, school_hours_start='08:00', school_hours_end='14:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='frank-anthony-public-ulsoor';
+UPDATE school_details sd SET student_teacher_ratio=18.0, school_hours_start='08:30', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='christ-academy-begur-koppa-road';
+UPDATE school_details sd SET student_teacher_ratio=25.0, school_hours_start='08:15', school_hours_end='14:50' FROM schools s WHERE sd.school_id=s.id AND s.slug='ryan-international-school-bannerghatta';
+UPDATE school_details sd SET student_teacher_ratio=24.0, school_hours_start='08:15', school_hours_end='14:50' FROM schools s WHERE sd.school_id=s.id AND s.slug='ryan-international-school-kundalahalli';
+UPDATE school_details sd SET student_teacher_ratio=35.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='ryan-international-school-yelahanka';
+UPDATE school_details sd SET student_teacher_ratio=22.0, school_hours_start='08:00', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='baldwin-boys-high-school-richmond-town';
+UPDATE school_details sd SET student_teacher_ratio=20.0, school_hours_start='08:00', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='baldwin-girls-high-school-richmond-town';
+UPDATE school_details sd SET student_teacher_ratio=18.0, school_hours_start='08:30', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='trinity-central-school-electronic-city';
+UPDATE school_details sd SET student_teacher_ratio=15.0, school_hours_start='08:00', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='bethany-high-school-koramangala';
+UPDATE school_details sd SET student_teacher_ratio=12.0, school_hours_start='08:45', school_hours_end='13:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='tenderfoot-international-hsr-layout';
+UPDATE school_details sd SET student_teacher_ratio=22.0, school_hours_start='08:15', school_hours_end='14:45' FROM schools s WHERE sd.school_id=s.id AND s.slug='st-francis-school-koramangala';
+UPDATE school_details sd SET student_teacher_ratio=20.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='lawrence-high-school-hsr-layout';
+UPDATE school_details sd SET student_teacher_ratio=18.0, school_hours_start='08:00', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='clarence-high-school-frazer-town';
+UPDATE school_details sd SET student_teacher_ratio=25.0, school_hours_start='08:15', school_hours_end='14:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='cathedral-high-school-richmond-road';
+UPDATE school_details sd SET student_teacher_ratio=15.0, school_hours_start='08:30', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='sunrise-international-school-electronic-city';
+UPDATE school_details sd SET student_teacher_ratio=18.0, school_hours_start='08:15', school_hours_end='14:45' FROM schools s WHERE sd.school_id=s.id AND s.slug='brigade-school-jayanagar';
+UPDATE school_details sd SET student_teacher_ratio=17.0, school_hours_start='08:15', school_hours_end='14:45' FROM schools s WHERE sd.school_id=s.id AND s.slug='brigade-school-mahadevapura';
+UPDATE school_details sd SET student_teacher_ratio=22.0, school_hours_start='08:30', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='little-flower-public-school-banashankari';
+UPDATE school_details sd SET student_teacher_ratio=14.0, school_hours_start='08:00', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='orchids-international-yelahanka';
+UPDATE school_details sd SET student_teacher_ratio=25.0, school_hours_start='08:30', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='don-bosco-high-school-chitrakala-layout';
+UPDATE school_details sd SET student_teacher_ratio=15.0, school_hours_start='08:15', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='innisfree-house-school-jp-nagar';
+UPDATE school_details sd SET student_teacher_ratio=20.0, school_hours_start='08:30', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='green-country-public-school-hbr-layout';
+UPDATE school_details sd SET student_teacher_ratio=18.0, school_hours_start='08:00', school_hours_end='14:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='st-pauls-english-school-jp-nagar';
+UPDATE school_details sd SET student_teacher_ratio=22.0, school_hours_start='08:15', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='silicon-city-academy-konanakunte';
+UPDATE school_details sd SET student_teacher_ratio=10.0, school_hours_start='08:30', school_hours_end='13:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='vibgyor-roots-and-rise-hsr-layout';
+UPDATE school_details sd SET student_teacher_ratio=24.0, school_hours_start='08:15', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='maruthi-vidyalaya-subbanapalya';
+UPDATE school_details sd SET student_teacher_ratio=10.0, school_hours_start=NULL,    school_hours_end=NULL    FROM schools s WHERE sd.school_id=s.id AND s.slug='jain-international-residential-school-kanakapura';
+UPDATE school_details sd SET student_teacher_ratio=12.0, school_hours_start='08:15', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='redbridge-international-academy-sarjapur-road';
+UPDATE school_details sd SET student_teacher_ratio=8.0,  school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='canadian-international-school-yelahanka';
+UPDATE school_details sd SET student_teacher_ratio=12.0, school_hours_start='08:30', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='naavu-school-whitefield';
+UPDATE school_details sd SET student_teacher_ratio=9.0,  school_hours_start='08:00', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='tisb-whitefield';
+UPDATE school_details sd SET student_teacher_ratio=8.0,  school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='stonehill-international-school-north-bangalore';
+UPDATE school_details sd SET student_teacher_ratio=8.0,  school_hours_start='08:15', school_hours_end='16:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='harrow-international-school-devanahalli';
+UPDATE school_details sd SET student_teacher_ratio=12.0, school_hours_start='08:30', school_hours_end='15:40' FROM schools s WHERE sd.school_id=s.id AND s.slug='treamis-world-school-electronic-city';
+UPDATE school_details sd SET student_teacher_ratio=10.0, school_hours_start='08:15', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='legacy-school-hennur';
+UPDATE school_details sd SET student_teacher_ratio=10.0, school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='trio-world-academy-sahakar-nagar';
+UPDATE school_details sd SET student_teacher_ratio=15.0, school_hours_start='08:00', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='primus-public-school-sarjapur-road';
+UPDATE school_details sd SET student_teacher_ratio=11.0, school_hours_start='08:15', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='oakridge-international-sarjapur';
+UPDATE school_details sd SET student_teacher_ratio=10.0, school_hours_start='08:45', school_hours_end='13:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='chrysalis-kids-varthur';
+UPDATE school_details sd SET student_teacher_ratio=15.0, school_hours_start='08:00', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='inventure-academy-sarjapur-road';
+UPDATE school_details sd SET student_teacher_ratio=9.0,  school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='indus-international-school-sarjapur';
+UPDATE school_details sd SET student_teacher_ratio=10.0, school_hours_start='08:15', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='greenwood-high-international-sarjapur-road';
+UPDATE school_details sd SET student_teacher_ratio=12.0, school_hours_start='08:00', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='ebenezer-international-school-sarjapur';
+UPDATE school_details sd SET student_teacher_ratio=15.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='global-city-international-malleshwaram';
+UPDATE school_details sd SET student_teacher_ratio=8.0,  school_hours_start='08:30', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='bangalore-international-school-hennur';
+UPDATE school_details sd SET student_teacher_ratio=45.0, school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='christ-university-junior-college-hosur-road';
+UPDATE school_details sd SET student_teacher_ratio=35.0, school_hours_start='08:40', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='royal-public-school-electronic-city';
+UPDATE school_details sd SET student_teacher_ratio=50.0, school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='gvs-english-school-electronic-city';
+UPDATE school_details sd SET student_teacher_ratio=40.0, school_hours_start='08:15', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='st-johns-high-school-frazer-town';
+UPDATE school_details sd SET student_teacher_ratio=30.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='new-horizon-high-school-kasturi-nagar';
+UPDATE school_details sd SET student_teacher_ratio=16.0, school_hours_start='08:30', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='vvs-sardar-patel-high-school-rajajinagar';
+UPDATE school_details sd SET student_teacher_ratio=50.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='st-josephs-pu-college-residency-road';
+UPDATE school_details sd SET student_teacher_ratio=45.0, school_hours_start='08:00', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='bishop-cotton-pu-college-residency-road';
+UPDATE school_details sd SET student_teacher_ratio=40.0, school_hours_start='08:15', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='cathedral-pu-college-richmond-road';
+UPDATE school_details sd SET student_teacher_ratio=55.0, school_hours_start='08:00', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='mes-pu-college-malleshwaram';
+UPDATE school_details sd SET student_teacher_ratio=45.0, school_hours_start='08:15', school_hours_end='14:45' FROM schools s WHERE sd.school_id=s.id AND s.slug='baldwin-methodist-pu-college-richmond-town';
+UPDATE school_details sd SET student_teacher_ratio=40.0, school_hours_start='08:30', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='st-charles-high-school-hennur';
+UPDATE school_details sd SET student_teacher_ratio=35.0, school_hours_start='08:30', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='holy-saint-high-school-jayanagar';
+UPDATE school_details sd SET student_teacher_ratio=38.0, school_hours_start='08:15', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='cluny-convent-high-school-jallahalli';
+UPDATE school_details sd SET student_teacher_ratio=40.0, school_hours_start='08:30', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='stella-maris-high-school-gayathrinagar';
+UPDATE school_details sd SET student_teacher_ratio=8.0,  school_hours_start='08:45', school_hours_end='13:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='sophia-opportunity-school-vasanth-nagar';
+UPDATE school_details sd SET student_teacher_ratio=25.0, school_hours_start='08:00', school_hours_end='16:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='narayana-e-techno-school-jp-nagar';
+UPDATE school_details sd SET student_teacher_ratio=26.0, school_hours_start='08:00', school_hours_end='16:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='chaitanya-techno-school-electronic-city';
+UPDATE school_details sd SET student_teacher_ratio=30.0, school_hours_start='08:15', school_hours_end='14:45' FROM schools s WHERE sd.school_id=s.id AND s.slug='sri-kumaran-childrens-home-basavanagudi';
+UPDATE school_details sd SET student_teacher_ratio=50.0, school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='sri-bhagawan-mahaveer-college-vv-puram';
+UPDATE school_details sd SET student_teacher_ratio=48.0, school_hours_start='08:15', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='nmkrv-pu-college-jayanagar';
+UPDATE school_details sd SET student_teacher_ratio=45.0, school_hours_start='08:30', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='vijaya-high-school-jayanagar';
+UPDATE school_details sd SET student_teacher_ratio=40.0, school_hours_start='08:30', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='national-high-school-basavanagudi';
+UPDATE school_details sd SET student_teacher_ratio=40.0, school_hours_start='08:00', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='clarence-pu-college-frazer-town';
+UPDATE school_details sd SET student_teacher_ratio=42.0, school_hours_start='08:30', school_hours_end='15:15' FROM schools s WHERE sd.school_id=s.id AND s.slug='st-annes-girls-high-school-miller-road';
+UPDATE school_details sd SET student_teacher_ratio=45.0, school_hours_start='08:00', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='baldwin-girls-pu-college-richmond-town';
+UPDATE school_details sd SET student_teacher_ratio=12.0, school_hours_start=NULL,    school_hours_end=NULL    FROM schools s WHERE sd.school_id=s.id AND s.slug='academic-city-school-kanakapura';
+UPDATE school_details sd SET student_teacher_ratio=18.0, school_hours_start='08:15', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='new-baldwin-international-krishnarajapura';
+UPDATE school_details sd SET student_teacher_ratio=45.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='mount-carmel-pu-college-vasanth-nagar';
+UPDATE school_details sd SET student_teacher_ratio=20.0, school_hours_start='08:30', school_hours_end='15:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='vidyashilp-academy-yelahanka';
+UPDATE school_details sd SET student_teacher_ratio=30.0, school_hours_start='08:15', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='vishwa-vidyapeeth-yelahanka';
+UPDATE school_details sd SET student_teacher_ratio=15.0, school_hours_start='08:30', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='sri-vani-international-rajajinagar';
+UPDATE school_details sd SET student_teacher_ratio=18.0, school_hours_start='08:10', school_hours_end='14:30' FROM schools s WHERE sd.school_id=s.id AND s.slug='sophia-high-school-vasanth-nagar';
+UPDATE school_details sd SET student_teacher_ratio=10.0, school_hours_start=NULL,    school_hours_end=NULL    FROM schools s WHERE sd.school_id=s.id AND s.slug='sarala-birla-academy-bannerghatta';
+UPDATE school_details sd SET student_teacher_ratio=12.0, school_hours_start='08:45', school_hours_end='14:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='redhouz-international-hennur';
+UPDATE school_details sd SET student_teacher_ratio=18.0, school_hours_start='08:30', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='janki-international-school-kengeri';
+UPDATE school_details sd SET student_teacher_ratio=30.0, school_hours_start='08:15', school_hours_end='14:45' FROM schools s WHERE sd.school_id=s.id AND s.slug='st-meeras-high-school-rajajinagar';
+UPDATE school_details sd SET student_teacher_ratio=20.0, school_hours_start='08:15', school_hours_end='14:45' FROM schools s WHERE sd.school_id=s.id AND s.slug='bangalore-international-academy-jayanagar';
+UPDATE school_details sd SET student_teacher_ratio=22.0, school_hours_start='08:30', school_hours_end='15:00' FROM schools s WHERE sd.school_id=s.id AND s.slug='sudarshan-vidya-mandir-jayanagar';

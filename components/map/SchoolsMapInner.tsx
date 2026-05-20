@@ -244,7 +244,7 @@ export default function SchoolsMapInner({ schools }: Props) {
           } else {
             // Golden angle spiral so markers fan out naturally, not in a line
             const angle  = idx * 2.3999632; // ~137.5° in radians
-            const radius = 0.007 * Math.sqrt(idx);
+            const radius = 0.004 * Math.sqrt(idx);
             pos = [base[0] + radius * Math.sin(angle), base[1] + radius * Math.cos(angle)];
           }
           return (
