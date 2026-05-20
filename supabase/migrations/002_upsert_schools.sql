@@ -3,7 +3,7 @@
 -- Paste the ENTIRE file into the Supabase SQL Editor and click Run
 -- ================================================================
 
--- Helper: upsert one school + details + curricula + grades
+-- Helper: upsert one school + details + curricula
 CREATE OR REPLACE FUNCTION _upsert_school(
   p_slug TEXT, p_name TEXT, p_desc TEXT,
   p_type school_type, p_gender school_gender,
@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION _upsert_school(
   p_ratio DECIMAL,
   p_start TEXT, p_end TEXT,
   p_fees_min INT, p_fees_max INT,
-  p_grade_from TEXT, p_grade_to TEXT,
+  p_grade_from TEXT, p_grade_to TEXT,  -- kept for call-site compatibility, unused
   p_curricula curriculum_type[]
 ) RETURNS VOID LANGUAGE plpgsql AS $$
 DECLARE v UUID;
@@ -40,12 +40,6 @@ BEGIN
   IF p_curricula IS NOT NULL AND array_length(p_curricula,1)>0 THEN
     INSERT INTO school_curricula(school_id,curriculum)
     SELECT v,c FROM unnest(p_curricula) c ON CONFLICT DO NOTHING;
-  END IF;
-
-  DELETE FROM school_grades WHERE school_id=v;
-  IF p_grade_from IS NOT NULL THEN
-    INSERT INTO school_grades(school_id,grade_from,grade_to)
-    VALUES(v,p_grade_from,p_grade_to) ON CONFLICT DO NOTHING;
   END IF;
 
   INSERT INTO school_languages(school_id,language,type)
