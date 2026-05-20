@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { X, ArrowLeft, Plus } from "lucide-react";
 import { Header } from "@/components/layout/Header";
@@ -22,7 +23,37 @@ const ROWS = [
 ];
 
 export default function ComparePage() {
-  const { schools, removeSchool, clearAll } = useCompareStore();
+  const { schools: storedSchools, removeSchool, clearAll } = useCompareStore();
+  const [schools, setSchools] = useState<SchoolSummary[]>(storedSchools);
+
+  // Re-fetch fresh data for each school to get latest ratio/hours/fees from DB
+  useEffect(() => {
+    if (storedSchools.length === 0) { setSchools([]); return; }
+    Promise.all(
+      storedSchools.map((s) =>
+        fetch(`/api/v1/schools/${s.slug}`)
+          .then((r) => r.json())
+          .then((json) => {
+            if (!json.success) return s;
+            const d = json.data;
+            const sd = d.school_details || {};
+            return {
+              ...s,
+              student_teacher_ratio: sd.student_teacher_ratio ?? s.student_teacher_ratio,
+              school_hours_start: sd.school_hours_start ?? s.school_hours_start,
+              school_hours_end: sd.school_hours_end ?? s.school_hours_end,
+              total_fees_min: sd.total_fees_min ?? s.total_fees_min,
+              total_fees_max: sd.total_fees_max ?? s.total_fees_max,
+              has_transport: sd.has_transport ?? s.has_transport,
+              avg_rating: d.avg_rating ?? s.avg_rating,
+              review_count: d.review_count ?? s.review_count,
+              curricula: (d.school_curricula || []).map((c: any) => c.curriculum),
+            } as SchoolSummary;
+          })
+          .catch(() => s)
+      )
+    ).then(setSchools);
+  }, [storedSchools.length]);
 
   return (
     <>

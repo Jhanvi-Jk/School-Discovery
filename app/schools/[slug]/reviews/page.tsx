@@ -165,6 +165,25 @@ export default function ReviewsPage() {
                 )}
               </div>
 
+              {/* Community Insights (description summary) */}
+              {data?.school?.description && (
+                <div style={{
+                  background: "var(--beige-200)", border: "1px solid var(--beige-500)",
+                  borderRadius: "var(--radius)", padding: "16px 20px", marginBottom: 16,
+                  display: "flex", gap: 12, alignItems: "flex-start",
+                }}>
+                  <span style={{ fontSize: 24, lineHeight: 1 }}>💬</span>
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
+                      Community Insights
+                    </p>
+                    <p style={{ fontSize: 14, color: "var(--dark)", fontStyle: "italic", lineHeight: 1.6 }}>
+                      "{data.school.description}"
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Write a review */}
               <div style={{
                 background: "var(--beige-200)", border: "1px solid var(--beige-500)",

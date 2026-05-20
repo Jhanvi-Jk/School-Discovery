@@ -1,4 +1,4 @@
-export type Curriculum = "cbse" | "icse" | "ib" | "igcse" | "state_board";
+export type Curriculum = "cbse" | "icse" | "ib" | "igcse" | "state_board" | "cambridge";
 export type SchoolType = "private" | "government" | "aided" | "international";
 export type SchoolGender = "coed" | "boys" | "girls";
 export type AdmissionStatus = "upcoming" | "open" | "closed" | "waitlist";
@@ -8,6 +8,7 @@ export interface SchoolSummary {
   id: string;
   slug: string;
   name: string;
+  description: string | null;
   type: SchoolType;
   gender: SchoolGender;
   verified: boolean;
@@ -268,6 +269,7 @@ export const CURRICULUM_LABELS: Record<Curriculum, string> = {
   ib: "IB",
   igcse: "IGCSE",
   state_board: "State Board",
+  cambridge: "Cambridge",
 };
 
 export const SCHOOL_TYPE_LABELS: Record<SchoolType, string> = {

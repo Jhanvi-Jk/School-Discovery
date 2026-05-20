@@ -91,6 +91,18 @@ export function SchoolCard({ school }: SchoolCardProps) {
         )}
       </div>
 
+      {/* Description snippet */}
+      {school.description && (
+        <p style={{
+          fontSize: 12, color: "var(--muted)", fontStyle: "italic",
+          lineHeight: 1.5, margin: "6px 0 2px",
+          display: "-webkit-box", WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical", overflow: "hidden",
+        }}>
+          "{school.description}"
+        </p>
+      )}
+
       {/* Actions */}
       <div className="card-actions" style={{ flexWrap: "wrap", gap: 6 }}>
         <Link href={`/schools/${school.slug}`} className="btn-view" style={{ flex: 1, minWidth: 90 }}>

@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import type { SchoolFilters, SortOption } from "@/lib/types";
+import type { SortOption } from "@/lib/types";
+
+// Grade order for range-based filtering
+const GRADE_ORDER = [
+  "Nursery", "LKG", "UKG",
+  "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6",
+  "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12",
+];
+
+function gradeInRange(grade: string, from: string, to: string): boolean {
+  const gi = GRADE_ORDER.indexOf(grade);
+  const fi = GRADE_ORDER.indexOf(from);
+  const ti = GRADE_ORDER.indexOf(to);
+  if (gi === -1 || fi === -1 || ti === -1) return false;
+  return gi >= fi && gi <= ti;
+}
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -18,6 +33,7 @@ export async function GET(request: NextRequest) {
   const languages = searchParams.getAll("language");
   const fees_min = parseInt(searchParams.get("fees_min") || "0");
   const fees_max = parseInt(searchParams.get("fees_max") || "1000000");
+  const str_max = searchParams.get("str_max") ? parseFloat(searchParams.get("str_max")!) : null;
   const has_transport = searchParams.get("has_transport");
   const admissions_open = searchParams.get("admissions_open");
   const mid_year = searchParams.get("mid_year");
@@ -62,6 +78,11 @@ export async function GET(request: NextRequest) {
       queryBuilder = queryBuilder.lte("total_fees_max", fees_max);
     }
 
+    // Student:teacher ratio cap
+    if (str_max !== null) {
+      queryBuilder = queryBuilder.lte("student_teacher_ratio", str_max);
+    }
+
     // Boolean filters
     if (has_transport === "true") {
       queryBuilder = queryBuilder.eq("has_transport", true);
@@ -88,7 +109,6 @@ export async function GET(request: NextRequest) {
         queryBuilder = queryBuilder.order("created_at", { ascending: false });
         break;
       default:
-        // relevance: verified first, then rating
         queryBuilder = queryBuilder
           .order("verified", { ascending: false })
           .order("avg_rating", { ascending: false, nullsFirst: false });
@@ -99,32 +119,19 @@ export async function GET(request: NextRequest) {
     queryBuilder = queryBuilder.range(offset, offset + limit - 1);
 
     const { data: schools, error, count } = await queryBuilder;
-    console.log("SCHOOLS:", schools);
-    console.log("ERROR:", error);
 
     if (error) throw error;
 
-    // For curricula/sports/languages — fetch related data for returned school IDs
     const schoolIds = (schools || []).map((s) => s.id);
-
     let enrichedSchools = schools || [];
 
     if (schoolIds.length > 0) {
-      const [curriculaRes, sportsRes, extrasRes, langsRes] = await Promise.all([
+      const [curriculaRes, sportsRes, extrasRes, langsRes, gradesRes] = await Promise.all([
         supabase.from("school_curricula").select("school_id, curriculum").in("school_id", schoolIds),
-        supabase
-          .from("school_sports")
-          .select("school_id, sports(name)")
-          .in("school_id", schoolIds),
-        supabase
-          .from("school_extracurriculars")
-          .select("school_id, extracurriculars(name)")
-          .in("school_id", schoolIds),
-        supabase
-          .from("school_languages")
-          .select("school_id, language")
-          .in("school_id", schoolIds)
-          .eq("type", "medium_of_instruction"),
+        supabase.from("school_sports").select("school_id, sports(name)").in("school_id", schoolIds),
+        supabase.from("school_extracurriculars").select("school_id, extracurriculars(name)").in("school_id", schoolIds),
+        supabase.from("school_languages").select("school_id, language").in("school_id", schoolIds).eq("type", "medium_of_instruction"),
+        supabase.from("school_grades").select("school_id, grade_from, grade_to").in("school_id", schoolIds),
       ]);
 
       // Build maps
@@ -152,7 +159,13 @@ export async function GET(request: NextRequest) {
         langsMap[r.school_id].push(r.language);
       });
 
-      // Apply post-filters for curricula/sports/extras/languages (in-memory)
+      // grades: array of {grade_from, grade_to} per school
+      const gradesMap: Record<string, { grade_from: string; grade_to: string }[]> = {};
+      (gradesRes.data || []).forEach((r: any) => {
+        if (!gradesMap[r.school_id]) gradesMap[r.school_id] = [];
+        gradesMap[r.school_id].push({ grade_from: r.grade_from, grade_to: r.grade_to });
+      });
+
       enrichedSchools = (schools || [])
         .map((s) => ({
           ...s,
@@ -166,6 +179,11 @@ export async function GET(request: NextRequest) {
           if (sports.length > 0 && !sports.some((sp) => s.sports.includes(sp))) return false;
           if (extracurriculars.length > 0 && !extracurriculars.some((e) => s.extracurriculars.includes(e))) return false;
           if (languages.length > 0 && !languages.some((l) => s.languages.includes(l))) return false;
+          if (grades.length > 0) {
+            const ranges = gradesMap[s.id] || [];
+            if (ranges.length === 0) return false;
+            if (!grades.some((g) => ranges.some((r) => gradeInRange(g, r.grade_from, r.grade_to)))) return false;
+          }
           return true;
         });
     }

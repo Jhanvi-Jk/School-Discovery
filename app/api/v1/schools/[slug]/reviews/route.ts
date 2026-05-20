@@ -11,7 +11,7 @@ export async function GET(
   // Get school by slug
   const { data: school, error: schoolErr } = await supabase
     .from("schools")
-    .select("id, name")
+    .select("id, name, description")
     .eq("slug", params.slug)
     .single();
 
@@ -51,7 +51,7 @@ export async function GET(
 
   return NextResponse.json({
     success: true,
-    school: { id: school.id, name: school.name },
+    school: { id: school.id, name: school.name, description: school.description },
     averages: {
       overall:    avg("rating_overall"),
       academics:  avg("rating_academics"),
