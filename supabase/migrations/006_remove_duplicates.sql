@@ -1,33 +1,33 @@
 -- ================================================================
--- 006_remove_duplicates.sql  (v2 — handles all duplicate cases)
--- For every group of schools sharing the exact same (name, area),
--- keeps the single best record and deletes the rest.
--- "Best" = has fees > has description > earliest created_at.
--- Safe to run multiple times.
+-- 006_remove_duplicates.sql  (v3)
+-- Deletes the "Fees N/A" empty copy whenever a school with the
+-- same name already exists with real fee data.
+-- Area is intentionally NOT used — duplicates often differ by area.
 -- ================================================================
 
--- Step 1: preview — uncomment to check before deleting
--- SELECT s.name, s.area, COUNT(*) AS copies
+-- Preview first (uncomment to check):
+-- SELECT s.slug, s.name, s.area, sd.total_fees_min
 -- FROM schools s
--- GROUP BY s.name, s.area
--- HAVING COUNT(*) > 1
--- ORDER BY copies DESC, s.name;
+-- LEFT JOIN school_details sd ON sd.school_id = s.id
+-- WHERE sd.total_fees_min IS NULL
+--   AND EXISTS (
+--     SELECT 1 FROM schools s2
+--     JOIN school_details sd2 ON sd2.school_id = s2.id
+--     WHERE s2.name = s.name AND s2.id != s.id AND sd2.total_fees_min IS NOT NULL
+--   )
+-- ORDER BY s.name;
 
--- Step 2: delete all duplicates, keeping one winner per (name, area)
 DELETE FROM schools
 WHERE id IN (
-  SELECT id FROM (
-    SELECT
-      s.id,
-      ROW_NUMBER() OVER (
-        PARTITION BY s.name, s.area
-        ORDER BY
-          (sd.total_fees_min IS NOT NULL) DESC,   -- prefer has fees
-          (s.description     IS NOT NULL) DESC,   -- then has description
-          s.created_at ASC                        -- then earliest inserted
-      ) AS rn
-    FROM schools s
-    LEFT JOIN school_details sd ON sd.school_id = s.id
-  ) ranked
-  WHERE rn > 1   -- delete every copy except rank-1
+  SELECT s.id
+  FROM schools s
+  LEFT JOIN school_details sd ON sd.school_id = s.id
+  WHERE sd.total_fees_min IS NULL
+    AND EXISTS (
+      SELECT 1 FROM schools s2
+      JOIN school_details sd2 ON sd2.school_id = s2.id
+      WHERE s2.name = s.name
+        AND s2.id  != s.id
+        AND sd2.total_fees_min IS NOT NULL
+    )
 );
