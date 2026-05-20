@@ -9,7 +9,7 @@ DECLARE
   data RECORD;
   sid  UUID;
 BEGIN
-  FOR data IN (VALUES
+  FOR data IN SELECT * FROM (VALUES
     -- slug, grade_from, grade_to, opens_at, closes_at, status, is_mid_year
     ('delhi-public-school-north-yelahanka',         'Nursery','Class 12','2025-01-15','2025-03-31','open',   false),
     ('delhi-public-school-south-konanakunte',        'Nursery','Class 12','2025-01-15','2025-03-31','open',   false),
