@@ -256,6 +256,7 @@ export const STATE_BOARD_STREAMS = [
   "PCM — Physics, Chemistry, Maths",
   "PCB — Physics, Chemistry, Biology",
   "PCMC — Physics, Chemistry, Maths, Computer Sc.",
+  "PCME — Physics, Chemistry, Maths, Electronics",
   "Commerce",
   "Humanities / Arts",
   "Vocational",
