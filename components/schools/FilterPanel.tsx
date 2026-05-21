@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import {
   MapPin, BookOpen, Users, Building2, IndianRupee,
   Bus, Trophy, Music, Languages, Calendar, Clock,
@@ -44,8 +45,9 @@ function Section({
 
 // ── Searchable list ──────────────────────────────────────────
 
-function SearchableList({ items, selected, onToggle, placeholder }: {
-  items: string[]; selected: string[]; onToggle: (v: string) => void; placeholder: string;
+function SearchableList({ items, selected, onToggle, placeholder, counts }: {
+  items: string[]; selected: string[]; onToggle: (v: string) => void;
+  placeholder: string; counts?: Record<string, number>;
 }) {
   const [q, setQ] = useState("");
   const filtered = items.filter((i) => i.toLowerCase().includes(q.toLowerCase()));
@@ -70,7 +72,14 @@ function SearchableList({ items, selected, onToggle, placeholder }: {
                   </svg>
                 )}
               </div>
-              <span className="fp-check-label">{item}</span>
+              <span className="fp-check-label" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                {item}
+                {counts && counts[item] !== undefined && (
+                  <span style={{ fontSize: 11, color: "#a89880", fontWeight: 400 }}>
+                    ({counts[item]})
+                  </span>
+                )}
+              </span>
             </label>
           ))
         }
@@ -358,6 +367,17 @@ function SubjectStreamFilter() {
 export function FilterPanel({ className }: { className?: string }) {
   const { filters, toggleArrayFilter, setFilter, resetFilters, activeFilterCount } = useFilterStore();
   const count = activeFilterCount();
+  const [areaCounts, setAreaCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.from("schools").select("area").then(({ data }) => {
+      if (!data) return;
+      const counts: Record<string, number> = {};
+      data.forEach((s) => { if (s.area) counts[s.area] = (counts[s.area] || 0) + 1; });
+      setAreaCounts(counts);
+    });
+  }, []);
 
   return (
     <div className="fp-wrap">
@@ -379,7 +399,8 @@ export function FilterPanel({ className }: { className?: string }) {
       {/* 1. Area */}
       <Section icon={MapPin} title="Area / Neighbourhood" count={filters.areas.length} defaultOpen>
         <SearchableList items={BENGALURU_AREAS} selected={filters.areas}
-          onToggle={(v) => toggleArrayFilter("areas", v)} placeholder="Search areas…" />
+          onToggle={(v) => toggleArrayFilter("areas", v)} placeholder="Search areas…"
+          counts={areaCounts} />
       </Section>
 
       {/* 2. Curriculum */}
