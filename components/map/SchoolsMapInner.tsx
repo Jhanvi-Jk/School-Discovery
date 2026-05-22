@@ -121,19 +121,29 @@ const AREA_POLYGONS: Array<{
   ]},
 ];
 
-// ── Bangalore city boundary (fully covers Sarjapur, Jigani, Attibele, Anekal) ─
+// ── Bangalore city boundary ───────────────────────────────────
+// North extended to cover Devanahalli / airport-area schools
+// (Harrow 13.290°N, Stonehill 13.171°N, Kesar 13.147°N, etc.)
 const CITY_BOUNDARY: [number, number][] = [
-  [13.140,77.545],[13.130,77.580],[13.115,77.618],[13.095,77.645],
+  // Northwest corner
+  [13.130,77.540],
+  // Push north to cover Yelahanka belt
+  [13.155,77.548],[13.185,77.555],[13.220,77.562],
+  // North apex — covers Harrow (13.290, 77.618)
+  [13.260,77.575],[13.320,77.600],[13.325,77.640],
+  // Northeast — come back south past Devanahalli / Kesar (13.147, 77.644)
+  [13.260,77.660],[13.200,77.662],[13.160,77.655],
+  [13.130,77.645],[13.115,77.618],[13.095,77.645],
   [13.070,77.668],[13.045,77.690],[13.020,77.715],[13.000,77.745],
   // East – sweep out toward Sarjapur & Whitefield
   [12.980,77.800],[12.960,77.820],[12.935,77.845],
   [12.908,77.865],[12.878,77.872],[12.848,77.870],
-  // Attibele at ~12.783°N 77.792°E – boundary stays east of 77.840
+  // Attibele at ~12.783°N 77.792°E
   [12.820,77.862],[12.800,77.855],[12.783,77.848],
   [12.765,77.838],[12.750,77.820],
-  // Anekal at ~12.710°N 77.697°E – boundary stays east of 77.730
+  // Anekal at ~12.710°N 77.697°E
   [12.730,77.780],[12.715,77.748],[12.710,77.735],
-  // South – curve down and west past Anekal
+  // South
   [12.700,77.715],[12.692,77.668],[12.692,77.610],
   [12.695,77.558],[12.705,77.515],[12.720,77.478],
   // Southwest
