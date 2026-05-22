@@ -167,6 +167,7 @@ export default function SchoolsMapInner({ schools }: Props) {
   const [MC, setMC] = useState<any>(null);
   const [L, setL]   = useState<any>(null);
   const [zoom, setZoom] = useState(11);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     Promise.all([import("react-leaflet"), import("leaflet")]).then(([rl, leaflet]) => {
@@ -210,7 +211,13 @@ export default function SchoolsMapInner({ schools }: Props) {
   const placed: Record<string, number> = {};
 
   return (
-    <div style={{ position:"relative", width:"100%", height:"100%" }}>
+    <div style={{
+      position: expanded ? "fixed" : "relative",
+      inset: expanded ? 0 : "auto",
+      width: expanded ? "100vw" : "100%",
+      height: expanded ? "100vh" : "100%",
+      zIndex: expanded ? 9999 : "auto",
+    }}>
       <MapContainer
         center={[12.9716, 77.5946]}
         zoom={11}
@@ -284,6 +291,32 @@ export default function SchoolsMapInner({ schools }: Props) {
           );
         })}
       </MapContainer>
+
+      {/* Expand / collapse button */}
+      <button
+        onClick={() => setExpanded((e) => !e)}
+        title={expanded ? "Exit fullscreen" : "Expand map"}
+        style={{
+          position: "absolute", top: 12, right: 12, zIndex: 1000,
+          width: 34, height: 34,
+          background: "white", border: "1px solid #d4c5b0",
+          borderRadius: 8, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+        }}
+      >
+        {expanded ? (
+          /* Collapse icon */
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#5C2E0A" strokeWidth="1.8" strokeLinecap="round">
+            <path d="M2 6h3V3M10 3v3h3M13 9h-3v3M5 12V9H2" />
+          </svg>
+        ) : (
+          /* Expand icon */
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#5C2E0A" strokeWidth="1.8" strokeLinecap="round">
+            <path d="M1 5V1h4M10 1h4v4M14 10v4h-4M5 14H1v-4" />
+          </svg>
+        )}
+      </button>
 
       {/* Legend overlay */}
       <div className="map-legend">
