@@ -147,11 +147,26 @@ const CITY_BOUNDARY: [number, number][] = [
   [13.130,77.540],
 ];
 
+// ── Pin sizing by zoom level ─────────────────────────────────
+const PIN_MIN_ZOOM = 9;   // stop shrinking below this zoom
+const PIN_MAX_ZOOM = 15;  // stop growing above this zoom
+const PIN_MIN_W   = 13;   // px at minimum zoom
+const PIN_MAX_W   = 34;   // px at maximum zoom
+
+function getPinDims(zoom: number): [number, number] {
+  const z = Math.min(Math.max(zoom, PIN_MIN_ZOOM), PIN_MAX_ZOOM);
+  const t = (z - PIN_MIN_ZOOM) / (PIN_MAX_ZOOM - PIN_MIN_ZOOM);
+  const w = Math.round(PIN_MIN_W + t * (PIN_MAX_W - PIN_MIN_W));
+  const h = Math.round(w * (28 / 22));
+  return [w, h];
+}
+
 interface Props { schools: SchoolSummary[]; }
 
 export default function SchoolsMapInner({ schools }: Props) {
-  const [MC, setMC] = useState<any>(null);   // map components
+  const [MC, setMC] = useState<any>(null);
   const [L, setL]   = useState<any>(null);
+  const [zoom, setZoom] = useState(11);
 
   useEffect(() => {
     Promise.all([import("react-leaflet"), import("leaflet")]).then(([rl, leaflet]) => {
@@ -171,20 +186,24 @@ export default function SchoolsMapInner({ schools }: Props) {
     );
   }
 
-  const { MapContainer, TileLayer, Polygon, Tooltip, Marker, Popup } = MC;
+  const { MapContainer, TileLayer, Polygon, Marker, Popup, useMapEvents } = MC;
 
-  // Baby pink school marker pin
+  // Inner component that tracks zoom — must live inside MapContainer
+  function ZoomTracker() {
+    useMapEvents({ zoom: (e: any) => setZoom(e.target.getZoom()) });
+    return null;
+  }
+
+  const [pinW, pinH] = getPinDims(zoom);
+
   const schoolIcon = L.divIcon({
-    html: `<div style="
-      width:22px;height:28px;
-      display:flex;align-items:flex-start;justify-content:center;
-    ">
-      <svg width="22" height="28" viewBox="0 0 22 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+    html: `<div style="width:${pinW}px;height:${pinH}px;display:flex;align-items:flex-start;justify-content:center;">
+      <svg width="${pinW}" height="${pinH}" viewBox="0 0 22 28" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M11 0C4.925 0 0 4.925 0 11c0 7.667 11 17 11 17s11-9.333 11-17C22 4.925 17.075 0 11 0z" fill="#FFB3C6" stroke="#e05c80" stroke-width="1.5"/>
         <circle cx="11" cy="11" r="4" fill="white" opacity="0.85"/>
       </svg>
     </div>`,
-    iconSize: [22,28], iconAnchor: [11,28], className: "",
+    iconSize: [pinW, pinH], iconAnchor: [pinW / 2, pinH], className: "",
   });
 
   // Deduplicate stacked markers
@@ -199,6 +218,7 @@ export default function SchoolsMapInner({ schools }: Props) {
         scrollWheelZoom={false}
         zoomControl={true}
       >
+        <ZoomTracker />
         {/* Original light grey/white/green base tile */}
         <TileLayer
           attribution='&copy; <a href="https://carto.com">CartoDB</a>'
