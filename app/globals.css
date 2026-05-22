@@ -568,6 +568,13 @@ input { font-family: inherit; }
   z-index: 0;
 }
 
+/* When map is expanded, lift the map-box above all page content */
+body.map-expanded .map-box {
+  z-index: 99999 !important;
+  isolation: auto !important;
+  position: static !important;
+}
+
 
 /* ── Map legend ───────────────────────────────────────────── */
 .map-legend {

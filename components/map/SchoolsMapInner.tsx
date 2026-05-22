@@ -183,17 +183,20 @@ export default function SchoolsMapInner({ schools }: Props) {
     return () => clearTimeout(t);
   }, [expanded]);
 
-  // Close on Escape + lock body scroll when expanded
+  // Close on Escape + lock body scroll + lift map-box above page when expanded
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setExpanded(false); };
     if (expanded) {
       document.body.style.overflow = "hidden";
+      document.body.classList.add("map-expanded");
       window.addEventListener("keydown", handler);
     } else {
       document.body.style.overflow = "";
+      document.body.classList.remove("map-expanded");
     }
     return () => {
       document.body.style.overflow = "";
+      document.body.classList.remove("map-expanded");
       window.removeEventListener("keydown", handler);
     };
   }, [expanded]);
