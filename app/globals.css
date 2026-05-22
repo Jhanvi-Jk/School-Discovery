@@ -243,7 +243,8 @@ input { font-family: inherit; }
   background: var(--beige-200);
   border: 1px solid var(--beige-500);
   border-radius: var(--radius);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
   height: 300px;
 }
 

@@ -183,12 +183,19 @@ export default function SchoolsMapInner({ schools }: Props) {
     return () => clearTimeout(t);
   }, [expanded]);
 
-  // Close on Escape
+  // Close on Escape + lock body scroll when expanded
   useEffect(() => {
-    if (!expanded) return;
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setExpanded(false); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    if (expanded) {
+      document.body.style.overflow = "hidden";
+      window.addEventListener("keydown", handler);
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handler);
+    };
   }, [expanded]);
 
   if (!MC || !L) {
@@ -227,13 +234,18 @@ export default function SchoolsMapInner({ schools }: Props) {
   const placed: Record<string, number> = {};
 
   return (
+    // Outer wrapper: handles fixed/relative positioning — NO overflow:hidden so buttons aren't clipped
     <div style={{
       position: expanded ? "fixed" : "relative",
       inset: expanded ? 0 : "auto",
       width: expanded ? "100vw" : "100%",
       height: expanded ? "100vh" : "100%",
-      zIndex: expanded ? 9999 : "auto",
+      zIndex: expanded ? 99999 : "auto",
+      background: "var(--beige-300)",
     }}>
+      {/* Inner wrapper: clips Leaflet tiles to rounded corners */}
+      <div style={{ width: "100%", height: "100%", overflow: "hidden",
+        borderRadius: expanded ? 0 : "inherit" }}>
       <MapContainer
         center={[12.9716, 77.5946]}
         zoom={11}
@@ -307,6 +319,7 @@ export default function SchoolsMapInner({ schools }: Props) {
           );
         })}
       </MapContainer>
+      </div>{/* end inner clip wrapper */}
 
       {/* Expand button (normal view) */}
       {!expanded && (
