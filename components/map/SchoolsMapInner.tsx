@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SchoolSummary } from "@/lib/types";
 
 // ── Area centre coords ──────────────────────────────────────
@@ -168,6 +168,7 @@ export default function SchoolsMapInner({ schools }: Props) {
   const [L, setL]   = useState<any>(null);
   const [zoom, setZoom] = useState(11);
   const [expanded, setExpanded] = useState(false);
+  const mapRef = useRef<any>(null);
 
   useEffect(() => {
     Promise.all([import("react-leaflet"), import("leaflet")]).then(([rl, leaflet]) => {
@@ -175,6 +176,20 @@ export default function SchoolsMapInner({ schools }: Props) {
       setL(leaflet.default);
     });
   }, []);
+
+  // Invalidate map size after expand/collapse so tiles fill the new container
+  useEffect(() => {
+    const t = setTimeout(() => mapRef.current?.invalidateSize(), 50);
+    return () => clearTimeout(t);
+  }, [expanded]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!expanded) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setExpanded(false); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [expanded]);
 
   if (!MC || !L) {
     return (
@@ -189,9 +204,10 @@ export default function SchoolsMapInner({ schools }: Props) {
 
   const { MapContainer, TileLayer, Polygon, Marker, Popup, useMapEvents } = MC;
 
-  // Inner component that tracks zoom — must live inside MapContainer
+  // Tracks zoom and stores map instance for invalidateSize
   function ZoomTracker() {
-    useMapEvents({ zoom: (e: any) => setZoom(e.target.getZoom()) });
+    const map = useMapEvents({ zoom: (e: any) => setZoom(e.target.getZoom()) });
+    useEffect(() => { mapRef.current = map; }, [map]);
     return null;
   }
 
@@ -292,31 +308,47 @@ export default function SchoolsMapInner({ schools }: Props) {
         })}
       </MapContainer>
 
-      {/* Expand / collapse button */}
-      <button
-        onClick={() => setExpanded((e) => !e)}
-        title={expanded ? "Exit fullscreen" : "Expand map"}
-        style={{
-          position: "absolute", top: 12, right: 12, zIndex: 1000,
-          width: 34, height: 34,
-          background: "white", border: "1px solid #d4c5b0",
-          borderRadius: 8, cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
-        }}
-      >
-        {expanded ? (
-          /* Collapse icon */
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#5C2E0A" strokeWidth="1.8" strokeLinecap="round">
-            <path d="M2 6h3V3M10 3v3h3M13 9h-3v3M5 12V9H2" />
-          </svg>
-        ) : (
-          /* Expand icon */
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#5C2E0A" strokeWidth="1.8" strokeLinecap="round">
+      {/* Expand button (normal view) */}
+      {!expanded && (
+        <button
+          onClick={() => setExpanded(true)}
+          title="Expand map"
+          style={{
+            position: "absolute", top: 12, right: 12, zIndex: 1000,
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "7px 12px",
+            background: "white", border: "1px solid #d4c5b0",
+            borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600,
+            color: "#5C2E0A", boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 15 15" fill="none" stroke="#5C2E0A" strokeWidth="1.8" strokeLinecap="round">
             <path d="M1 5V1h4M10 1h4v4M14 10v4h-4M5 14H1v-4" />
           </svg>
-        )}
-      </button>
+          Expand
+        </button>
+      )}
+
+      {/* Close button (expanded view) */}
+      {expanded && (
+        <button
+          onClick={() => setExpanded(false)}
+          title="Exit fullscreen (Esc)"
+          style={{
+            position: "absolute", top: 16, right: 16, zIndex: 10000,
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "8px 14px",
+            background: "white", border: "1px solid #d4c5b0",
+            borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600,
+            color: "#5C2E0A", boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 15 15" fill="none" stroke="#5C2E0A" strokeWidth="1.8" strokeLinecap="round">
+            <path d="M2 6h3V3M10 3v3h3M13 9h-3v3M5 12V9H2" />
+          </svg>
+          Exit fullscreen
+        </button>
+      )}
 
       {/* Legend overlay */}
       <div className="map-legend">
