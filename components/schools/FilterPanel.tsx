@@ -8,6 +8,7 @@ import {
   ChevronDown, X, Search, SlidersHorizontal, FlaskConical, ExternalLink, Info,
 } from "lucide-react";
 import { useFilterStore } from "@/store/filterStore";
+import { useCityStore } from "@/store/cityStore";
 import {
   BENGALURU_AREAS, ALL_SPORTS, ALL_EXTRACURRICULARS,
   ALL_LANGUAGES, GRADE_OPTIONS,
@@ -368,6 +369,7 @@ export function FilterPanel({ className }: { className?: string }) {
   const { filters, toggleArrayFilter, setFilter, resetFilters, activeFilterCount } = useFilterStore();
   const count = activeFilterCount();
   const [areaCounts, setAreaCounts] = useState<Record<string, number>>({});
+  const { selectedCity } = useCityStore();
 
   useEffect(() => {
     const supabase = createClient();
@@ -396,12 +398,29 @@ export function FilterPanel({ className }: { className?: string }) {
         </div>
       )}
 
-      {/* 1. Area */}
-      <Section icon={MapPin} title="Area / Neighbourhood" count={filters.areas.length} defaultOpen>
-        <SearchableList items={BENGALURU_AREAS} selected={filters.areas}
-          onToggle={(v) => toggleArrayFilter("areas", v)} placeholder="Search areas…"
-          counts={areaCounts} />
-      </Section>
+      {/* 1. Area — blurred until city is selected */}
+      <div style={{ position: "relative" }}>
+        <Section icon={MapPin} title="Area / Neighbourhood" count={filters.areas.length} defaultOpen>
+          <SearchableList items={BENGALURU_AREAS} selected={filters.areas}
+            onToggle={(v) => toggleArrayFilter("areas", v)} placeholder="Search areas…"
+            counts={areaCounts} />
+        </Section>
+        {!selectedCity && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 10,
+            background: "rgba(255,255,255,0.78)",
+            backdropFilter: "blur(2px)",
+            display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center", gap: 4,
+            borderRadius: 4,
+          }}>
+            <MapPin size={16} color="#a89880" />
+            <span style={{ fontSize: 11, color: "#a89880", fontWeight: 600, textAlign: "center", padding: "0 12px" }}>
+              Select a city on the map first
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* 2. Curriculum */}
       <Section icon={BookOpen} title="Curriculum / Board" count={filters.curricula.length} defaultOpen>
