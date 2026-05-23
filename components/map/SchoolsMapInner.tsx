@@ -121,33 +121,36 @@ const AREA_POLYGONS: Array<{
   ]},
 ];
 
-// ── Greater Bangalore boundary ───────────────────────────────
-// Generous polygon covering all school areas incl. Devanahalli/airport
+// ── Bangalore district boundary ──────────────────────────────
+// Traces the actual Bangalore Urban District shape with a northern
+// extension for the Devanahalli/airport corridor (Harrow, Stonehill etc.)
 const CITY_BOUNDARY: [number, number][] = [
-  // Northwest — wide enough to cover schools west of Yelahanka
-  [13.100,77.468],
-  // Sweep north-northwest up to Devanahalli corridor
-  [13.160,77.482],[13.220,77.510],[13.270,77.548],
-  // North apex — covers Harrow (13.290, 77.618)
-  [13.320,77.580],[13.338,77.618],[13.320,77.658],
+  // Northwest — Yelahanka/Jakkur area
+  [13.115,77.472],
+  // North corridor sweeping up to Devanahalli
+  [13.165,77.495],[13.210,77.520],[13.255,77.552],
+  // North apex — covers Harrow (13.290°N, 77.618°E)
+  [13.308,77.585],[13.328,77.618],[13.308,77.652],
   // Northeast descent
-  [13.270,77.692],[13.200,77.722],
-  // East — covers Whitefield / Hoskote
-  [13.080,77.782],[13.000,77.822],[12.950,77.850],
-  // Southeast
-  [12.900,77.875],[12.855,77.882],[12.820,77.868],
-  [12.785,77.845],[12.755,77.802],
-  // South — Anekal corridor
-  [12.730,77.758],[12.710,77.712],[12.695,77.660],
-  [12.690,77.600],[12.692,77.540],
-  // Southwest
-  [12.705,77.488],[12.728,77.448],[12.765,77.420],
-  [12.808,77.402],
+  [13.258,77.682],[13.195,77.715],
+  // East — Whitefield / Hoskote corridor
+  [13.075,77.785],[13.010,77.812],[12.968,77.815],
+  // Southeast — Sarjapur / outer ring
+  [12.922,77.808],[12.888,77.800],
+  // Attibele corridor (12.783°N, 77.792°E)
+  [12.845,77.798],[12.808,77.798],[12.782,77.793],
+  // South — Anekal / Electronic City
+  [12.755,77.762],[12.730,77.720],
+  [12.712,77.668],[12.700,77.612],
+  [12.698,77.558],[12.706,77.510],
+  // Southwest — Bannerghatta / Kengeri
+  [12.722,77.470],[12.748,77.438],[12.780,77.415],
+  [12.820,77.400],
   // West
-  [12.858,77.390],[12.908,77.385],[12.955,77.390],
-  [12.998,77.405],[13.040,77.428],
-  // Northwest back to start
-  [13.070,77.445],[13.100,77.468],
+  [12.868,77.392],[12.918,77.388],[12.962,77.395],
+  [13.005,77.412],[13.048,77.432],
+  // Back to northwest
+  [13.082,77.450],[13.115,77.472],
 ];
 
 // ── Pin sizing by zoom level ─────────────────────────────────

@@ -33,6 +33,8 @@ export interface SchoolSummary {
   languages?: string[];
   grades_from?: string;
   grades_to?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface SchoolFilters {
