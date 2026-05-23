@@ -3,6 +3,32 @@
 import { useEffect, useRef, useState } from "react";
 import type { SchoolSummary } from "@/lib/types";
 
+// ── Exact GPS overrides (slug → [lat, lng]) ─────────────────
+// Hard-coded so pins are always at the right spot regardless of DB state.
+const GPS_OVERRIDES: Record<string, [number, number]> = {
+  "treamis-world-school-electronic-city":             [12.816995, 77.651050],
+  "greenwood-high-international-sarjapur-road":       [12.900917, 77.753180],
+  "ryan-international-school-bannerghatta":           [12.819944, 77.583607],
+  "ebenezer-international-school-sarjapur":           [12.840958, 77.707406],
+  "christ-university-junior-college-hosur-road":      [12.939877, 77.605382],
+  "primus-public-school-sarjapur-road":               [12.888342, 77.697007],
+  "paradise-academy-electronic-city":                 [12.865990, 77.645387],
+  "new-oxford-international-anekal":                  [12.769414, 77.653927],
+  "stonehill-international-school-north-bangalore":   [13.171300, 77.596270],
+  "millennium-world-school-north-bangalore":          [13.104543, 77.620341],
+  "podar-global-school-yelahanka":                    [13.120993, 77.606855],
+  "ryan-international-school-yelahanka":              [13.124150, 77.601381],
+  "presidency-school-bangalore-north":                [13.133391, 77.558576],
+  "vishwa-vidyapeeth-yelahanka":                      [13.142598, 77.568720],
+  "orchids-international-yelahanka":                  [13.094396, 77.578706],
+  "federal-public-school-yelahanka":                  [13.087858, 77.634705],
+  "harrow-international-school-devanahalli":          [13.290318, 77.617508],
+  "kesar-international-school-bagalur":               [13.147174, 77.644361],
+  "new-age-world-school-yelahanka":                   [13.141047, 77.539952],
+  "canadian-international-school-yelahanka":          [13.119913, 77.594983],
+  "delhi-public-school-north-yelahanka":              [13.118028, 77.641709],
+};
+
 // ── Area centre coords ──────────────────────────────────────
 const AREA_COORDS: Record<string, [number, number]> = {
   "Whitefield":        [12.978, 77.750],
@@ -122,41 +148,45 @@ const AREA_POLYGONS: Array<{
 ];
 
 // ── Bangalore Urban District boundary ────────────────────────
-// Approximates the actual irregular district shape.
-// Northern spike covers Devanahalli/airport corridor schools.
+// Wider, irregular shape matching the reference Bangalore district map.
+// Flat north, prominent east bulge, slight west notch.
+// Northern protrusion covers Devanahalli/airport corridor schools.
 const CITY_BOUNDARY: [number, number][] = [
-  // NW — Hesaraghatta / outer ring road
-  [13.178,77.428],
-  [13.198,77.472],[13.208,77.518],
-  // Flat northern edge — Jakkur / Yelahanka
-  [13.215,77.558],[13.212,77.598],
-  // Northern spike for Devanahalli/airport schools
-  [13.248,77.568],[13.292,77.585],[13.328,77.618],
-  [13.292,77.655],[13.248,77.682],
-  // Back on the north-east edge
-  [13.210,77.622],[13.198,77.668],
-  // NE lobe — Thanisandra / Bagalur
-  [13.152,77.712],[13.108,77.752],
-  // East — Whitefield outer ring / Hoskote border
-  [13.055,77.790],[12.995,77.812],
-  [12.958,77.816],[12.918,77.808],
+  // Start NW — Hesaraghatta area
+  [13.162,77.435],
+  [13.188,77.462],[13.205,77.512],
+  // Flat northern section — Yelahanka belt
+  [13.210,77.552],[13.215,77.598],
+  // Wide northern protrusion for Devanahalli schools (smooth, not a spike)
+  [13.238,77.575],[13.275,77.582],
+  [13.318,77.605],[13.335,77.635],
+  [13.318,77.665],[13.275,77.690],
+  [13.235,77.680],
+  // NE — Thanisandra / Bagalur / comes back east
+  [13.205,77.698],[13.168,77.735],
+  [13.112,77.772],
+  // East bulge — Whitefield / Hoskote (significantly wider than west)
+  [13.052,77.808],[12.992,77.828],
+  [12.948,77.832],[12.905,77.820],
   // SE — Sarjapur / Bellandur
-  [12.882,77.798],[12.848,77.788],
-  [12.812,77.768],[12.782,77.742],
-  // South — Attibele / Anekal
-  [12.755,77.708],[12.732,77.662],
-  [12.715,77.612],[12.705,77.558],
-  [12.710,77.505],
-  // SW — Bannerghatta / Electronic City south
-  [12.728,77.462],[12.752,77.432],
-  [12.788,77.412],[12.832,77.402],
-  // West — Kengeri / Uttarahalli
-  [12.878,77.396],[12.928,77.392],
-  [12.972,77.398],[13.018,77.415],
-  // NW approach back — slight west jog (characteristic shape)
-  [13.058,77.428],[13.098,77.428],
-  [13.138,77.425],[13.165,77.428],
-  [13.178,77.428],
+  [12.862,77.808],[12.828,77.795],
+  // Attibele corridor (12.783°N 77.792°E needs to be inside)
+  [12.795,77.800],[12.762,77.768],
+  // South
+  [12.738,77.728],[12.718,77.680],
+  [12.706,77.625],[12.700,77.565],
+  [12.706,77.510],
+  // SW
+  [12.722,77.462],[12.748,77.428],
+  [12.782,77.405],[12.825,77.392],
+  // West — slight concave notch (characteristic of real shape)
+  [12.872,77.382],[12.920,77.375],
+  [12.960,77.382],[12.998,77.398],
+  [13.038,77.415],
+  // NW back — slight west jog before climbing to start
+  [13.065,77.418],[13.098,77.422],
+  [13.132,77.428],[13.155,77.432],
+  [13.162,77.435],
 ];
 
 // ── Pin sizing by zoom level ─────────────────────────────────
@@ -305,9 +335,12 @@ export default function SchoolsMapInner({ schools }: Props) {
           const base  = AREA_COORDS[area] || [12.9716, 77.5946];
           const idx   = placed[area] || 0;
           placed[area] = idx + 1;
-          // Use actual coords if available, otherwise spread around area centre
+          // Priority: hardcoded override → DB coords → area centre spread
           let pos: [number, number];
-          if (school.latitude && school.longitude) {
+          const override = GPS_OVERRIDES[school.slug];
+          if (override) {
+            pos = override;
+          } else if (school.latitude && school.longitude) {
             pos = [school.latitude, school.longitude];
           } else if (idx === 0) {
             pos = [base[0], base[1]];
