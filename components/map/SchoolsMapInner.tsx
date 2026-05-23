@@ -148,45 +148,41 @@ const AREA_POLYGONS: Array<{
 ];
 
 // ── Bangalore Urban District boundary ────────────────────────
-// Wider, irregular shape matching the reference Bangalore district map.
-// Flat north, prominent east bulge, slight west notch.
-// Northern protrusion covers Devanahalli/airport corridor schools.
+// Smooth irregular polygon — NW sweeps directly up to Devanahalli apex
+// (no back-and-forth notch), wide east bulge, concave west notch.
 const CITY_BOUNDARY: [number, number][] = [
-  // Start NW — Hesaraghatta area
-  [13.162,77.435],
-  [13.188,77.462],[13.205,77.512],
-  // Flat northern section — Yelahanka belt
-  [13.210,77.552],[13.215,77.598],
-  // Wide northern protrusion for Devanahalli schools (smooth, not a spike)
-  [13.238,77.575],[13.275,77.582],
-  [13.318,77.605],[13.335,77.635],
-  [13.318,77.665],[13.275,77.690],
-  [13.235,77.680],
-  // NE — Thanisandra / Bagalur / comes back east
-  [13.205,77.698],[13.168,77.735],
-  [13.112,77.772],
-  // East bulge — Whitefield / Hoskote (significantly wider than west)
-  [13.052,77.808],[12.992,77.828],
-  [12.948,77.832],[12.905,77.820],
+  // NW start — Hesaraghatta area
+  [13.168,77.432],
+  // Sweep continuously NW→N→NE up to Devanahalli apex (NO backtrack)
+  [13.200,77.470],[13.242,77.498],
+  [13.282,77.528],[13.318,77.568],
+  // Apex
+  [13.338,77.618],
+  // Descend NE side
+  [13.318,77.668],[13.282,77.698],
+  [13.242,77.718],
+  // East — Thanisandra / Whitefield / Hoskote corridor (wide bulge)
+  [13.175,77.748],[13.108,77.782],
+  [13.048,77.808],[12.988,77.822],
+  [12.942,77.828],[12.898,77.818],
   // SE — Sarjapur / Bellandur
-  [12.862,77.808],[12.828,77.795],
-  // Attibele corridor (12.783°N 77.792°E needs to be inside)
-  [12.795,77.800],[12.762,77.768],
+  [12.858,77.802],[12.822,77.785],
+  // Attibele (12.783°N 77.792°E)
+  [12.790,77.800],[12.758,77.768],
   // South
-  [12.738,77.728],[12.718,77.680],
-  [12.706,77.625],[12.700,77.565],
-  [12.706,77.510],
+  [12.732,77.728],[12.715,77.678],
+  [12.705,77.622],[12.700,77.562],
+  [12.708,77.505],
   // SW
-  [12.722,77.462],[12.748,77.428],
-  [12.782,77.405],[12.825,77.392],
-  // West — slight concave notch (characteristic of real shape)
-  [12.872,77.382],[12.920,77.375],
-  [12.960,77.382],[12.998,77.398],
-  [13.038,77.415],
-  // NW back — slight west jog before climbing to start
-  [13.065,77.418],[13.098,77.422],
-  [13.132,77.428],[13.155,77.432],
-  [13.162,77.435],
+  [12.725,77.458],[12.748,77.428],
+  [12.782,77.408],[12.825,77.395],
+  // West — characteristic concave notch
+  [12.872,77.382],[12.920,77.372],
+  [12.962,77.382],[12.998,77.398],
+  [13.038,77.418],
+  // Back to NW
+  [13.072,77.425],[13.108,77.428],
+  [13.138,77.430],[13.168,77.432],
 ];
 
 // ── Pin sizing by zoom level ─────────────────────────────────
