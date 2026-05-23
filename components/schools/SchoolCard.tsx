@@ -70,7 +70,11 @@ export function SchoolCard({ school }: SchoolCardProps) {
       <div className="card-stats">
         <div className="card-stat">
           <IndianRupee size={12} style={{ color: "#7a6a5a" }} />
-          <span>{formatFeesRange(school.total_fees_min, school.total_fees_max) || "—"}</span>
+          {school.total_fees_min || school.total_fees_max ? (
+            <span>{formatFeesRange(school.total_fees_min, school.total_fees_max)}</span>
+          ) : (
+            <span style={{ color: "#b0a090", fontStyle: "italic", fontSize: 11 }}>Fees on request</span>
+          )}
         </div>
         {school.review_count != null && school.review_count > 0 && (
           <div className="card-stat">
