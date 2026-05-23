@@ -91,8 +91,8 @@ export function SchoolCard({ school }: SchoolCardProps) {
         )}
       </div>
 
-      {/* Description snippet */}
-      {school.description && (
+      {/* Description snippet — skip raw template strings */}
+      {school.description && !school.description.startsWith("Grades offered:") && !school.description.includes("Fee Range:") && (
         <p style={{
           fontSize: 12, color: "var(--muted)", fontStyle: "italic",
           lineHeight: 1.5, margin: "6px 0 2px",
