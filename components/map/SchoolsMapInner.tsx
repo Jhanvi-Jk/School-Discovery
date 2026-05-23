@@ -121,36 +121,42 @@ const AREA_POLYGONS: Array<{
   ]},
 ];
 
-// ── Bangalore district boundary ──────────────────────────────
-// Traces the actual Bangalore Urban District shape with a northern
-// extension for the Devanahalli/airport corridor (Harrow, Stonehill etc.)
+// ── Bangalore Urban District boundary ────────────────────────
+// Approximates the actual irregular district shape.
+// Northern spike covers Devanahalli/airport corridor schools.
 const CITY_BOUNDARY: [number, number][] = [
-  // Northwest — Yelahanka/Jakkur area
-  [13.115,77.472],
-  // North corridor sweeping up to Devanahalli
-  [13.165,77.495],[13.210,77.520],[13.255,77.552],
-  // North apex — covers Harrow (13.290°N, 77.618°E)
-  [13.308,77.585],[13.328,77.618],[13.308,77.652],
-  // Northeast descent
-  [13.258,77.682],[13.195,77.715],
-  // East — Whitefield / Hoskote corridor
-  [13.075,77.785],[13.010,77.812],[12.968,77.815],
-  // Southeast — Sarjapur / outer ring
-  [12.922,77.808],[12.888,77.800],
-  // Attibele corridor (12.783°N, 77.792°E)
-  [12.845,77.798],[12.808,77.798],[12.782,77.793],
-  // South — Anekal / Electronic City
-  [12.755,77.762],[12.730,77.720],
-  [12.712,77.668],[12.700,77.612],
-  [12.698,77.558],[12.706,77.510],
-  // Southwest — Bannerghatta / Kengeri
-  [12.722,77.470],[12.748,77.438],[12.780,77.415],
-  [12.820,77.400],
-  // West
-  [12.868,77.392],[12.918,77.388],[12.962,77.395],
-  [13.005,77.412],[13.048,77.432],
-  // Back to northwest
-  [13.082,77.450],[13.115,77.472],
+  // NW — Hesaraghatta / outer ring road
+  [13.178,77.428],
+  [13.198,77.472],[13.208,77.518],
+  // Flat northern edge — Jakkur / Yelahanka
+  [13.215,77.558],[13.212,77.598],
+  // Northern spike for Devanahalli/airport schools
+  [13.248,77.568],[13.292,77.585],[13.328,77.618],
+  [13.292,77.655],[13.248,77.682],
+  // Back on the north-east edge
+  [13.210,77.622],[13.198,77.668],
+  // NE lobe — Thanisandra / Bagalur
+  [13.152,77.712],[13.108,77.752],
+  // East — Whitefield outer ring / Hoskote border
+  [13.055,77.790],[12.995,77.812],
+  [12.958,77.816],[12.918,77.808],
+  // SE — Sarjapur / Bellandur
+  [12.882,77.798],[12.848,77.788],
+  [12.812,77.768],[12.782,77.742],
+  // South — Attibele / Anekal
+  [12.755,77.708],[12.732,77.662],
+  [12.715,77.612],[12.705,77.558],
+  [12.710,77.505],
+  // SW — Bannerghatta / Electronic City south
+  [12.728,77.462],[12.752,77.432],
+  [12.788,77.412],[12.832,77.402],
+  // West — Kengeri / Uttarahalli
+  [12.878,77.396],[12.928,77.392],
+  [12.972,77.398],[13.018,77.415],
+  // NW approach back — slight west jog (characteristic shape)
+  [13.058,77.428],[13.098,77.428],
+  [13.138,77.425],[13.165,77.428],
+  [13.178,77.428],
 ];
 
 // ── Pin sizing by zoom level ─────────────────────────────────
