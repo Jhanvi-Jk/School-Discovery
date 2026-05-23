@@ -30,19 +30,50 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const supabase = await createClient();
   const { data } = await supabase
-    .from("schools")
-    .select("name, description, area, city")
+    .from("schools_with_details")
+    .select("name, description, area, city, cover_image_url, total_fees_min, total_fees_max, avg_rating")
     .eq("slug", params.slug)
     .single();
 
   if (!data) return { title: "School Not Found" };
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.schoolfind360.com";
+  const canonicalUrl = `${appUrl}/schools/${params.slug}`;
+  const location = data.area || data.city;
+  const feesStr = data.total_fees_min
+    ? `₹${(data.total_fees_min / 100000).toFixed(1)}L–₹${(data.total_fees_max! / 100000).toFixed(1)}L/yr`
+    : null;
+
+  const description =
+    data.description ||
+    `${data.name} in ${location}, Bengaluru.${feesStr ? ` Annual fees: ${feesStr}.` : ""} View curriculum, admissions, reviews and compare on SchoolFinder.`;
+
   return {
-    title: `${data.name} — ${data.area || data.city}`,
-    description: data.description || `Explore ${data.name} in ${data.area || data.city}.`,
+    title: `${data.name} | School in ${location}, Bengaluru`,
+    description,
+    keywords: [
+      data.name,
+      `schools in ${location}`,
+      `${location} schools Bengaluru`,
+      "school admission Bengaluru",
+      "best schools Bengaluru",
+    ],
+    alternates: { canonical: canonicalUrl },
     openGraph: {
-      title: data.name,
-      description: data.description || "",
+      title: `${data.name} | ${location}, Bengaluru`,
+      description,
+      url: canonicalUrl,
+      type: "website",
+      siteName: "SchoolFinder Bengaluru",
+      ...(data.cover_image_url && {
+        images: [{ url: data.cover_image_url, alt: data.name, width: 1200, height: 630 }],
+      }),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${data.name} | ${location}, Bengaluru`,
+      description,
+      ...(data.cover_image_url && { images: [data.cover_image_url] }),
     },
   };
 }
@@ -139,8 +170,49 @@ export default async function SchoolProfilePage({
   const openAdmissions = admissions.filter((a: any) => a.status === "open");
   const badge = getVerificationBadge(school.verified);
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.schoolfind360.com";
+  const sd = Array.isArray(school.school_details) ? school.school_details[0] : school.school_details;
+
+  const schoolSchema = {
+    "@context": "https://schema.org",
+    "@type": "School",
+    name: school.name,
+    description: school.description ?? undefined,
+    url: `${appUrl}/schools/${school.slug}`,
+    ...(school.logo_url && { logo: school.logo_url }),
+    ...(school.cover_image_url && { image: school.cover_image_url }),
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: school.area || school.city,
+      addressRegion: "Karnataka",
+      addressCountry: "IN",
+    },
+    ...(school.latitude && school.longitude && {
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude: school.latitude,
+        longitude: school.longitude,
+      },
+    }),
+    ...(sd?.total_fees_min && {
+      priceRange: `₹${(sd.total_fees_min / 100000).toFixed(1)}L – ₹${(sd.total_fees_max / 100000).toFixed(1)}L`,
+    }),
+    ...(avgRating && reviews.length && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: avgRating.toFixed(1),
+        reviewCount: reviews.length,
+        bestRating: "5",
+      },
+    }),
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schoolSchema) }}
+      />
       <Header />
       <main className="bg-gray-50 min-h-screen pb-24">
         {/* Hero */}
