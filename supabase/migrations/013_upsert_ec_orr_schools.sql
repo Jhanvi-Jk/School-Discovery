@@ -1,0 +1,85 @@
+-- ================================================================
+-- 013_upsert_ec_orr_schools.sql
+-- Upsert 73 schools: Electronic City / Sarjapur (ec-078–ec-100)
+-- and Marathahalli / Outer Ring Road (or-101–or-150)
+-- Safe to run multiple times (ON CONFLICT DO UPDATE).
+-- ================================================================
+
+-- ── Electronic City / Sarjapur ──────────────────────────────────
+
+SELECT _upsert_school('vellore-international-school-branch','Vellore International School Branch',NULL,'private','coed','Sarjapur Belt','562125',15.0,NULL,NULL,170000,230000,NULL,NULL,ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('kidzee-high-electronic-city','Kidzee High Electronic City',NULL,'private','coed','Electronic City','560100',12.0,NULL,NULL,90000,120000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('bright-minds-public-school-sarjapur','Bright Minds Public School',NULL,'private','coed','Sarjapur','562125',16.0,NULL,NULL,85000,110000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('st-joans-school-electronic-city','St. Joan''s School Electronic City',NULL,'private','coed','Electronic City','560100',21.0,NULL,NULL,95000,130000,NULL,NULL,ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('vivid-high-school-electronic-city','Vivid High School',NULL,'private','coed','Electronic City Rim','560100',18.0,NULL,NULL,130000,165000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('little-elly-high-sarjapur','Little Elly High Sarjapur',NULL,'private','coed','Sarjapur Road','560035',11.0,NULL,NULL,115000,150000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('pinnacle-international-school-electronic-city','Pinnacle International School',NULL,'private','coed','Electronic City','560100',19.0,NULL,NULL,125000,160000,NULL,NULL,ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('cambridge-international-sarjapur','Cambridge International Sarjapur',NULL,'private','coed','Sarjapur Sector','562125',18.0,NULL,NULL,145000,190000,NULL,NULL,ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('ascent-high-school-electronic-city','Ascent High School',NULL,'private','coed','Electronic City','560100',20.0,NULL,NULL,105000,140000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('oxford-central-school-sarjapur','Oxford Central School Sarjapur',NULL,'private','coed','Sarjapur Road','560035',21.0,NULL,NULL,120000,155000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('the-excel-public-school-electronic-city','The Excel Public School',NULL,'private','coed','Electronic City','560100',26.0,NULL,NULL,55000,80000,NULL,NULL,ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('capestone-high-school-electronic-city','Capestone High School',NULL,'private','coed','Electronic City Rim','560100',17.0,NULL,NULL,135000,170000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('the-heritage-public-academy-sarjapur','The Heritage Public Academy',NULL,'private','coed','Sarjapur Outer Link','562125',19.0,NULL,NULL,130000,165000,NULL,NULL,ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('veda-vidya-academy-electronic-city','Veda Vidya Academy',NULL,'private','coed','Electronic City','560100',31.0,NULL,NULL,45000,65000,NULL,NULL,ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('zenith-central-academy-sarjapur','Zenith Central Academy',NULL,'private','coed','Sarjapur Belt','562125',16.0,NULL,NULL,140000,180000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('cyber-city-public-school-electronic-city','Cyber City Public School',NULL,'private','coed','Electronic City Phase 1','560100',22.0,NULL,NULL,95000,125000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('neta-ji-central-school-electronic-city','Neta Ji Central School',NULL,'private','coed','Electronic City Phase 2','560100',24.0,NULL,NULL,80000,110000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('sarjapur-global-academy','Sarjapur Global Academy',NULL,'private','coed','Sarjapur','562125',18.0,NULL,NULL,125000,160000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('broadview-international-school-electronic-city','Broadview International School',NULL,'international','coed','Electronic City Ext','560100',13.0,NULL,NULL,250000,340000,NULL,NULL,ARRAY['igcse']::curriculum_type[]);
+SELECT _upsert_school('apex-public-school-electronic-city','Apex Public School',NULL,'private','coed','Electronic City','560100',21.0,NULL,NULL,90000,120000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('veda-central-school-sarjapur','Veda Central School Sarjapur',NULL,'private','coed','Sarjapur Road','560035',20.0,NULL,NULL,115000,145000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('the-smart-school-electronic-city','The Smart School',NULL,'private','coed','Electronic City','560100',27.0,NULL,NULL,50000,70000,NULL,NULL,ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('capestone-global-academy-electronic-city','Capestone Global Academy',NULL,'private','coed','Electronic City Phase 1','560100',18.0,NULL,NULL,130000,165000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+
+-- ── Marathahalli / Outer Ring Road ──────────────────────────────
+
+SELECT _upsert_school('new-horizon-gurukul-marathahalli','New Horizon Gurukul',NULL,'private','coed','Marathahalli','560037',22.0,NULL,NULL,130000,175000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('chrysalis-high-marathahalli','Chrysalis High Marathahalli',NULL,'private','coed','Marathahalli','560037',18.0,NULL,NULL,145000,190000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('vagdevi-vilas-school-marathahalli','Vagdevi Vilas School',NULL,'private','coed','Marathahalli','560037',24.0,NULL,NULL,90000,130000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('ryan-international-school-kundalahalli','Ryan International School Kundalahalli',NULL,'private','coed','Marathahalli Area','560037',25.0,NULL,NULL,110000,150000,NULL,NULL,ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('gitanjali-international-school-orr','Gitanjali International School',NULL,'private','coed','Outer Ring Road','560037',20.0,NULL,NULL,120000,160000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('ravindra-bharathi-global-school-marathahalli','Ravindra Bharathi Global School',NULL,'private','coed','Marathahalli','560037',21.0,NULL,NULL,100000,135000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('sri-chaitanya-techno-school-orr','Sri Chaitanya Techno School ORR',NULL,'private','coed','Outer Ring Road','560037',26.0,NULL,NULL,105000,145000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('narayana-olympiad-school-orr','Narayana Olympiad School ORR',NULL,'private','coed','Outer Ring Road','560037',24.0,NULL,NULL,110000,150000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('sanskriti-public-school-marathahalli','Sanskriti Public School Marathahalli',NULL,'private','coed','Marathahalli','560037',22.0,NULL,NULL,95000,125000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('sudarshan-vidya-mandir-east-marathahalli','Sudarshan Vidya Mandir East',NULL,'private','coed','Marathahalli','560037',29.0,NULL,NULL,50000,70000,NULL,NULL,ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('st-thomas-high-school-marathahalli','St. Thomas High School Marathahalli',NULL,'private','coed','Marathahalli Sector','560037',25.0,NULL,NULL,85000,115000,NULL,NULL,ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('loyola-english-school-marathahalli','Loyola English School',NULL,'private','coed','Marathahalli','560037',32.0,NULL,NULL,45000,65000,NULL,NULL,ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('brilliant-national-school-orr','Brilliant National School ORR',NULL,'private','coed','Outer Ring Road','560037',21.0,NULL,NULL,100000,130000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('zeal-international-school-east','Zeal International School East',NULL,'international','coed','Marathahalli Outer Edge','560037',14.0,NULL,NULL,250000,360000,NULL,NULL,ARRAY['igcse']::curriculum_type[]);
+SELECT _upsert_school('vanguard-public-school-orr','Vanguard Public School ORR',NULL,'private','coed','Outer Ring Road','560037',19.0,NULL,NULL,115000,145000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('greenfield-public-school-marathahalli','Greenfield Public School Marathahalli',NULL,'private','coed','Marathahalli Rim','560037',18.0,NULL,NULL,120000,160000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('mount-litera-zee-school-orr','Mount Litera Zee School ORR',NULL,'private','coed','Outer Ring Road','560037',16.0,NULL,NULL,130000,175000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('sigma-central-school-marathahalli','Sigma Central School Marathahalli',NULL,'private','coed','Marathahalli','560037',22.0,NULL,NULL,90000,125000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('beacon-high-international-orr','Beacon High International ORR',NULL,'international','coed','Outer Ring Road Corridor','560037',12.0,NULL,NULL,280000,390000,NULL,NULL,ARRAY['igcse']::curriculum_type[]);
+SELECT _upsert_school('elite-public-school-marathahalli','Elite Public School Marathahalli',NULL,'private','coed','Marathahalli','560037',20.0,NULL,NULL,110000,140000,NULL,NULL,ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('bright-kids-high-orr','Bright Kids High ORR',NULL,'private','coed','Outer Ring Road','560037',15.0,NULL,NULL,80000,110000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('st-joan-of-arc-school-orr','St. Joan of Arc School ORR',NULL,'private','coed','Outer Ring Road','560037',22.0,NULL,NULL,95000,125000,NULL,NULL,ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('vivid-international-school-marathahalli','Vivid International School Marathahalli',NULL,'private','coed','Marathahalli Sector','560037',17.0,NULL,NULL,135000,170000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('little-elly-high-orr','Little Elly High ORR',NULL,'private','coed','Outer Ring Road','560037',11.0,NULL,NULL,110000,145000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('national-academy-marathahalli','National Academy Marathahalli',NULL,'private','coed','Marathahalli','560037',16.0,NULL,NULL,160000,215000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('genius-minds-academy-orr','Genius Minds Academy ORR',NULL,'private','coed','Outer Ring Road','560037',20.0,NULL,NULL,95000,130000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('pinnacle-high-school-marathahalli','Pinnacle High School Marathahalli',NULL,'private','coed','Marathahalli','560037',18.0,NULL,NULL,120000,155000,NULL,NULL,ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('cambridge-school-orr','Cambridge School ORR',NULL,'private','coed','Outer Ring Road Hub','560037',19.0,NULL,NULL,140000,185000,NULL,NULL,ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('milestone-international-orr','Milestone International ORR',NULL,'international','coed','Outer Ring Road Ext','560037',13.0,NULL,NULL,270000,385000,NULL,NULL,ARRAY['igcse']::curriculum_type[]);
+SELECT _upsert_school('ascent-public-school-marathahalli','Ascent Public School Marathahalli',NULL,'private','coed','Marathahalli Area','560037',21.0,NULL,NULL,100000,135000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('oxford-central-school-orr','Oxford Central School ORR Corridor',NULL,'private','coed','Outer Ring Road','560037',22.0,NULL,NULL,115000,150000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('the-excel-public-school-orr','The Excel Public School ORR',NULL,'private','coed','Outer Ring Road','560037',27.0,NULL,NULL,50000,75000,NULL,NULL,ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('capestone-international-marathahalli','Capestone International Marathahalli',NULL,'private','coed','Marathahalli Sector','560037',18.0,NULL,NULL,130000,165000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('the-heritage-academy-orr','The Heritage Academy ORR',NULL,'private','coed','Outer Ring Road Edge','560037',20.0,NULL,NULL,125000,160000,NULL,NULL,ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('veda-vidya-mandir-orr','Veda Vidya Mandir ORR',NULL,'private','coed','Outer Ring Road','560037',32.0,NULL,NULL,40000,60000,NULL,NULL,ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('zenith-international-school-marathahalli','Zenith International School Marathahalli',NULL,'private','coed','Marathahalli Ext','560037',17.0,NULL,NULL,135000,175000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('cyber-edge-school-marathahalli','Cyber Edge School',NULL,'private','coed','Marathahalli','560037',22.0,NULL,NULL,95000,125000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('neta-ji-public-school-orr','Neta Ji Public School ORR',NULL,'private','coed','Outer Ring Road','560037',24.0,NULL,NULL,80000,110000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('global-tech-academy-marathahalli','Global Tech Academy',NULL,'private','coed','Marathahalli','560037',18.0,NULL,NULL,125000,160000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('broadview-public-school-orr','Broadview Public School ORR',NULL,'international','coed','Outer Ring Road Ext','560037',13.0,NULL,NULL,250000,340000,NULL,NULL,ARRAY['igcse']::curriculum_type[]);
+SELECT _upsert_school('apex-public-school-marathahalli','Apex Public School Marathahalli',NULL,'private','coed','Marathahalli','560037',21.0,NULL,NULL,90000,120000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('veda-central-school-orr','Veda Central School ORR Corridor',NULL,'private','coed','Outer Ring Road','560037',20.0,NULL,NULL,115000,145000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('the-smart-academy-orr','The Smart Academy ORR',NULL,'private','coed','Outer Ring Road','560037',27.0,NULL,NULL,50000,70000,NULL,NULL,ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('capestone-global-school-orr','Capestone Global School ORR',NULL,'private','coed','Outer Ring Road','560037',18.0,NULL,NULL,130000,165000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('the-heritage-global-school-marathahalli','The Heritage Global School',NULL,'private','coed','Marathahalli Edge','560037',19.0,NULL,NULL,130000,165000,NULL,NULL,ARRAY['icse']::curriculum_type[]);
+SELECT _upsert_school('veda-vidya-academy-orr','Veda Vidya Academy ORR',NULL,'private','coed','Outer Ring Road','560037',31.0,NULL,NULL,45000,65000,NULL,NULL,ARRAY['state_board']::curriculum_type[]);
+SELECT _upsert_school('zenith-central-academy-orr','Zenith Central Academy ORR',NULL,'private','coed','Outer Ring Road','560037',16.0,NULL,NULL,140000,180000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('the-secure-school-marathahalli','The Secure School',NULL,'private','coed','Marathahalli','560037',21.0,NULL,NULL,100000,135000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('alpha-public-school-orr','Alpha Public School ORR',NULL,'private','coed','Outer Ring Road','560037',22.0,NULL,NULL,110000,140000,NULL,NULL,ARRAY['cbse']::curriculum_type[]);
+SELECT _upsert_school('alpha-international-academy-marathahalli','Alpha International Academy',NULL,'private','coed','Marathahalli','560037',17.0,NULL,NULL,150000,200000,NULL,NULL,ARRAY['icse']::curriculum_type[]);
