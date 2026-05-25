@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 export type CityKey = "bangalore" | "delhi" | "chennai" | "pune" | "mumbai" | "kolkata";
 
@@ -45,6 +45,13 @@ export const useCityStore = create<CityState>()(
       setCity:  (city) => set({ selectedCity: city }),
       clearCity: ()   => set({ selectedCity: null }),
     }),
-    { name: "schoolfinder-city" }
+    {
+      name: "schoolfinder-city",
+      // sessionStorage: clears on reload → "All Cities" by default.
+      // Explicit saves use savedPrefsStore (localStorage) instead.
+      storage: createJSONStorage(() =>
+        typeof window !== "undefined" ? sessionStorage : localStorage
+      ),
+    }
   )
 );

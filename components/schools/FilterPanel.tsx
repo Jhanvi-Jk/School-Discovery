@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   MapPin, BookOpen, Users, Building2, IndianRupee,
-  Bus, Trophy, Music, Languages, Calendar, Clock,
-  ChevronDown, X, Search, SlidersHorizontal, FlaskConical, ExternalLink, Info,
+  Bus, Trophy, Music, Languages, Calendar,
+  ChevronDown, X, Search, SlidersHorizontal, FlaskConical,
+  ExternalLink, Info, Bookmark, BookmarkCheck,
 } from "lucide-react";
 import { useFilterStore } from "@/store/filterStore";
 import { useCityStore, CITY_DB_NAMES } from "@/store/cityStore";
+import { useSavedPrefsStore } from "@/store/savedPrefsStore";
 import {
   BENGALURU_AREAS, AREAS_BY_CITY, ALL_SPORTS, ALL_EXTRACURRICULARS,
   ALL_LANGUAGES, GRADE_OPTIONS,
@@ -114,24 +116,45 @@ function FeeSlider() {
   const { filters, setFilter } = useFilterStore();
   const MAX = 1000000;
   const fmt = (v: number) => v >= 100000 ? `₹${(v / 100000).toFixed(1)}L` : `₹${(v / 1000).toFixed(0)}K`;
+
+  // Local state gives instant visual feedback; store update is debounced 300 ms
+  const [localMin, setLocalMin] = useState(filters.fees_min);
+  const [localMax, setLocalMax] = useState(filters.fees_max);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Keep local in sync when store changes externally (e.g. reset / load saved prefs)
+  useEffect(() => { setLocalMin(filters.fees_min); }, [filters.fees_min]);
+  useEffect(() => { setLocalMax(filters.fees_max); }, [filters.fees_max]);
+
+  const commitMin = (v: number) => {
+    setLocalMin(v);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setFilter("fees_min", v), 300);
+  };
+  const commitMax = (v: number) => {
+    setLocalMax(v);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setFilter("fees_max", v), 300);
+  };
+
   return (
     <>
       <div className="fp-fee-labels">
-        <span>{fmt(filters.fees_min)}</span>
-        <span>{filters.fees_max >= MAX ? "No limit" : fmt(filters.fees_max)}</span>
+        <span>{fmt(localMin)}</span>
+        <span>{localMax >= MAX ? "No limit" : fmt(localMax)}</span>
       </div>
       <input type="range" className="fp-slider" min={0} max={MAX} step={10000}
-        value={filters.fees_min}
-        onChange={(e) => { const v = +e.target.value; if (v < filters.fees_max) setFilter("fees_min", v); }}
+        value={localMin}
+        onChange={(e) => { const v = +e.target.value; if (v < localMax) commitMin(v); }}
       />
       <input type="range" className="fp-slider" min={0} max={MAX} step={10000}
-        value={filters.fees_max}
-        onChange={(e) => { const v = +e.target.value; if (v > filters.fees_min) setFilter("fees_max", v); }}
+        value={localMax}
+        onChange={(e) => { const v = +e.target.value; if (v > localMin) commitMax(v); }}
       />
       <div className="fp-presets">
         {[100000, 200000, 500000].map((p) => (
-          <button key={p} className={`fp-preset${filters.fees_max === p ? " on" : ""}`}
-            onClick={() => setFilter("fees_max", p)}>
+          <button key={p} className={`fp-preset${localMax === p ? " on" : ""}`}
+            onClick={() => { setLocalMax(p); setFilter("fees_max", p); }}>
             Under {fmt(p)}
           </button>
         ))}
@@ -370,6 +393,7 @@ export function FilterPanel({ className }: { className?: string }) {
   const count = activeFilterCount();
   const [areaCounts, setAreaCounts] = useState<Record<string, number>>({});
   const { selectedCity } = useCityStore();
+  const { isSaved, savedAt, savePrefs, clearPrefs } = useSavedPrefsStore();
 
   useEffect(() => {
     const supabase = createClient();
@@ -536,6 +560,59 @@ export function FilterPanel({ className }: { className?: string }) {
         <SearchableList items={ALL_LANGUAGES} selected={filters.languages}
           onToggle={(v) => toggleArrayFilter("languages", v)} placeholder="Search languages…" />
       </Section>
+
+      {/* ── Save preferences ───────────────────────────────── */}
+      <div style={{
+        padding: "14px 16px",
+        borderTop: "1.5px solid var(--beige-400)",
+        background: "var(--beige-200)",
+      }}>
+        {/* Saved status row */}
+        {isSaved && savedAt && (
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            marginBottom: 8,
+          }}>
+            <span style={{ fontSize: 11, color: "var(--muted)", display: "flex", alignItems: "center", gap: 4 }}>
+              <BookmarkCheck size={11} color="var(--brown-dark)" />
+              Saved {new Date(savedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+            </span>
+            <button
+              onClick={clearPrefs}
+              style={{
+                background: "none", border: "none", fontSize: 11,
+                color: "var(--muted)", cursor: "pointer", textDecoration: "underline",
+              }}
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        <button
+          onClick={() => selectedCity && savePrefs(selectedCity, filters)}
+          disabled={!selectedCity}
+          title={selectedCity ? "Save city + all filters as your default" : "Select a city first to save"}
+          style={{
+            width: "100%", padding: "11px", borderRadius: 10,
+            background: isSaved ? "var(--beige-500)" : "var(--dark)",
+            color: "white", fontWeight: 700, fontSize: 13, border: "none",
+            cursor: selectedCity ? "pointer" : "not-allowed",
+            opacity: selectedCity ? 1 : 0.45,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            transition: "background 0.15s",
+          }}
+        >
+          <Bookmark size={13} />
+          {isSaved ? "Update saved filters" : "Save filters & city"}
+        </button>
+
+        {!selectedCity && (
+          <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", marginTop: 5 }}>
+            Choose a city first to enable saving
+          </p>
+        )}
+      </div>
     </div>
   );
 }

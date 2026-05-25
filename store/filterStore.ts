@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { DEFAULT_FILTERS, SchoolFilters, SortOption } from "@/lib/types";
 
 interface FilterState {
@@ -17,7 +18,9 @@ interface FilterState {
   activeFilterCount: () => number;
 }
 
-export const useFilterStore = create<FilterState>((set, get) => ({
+export const useFilterStore = create<FilterState>()(
+  persist(
+  (set, get) => ({
   filters: { ...DEFAULT_FILTERS },
   sort: "relevance",
   viewMode: "grid",
@@ -69,4 +72,12 @@ export const useFilterStore = create<FilterState>((set, get) => ({
     if (filters.streams.length) count++;
     return count;
   },
-}));
+  }),
+  {
+    name: "schoolfinder-filters",
+    // sessionStorage: clears on page reload, persists across in-session navigation
+    storage: createJSONStorage(() =>
+      typeof window !== "undefined" ? sessionStorage : localStorage
+    ),
+  }
+));

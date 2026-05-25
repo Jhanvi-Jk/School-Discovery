@@ -9,7 +9,8 @@ import { CompareTray } from "@/components/schools/CompareTray";
 import { SchoolsMapWrapper } from "@/components/map/SchoolsMapWrapper";
 import { useFilterStore } from "@/store/filterStore";
 import { useCityStore, CITY_LABELS, CITY_DB_NAMES, type CityKey } from "@/store/cityStore";
-import type { SchoolSummary } from "@/lib/types";
+import { useSavedPrefsStore } from "@/store/savedPrefsStore";
+import type { SchoolFilters, SchoolSummary } from "@/lib/types";
 
 const CITY_DESCRIPTIONS: Record<CityKey, string> = {
   bangalore: "India's tech capital · over 350 schools",
@@ -182,6 +183,7 @@ function CityPanel({
 export default function SchoolsPage() {
   const { filters, sort, setFilter } = useFilterStore();
   const { selectedCity, setCity, clearCity } = useCityStore();
+  const { isSaved, savedCity, savedFilters } = useSavedPrefsStore();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [schools, setSchools] = useState<SchoolSummary[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -189,6 +191,25 @@ export default function SchoolsPage() {
   const [showMap, setShowMap] = useState(false); // lazy — user taps to load
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [cityPanelOpen, setCityPanelOpen] = useState(false);
+
+  // ── First-session init ───────────────────────────────────────
+  // Fires ONCE per page load (sessionStorage clears on Ctrl+R).
+  // If the user has saved prefs, restore city + filters; otherwise start at All Cities.
+  useEffect(() => {
+    const SESSION_KEY = "sf_session_init";
+    if (typeof window === "undefined" || sessionStorage.getItem(SESSION_KEY)) return;
+    sessionStorage.setItem(SESSION_KEY, "1");
+
+    if (isSaved && savedCity) {
+      setCity(savedCity);
+      if (savedFilters) {
+        (Object.keys(savedFilters) as (keyof SchoolFilters)[]).forEach((k) =>
+          setFilter(k, savedFilters[k] as any)
+        );
+      }
+    }
+    // If not saved → city stays null (All Cities) and filters stay default
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Show map by default on desktop only (avoids hydration mismatch)
   useEffect(() => {
