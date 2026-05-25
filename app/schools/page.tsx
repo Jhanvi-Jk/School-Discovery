@@ -1,17 +1,41 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, X, SlidersHorizontal } from "lucide-react";
+import { Search, X, SlidersHorizontal, ChevronRight, MapPin, ArrowLeft } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { FilterPanel, MobileFilterButton, MobileFilterSheet } from "@/components/schools/FilterPanel";
 import { SchoolCard } from "@/components/schools/SchoolCard";
 import { CompareTray } from "@/components/schools/CompareTray";
 import { SchoolsMapWrapper } from "@/components/map/SchoolsMapWrapper";
 import { useFilterStore } from "@/store/filterStore";
+import { useCityStore, CITY_LABELS, type CityKey } from "@/store/cityStore";
 import type { SchoolSummary } from "@/lib/types";
 
-function buildQuery(filters: ReturnType<typeof useFilterStore.getState>["filters"], sort: string) {
+const CITY_DB_NAMES: Record<CityKey, string> = {
+  bangalore: "Bengaluru",
+  delhi:     "Delhi",
+  chennai:   "Chennai",
+  pune:      "Pune",
+  mumbai:    "Mumbai",
+  kolkata:   "Kolkata",
+};
+
+const CITY_DESCRIPTIONS: Record<CityKey, string> = {
+  bangalore: "India's tech capital · over 350 schools",
+  delhi:     "The national capital · over 50 schools",
+  chennai:   "Gateway to the South · coming soon",
+  pune:      "Oxford of the East · coming soon",
+  mumbai:    "City of dreams · coming soon",
+  kolkata:   "City of joy · coming soon",
+};
+
+function buildQuery(
+  filters: ReturnType<typeof useFilterStore.getState>["filters"],
+  sort: string,
+  cityDbName: string,
+) {
   const p = new URLSearchParams();
+  if (cityDbName) p.set("city", cityDbName);
   if (filters.query) p.set("q", filters.query);
   filters.areas.forEach((a) => p.append("area", a));
   filters.curricula.forEach((c) => p.append("curriculum", c));
@@ -42,21 +66,147 @@ function SkeletonCard() {
   );
 }
 
+// ── City Picker Panel ──────────────────────────────────────────────
+const CITY_KEYS: CityKey[] = ["bangalore", "delhi", "chennai", "pune", "mumbai", "kolkata"];
+
+function CityPanel({
+  open,
+  onClose,
+  selected,
+  onSelect,
+}: {
+  open: boolean;
+  onClose: () => void;
+  selected: CityKey | null;
+  onSelect: (c: CityKey) => void;
+}) {
+  return (
+    <>
+      {/* Backdrop */}
+      {open && (
+        <div
+          onClick={onClose}
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000,
+            background: "rgba(0,0,0,0.25)", backdropFilter: "blur(2px)",
+          }}
+        />
+      )}
+
+      {/* Slide-in panel */}
+      <div style={{
+        position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 1001,
+        width: 320, maxWidth: "90vw",
+        background: "var(--beige-100)",
+        boxShadow: "-4px 0 32px rgba(0,0,0,0.12)",
+        transform: open ? "translateX(0)" : "translateX(100%)",
+        transition: "transform 0.28s cubic-bezier(0.4,0,0.2,1)",
+        display: "flex", flexDirection: "column",
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: "20px 20px 16px",
+          borderBottom: "1px solid var(--beige-400)",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--muted)", marginBottom: 3 }}>
+              Choose City
+            </p>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--dark)" }}>
+              Where are you looking?
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              width: 32, height: 32, borderRadius: 99,
+              background: "var(--beige-300)", border: "none",
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <X size={15} color="var(--muted)" />
+          </button>
+        </div>
+
+        {/* City list */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "12px 12px" }}>
+          {CITY_KEYS.map((key) => {
+            const isSelected = selected === key;
+            const isAvailable = key === "bangalore" || key === "delhi";
+            return (
+              <button
+                key={key}
+                onClick={() => { if (isAvailable) { onSelect(key); onClose(); } }}
+                disabled={!isAvailable}
+                style={{
+                  width: "100%", textAlign: "left",
+                  padding: "14px 16px", marginBottom: 8,
+                  borderRadius: 12,
+                  border: isSelected ? "2px solid var(--dark)" : "1.5px solid var(--beige-400)",
+                  background: isSelected ? "var(--dark)" : isAvailable ? "var(--beige-200)" : "var(--beige-100)",
+                  cursor: isAvailable ? "pointer" : "default",
+                  opacity: isAvailable ? 1 : 0.45,
+                  transition: "all 0.15s",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <MapPin size={14} color={isSelected ? "white" : "var(--muted)"} />
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: isSelected ? "white" : "var(--dark)", marginBottom: 1 }}>
+                      {CITY_LABELS[key]}
+                    </p>
+                    <p style={{ fontSize: 11, color: isSelected ? "rgba(255,255,255,0.7)" : "var(--muted)" }}>
+                      {CITY_DESCRIPTIONS[key]}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* All cities option */}
+        {selected && (
+          <div style={{ padding: "12px 12px", borderTop: "1px solid var(--beige-400)" }}>
+            <button
+              onClick={() => { onSelect(null as any); onClose(); }}
+              style={{
+                width: "100%", padding: "12px 16px", borderRadius: 12,
+                border: "1.5px solid var(--beige-400)", background: "var(--beige-200)",
+                cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--muted)",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              }}
+            >
+              <ArrowLeft size={13} /> Show all cities
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── Main Page ──────────────────────────────────────────────────────
 export default function SchoolsPage() {
   const { filters, sort, setFilter } = useFilterStore();
+  const { selectedCity, setCity, clearCity } = useCityStore();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [schools, setSchools] = useState<SchoolSummary[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showMap, setShowMap] = useState(true);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [cityPanelOpen, setCityPanelOpen] = useState(false);
+
+  const cityDbName = selectedCity ? CITY_DB_NAMES[selectedCity] : "";
+  const cityLabel = selectedCity ? CITY_LABELS[selectedCity] : "All Cities";
 
   const fetchSchools = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/schools?${buildQuery(filters, sort)}`);
+      const res = await fetch(`/api/v1/schools?${buildQuery(filters, sort, cityDbName)}`);
       const json = await res.json();
-      console.log("API RESPONSE:", json);
       if (json.success) {
         setSchools(json.data);
         setTotalCount(json.pagination.total);
@@ -66,12 +216,14 @@ export default function SchoolsPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters, sort]);
+  }, [filters, sort, cityDbName]);
 
   useEffect(() => {
     const t = setTimeout(fetchSchools, 300);
     return () => clearTimeout(t);
   }, [fetchSchools]);
+
+  const noCity = !selectedCity;
 
   return (
     <>
@@ -104,10 +256,25 @@ export default function SchoolsPage() {
 
               {/* Search row */}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                {/* Filter button — always rendered, hidden on desktop via style tag below */}
-                <div className="mob-filter-btn">
-                  <MobileFilterButton onOpen={() => setMobileFilterOpen(true)} />
-                </div>
+
+                {/* Go back button — shown when a city is selected */}
+                {selectedCity ? (
+                  <button
+                    onClick={clearCity}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+                      border: "1.5px solid var(--beige-500)", color: "var(--muted)",
+                      background: "var(--beige-200)", cursor: "pointer", whiteSpace: "nowrap",
+                    }}
+                  >
+                    <ArrowLeft size={13} /> All Cities
+                  </button>
+                ) : (
+                  <div className="mob-filter-btn">
+                    <MobileFilterButton onOpen={() => setMobileFilterOpen(true)} />
+                  </div>
+                )}
 
                 <div className="search-wrap" style={{ flex: 1, minWidth: 200 }}>
                   <Search size={16} />
@@ -125,6 +292,23 @@ export default function SchoolsPage() {
                   )}
                 </div>
 
+                {/* Choose Cities button */}
+                <button
+                  onClick={() => setCityPanelOpen(true)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+                    border: "1.5px solid var(--beige-500)",
+                    color: selectedCity ? "var(--dark)" : "var(--muted)",
+                    background: selectedCity ? "var(--beige-300)" : "var(--beige-200)",
+                    cursor: "pointer", whiteSpace: "nowrap",
+                  }}
+                >
+                  <MapPin size={13} />
+                  {cityLabel}
+                  <ChevronRight size={12} />
+                </button>
+
                 <button className="btn-toggle-map" onClick={() => setShowMap(!showMap)}>
                   {showMap ? "Hide Map" : "Show Map"}
                 </button>
@@ -135,17 +319,35 @@ export default function SchoolsPage() {
                 @media (max-width: 1024px) { .mob-filter-btn { display: block; } }
               `}</style>
 
-              {/* Map */}
+              {/* Map — dimmed when no city selected */}
               {showMap && (
-                <div className="map-box">
-                  <SchoolsMapWrapper schools={schools} />
+                <div className="map-box" style={{ position: "relative" }}>
+                  <SchoolsMapWrapper schools={noCity ? [] : schools} />
+                  {noCity && (
+                    <div
+                      onClick={() => setCityPanelOpen(true)}
+                      style={{
+                        position: "absolute", inset: 0, borderRadius: "inherit",
+                        background: "rgba(245,240,235,0.82)", backdropFilter: "blur(3px)",
+                        display: "flex", flexDirection: "column",
+                        alignItems: "center", justifyContent: "center",
+                        cursor: "pointer", gap: 8,
+                      }}
+                    >
+                      <MapPin size={28} color="var(--muted)" />
+                      <p style={{ fontWeight: 700, color: "var(--dark)", fontSize: 15 }}>
+                        Select a city to explore the map
+                      </p>
+                      <p style={{ fontSize: 12, color: "var(--muted)" }}>Tap to choose</p>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Explore header */}
               <div className="explore-header">
                 <div>
-                  <h2>Explore Bangalore</h2>
+                  <h2>Explore {cityLabel}</h2>
                   <p>
                     {loading
                       ? "Loading schools…"
@@ -190,7 +392,6 @@ export default function SchoolsPage() {
                   ))}
                 </div>
               ) : (
-                /* Compare Data table */
                 <div style={{
                   overflowX: "auto", borderRadius: "var(--radius)",
                   border: "1px solid var(--beige-500)", paddingBottom: 80
@@ -239,6 +440,14 @@ export default function SchoolsPage() {
 
       <MobileFilterSheet open={mobileFilterOpen} onClose={() => setMobileFilterOpen(false)} />
       <CompareTray />
+
+      {/* City picker panel */}
+      <CityPanel
+        open={cityPanelOpen}
+        onClose={() => setCityPanelOpen(false)}
+        selected={selectedCity}
+        onSelect={(c) => { if (c === null) clearCity(); else setCity(c); }}
+      />
     </>
   );
 }

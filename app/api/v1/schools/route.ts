@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
   const admissions_open = searchParams.get("admissions_open");
   const mid_year = searchParams.get("mid_year");
   const sort = (searchParams.get("sort") || "relevance") as SortOption;
+  const city = searchParams.get("city") || "";
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "200");
   const offset = (page - 1) * limit;
@@ -46,6 +47,11 @@ export async function GET(request: NextRequest) {
     let queryBuilder = supabase
       .from("schools_with_details")
       .select("*", { count: "exact" });
+
+    // City filter — omit to show all cities
+    if (city) {
+      queryBuilder = queryBuilder.eq("city", city);
+    }
 
     // Full-text search
     if (query) {
