@@ -1,3 +1,5 @@
+@import "leaflet/dist/leaflet.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,8 +7,6 @@
 /* Utility: hide scrollbar while preserving scroll behavior */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-@import "leaflet/dist/leaflet.css";
 
 /* ── Design tokens ────────────────────────────────────────── */
 :root {
