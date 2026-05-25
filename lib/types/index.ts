@@ -312,9 +312,23 @@ export const DELHI_AREAS = [
   "Vikas Puri", "Vivek Vihar", "Vasundhara Enclave",
 ];
 
+export const CHENNAI_AREAS = [
+  "Adyar", "Alwarpet", "Ambattur", "Anna Nagar",
+  "Chembarambakkam", "Chetpet", "Church Park", "CIT Nagar",
+  "Egattur", "Egmore", "Gerugambakkam", "Gopalapuram",
+  "Indira Nagar", "Injambakkam", "Kilpauk", "Kolapakkam",
+  "Maduravoyal", "Mapedu", "Mogappair", "Mylapore",
+  "Nanganallur", "Navalur", "Neelankarai", "Nesapakkam",
+  "Nungambakkam", "Padappai", "Padur", "Perambur",
+  "Perumbakkam", "Perungudi", "Ponmar", "Poonamallee",
+  "R.A. Puram", "Royapettah", "Sholinganallur", "Surapet",
+  "Velachery",
+];
+
 export const AREAS_BY_CITY: Record<string, string[]> = {
   bangalore: BENGALURU_AREAS,
   delhi:     DELHI_AREAS,
+  chennai:   CHENNAI_AREAS,
 };
 
 export const ALL_SPORTS = [
