@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, X, SlidersHorizontal, ChevronRight, MapPin, ArrowLeft } from "lucide-react";
+import { Search, X, SlidersHorizontal, ChevronRight, MapPin, ArrowLeft, Map as MapIcon } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { FilterPanel, MobileFilterButton, MobileFilterSheet } from "@/components/schools/FilterPanel";
 import { SchoolCard } from "@/components/schools/SchoolCard";
@@ -195,9 +195,14 @@ export default function SchoolsPage() {
   const [schools, setSchools] = useState<SchoolSummary[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [showMap, setShowMap] = useState(true);
+  const [showMap, setShowMap] = useState(false); // lazy — user taps to load
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [cityPanelOpen, setCityPanelOpen] = useState(false);
+
+  // Show map by default on desktop only (avoids hydration mismatch)
+  useEffect(() => {
+    if (window.innerWidth >= 1024) setShowMap(true);
+  }, []);
 
   const cityDbName = selectedCity ? CITY_DB_NAMES[selectedCity] : "";
   const cityLabel = selectedCity ? CITY_LABELS[selectedCity] : "All Cities";
@@ -257,9 +262,10 @@ export default function SchoolsPage() {
               {/* Search row */}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
 
-                {/* Go back button — shown when a city is selected */}
-                {selectedCity ? (
+                {/* Go back button — desktop only (mobile uses bottom bar) */}
+                {selectedCity && (
                   <button
+                    className="desktop-only"
                     onClick={clearCity}
                     style={{
                       display: "flex", alignItems: "center", gap: 6,
@@ -270,10 +276,6 @@ export default function SchoolsPage() {
                   >
                     <ArrowLeft size={13} /> All Cities
                   </button>
-                ) : (
-                  <div className="mob-filter-btn">
-                    <MobileFilterButton onOpen={() => setMobileFilterOpen(true)} />
-                  </div>
                 )}
 
                 <div className="search-wrap" style={{ flex: 1, minWidth: 200 }}>
@@ -292,8 +294,9 @@ export default function SchoolsPage() {
                   )}
                 </div>
 
-                {/* Choose Cities button */}
+                {/* Choose Cities button — desktop only */}
                 <button
+                  className="desktop-only"
                   onClick={() => setCityPanelOpen(true)}
                   style={{
                     display: "flex", alignItems: "center", gap: 6,
@@ -309,7 +312,8 @@ export default function SchoolsPage() {
                   <ChevronRight size={12} />
                 </button>
 
-                <button className="btn-toggle-map" onClick={() => setShowMap(!showMap)}>
+                {/* Map toggle — desktop only */}
+                <button className="btn-toggle-map desktop-only" onClick={() => setShowMap(!showMap)}>
                   {showMap ? "Hide Map" : "Show Map"}
                 </button>
               </div>
@@ -440,6 +444,40 @@ export default function SchoolsPage() {
 
       <MobileFilterSheet open={mobileFilterOpen} onClose={() => setMobileFilterOpen(false)} />
       <CompareTray />
+
+      {/* ── Mobile thumb-zone bottom action bar ── */}
+      <div className="mob-action-bar">
+        <button
+          className={`mob-action-btn${mobileFilterOpen ? " active" : ""}`}
+          onClick={() => setMobileFilterOpen(true)}
+        >
+          <SlidersHorizontal size={20} />
+          Filters
+        </button>
+        <button
+          className={`mob-action-btn${showMap ? " active" : ""}`}
+          onClick={() => setShowMap((v) => !v)}
+        >
+          <MapIcon size={20} />
+          {showMap ? "Hide Map" : "Map"}
+        </button>
+        <button
+          className={`mob-action-btn${selectedCity ? " city-active" : ""}${cityPanelOpen ? " active" : ""}`}
+          onClick={() => setCityPanelOpen(true)}
+        >
+          <MapPin size={20} />
+          {selectedCity ? CITY_LABELS[selectedCity] : "City"}
+        </button>
+        {selectedCity && (
+          <button
+            className="mob-action-btn"
+            onClick={clearCity}
+          >
+            <ArrowLeft size={20} />
+            All Cities
+          </button>
+        )}
+      </div>
 
       {/* City picker panel */}
       <CityPanel

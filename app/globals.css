@@ -518,14 +518,82 @@ input { font-family: inherit; }
 /* ── Mobile filter trigger — hidden on desktop ────────────── */
 .mobile-filter-trigger { display: none; }
 
+/* ── Desktop-only elements ────────────────────────────────── */
+.desktop-only { /* shown on desktop, hidden on mobile via media query */ }
+
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .sidebar { display: none; }
   .mobile-toggle { display: flex; align-items: center; justify-content: center; }
   .site-nav { display: none; }
   .mobile-filter-trigger { display: block; }
-  /* Hide sign in button on mobile — it's in the hamburger menu */
   .btn-signin { display: none; }
+  /* Hide desktop-only controls — moved to bottom bar */
+  .desktop-only { display: none !important; }
+  .mob-filter-btn { display: none !important; }
+  /* Push content above the sticky bottom bar */
+  .school-grid { padding-bottom: 130px; }
+  /* Compare tray sits above the bottom bar */
+  .compare-tray { bottom: 66px; }
+}
+
+/* ── Mobile thumb-zone bottom action bar ──────────────────── */
+.mob-action-bar {
+  display: none;
+}
+@media (max-width: 1024px) {
+  .mob-action-bar {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 35;
+    background: var(--dark);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 6px 8px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+    gap: 2px;
+  }
+}
+.mob-action-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 52px;
+  border-radius: 10px;
+  border: none;
+  background: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.mob-action-btn.active {
+  color: white;
+  background: rgba(255,255,255,0.1);
+}
+.mob-action-btn.city-active {
+  color: var(--beige-400);
+  background: rgba(255,255,255,0.07);
+}
+
+/* ── Thumb-friendly touch targets ─────────────────────────── */
+@media (max-width: 1024px) {
+  .btn-view,
+  .btn-compare,
+  .search-input,
+  .fp-chip,
+  .fp-grade-btn {
+    min-height: 44px;
+  }
+  .card-actions { gap: 8px; }
+  .school-card { padding: 16px; }
 }
 
 @media (max-width: 640px) {
@@ -536,7 +604,6 @@ input { font-family: inherit; }
   .search-row { flex-wrap: wrap; gap: 8px; }
   .search-wrap { order: 2; width: 100%; flex: unset; }
   .mobile-filter-trigger { order: 1; }
-  .btn-toggle-map { order: 3; width: 100%; text-align: center; }
   .school-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .card-name { font-size: 14px; }
   .card-stats { font-size: 12px; }
@@ -554,8 +621,8 @@ input { font-family: inherit; }
 
 @media (max-width: 480px) {
   .school-grid { grid-template-columns: 1fr; }
-  .card-actions { flex-direction: column; }
-  .btn-compare { justify-content: center; }
+  .card-actions { flex-wrap: wrap; }
+  .btn-compare { justify-content: center; flex: 1; }
   /* Tray on very small screens */
   .tray-inner { padding: 10px 12px; gap: 8px; }
   .tray-chip { max-width: 130px; }
