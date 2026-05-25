@@ -10,7 +10,7 @@ import {
 import { useFilterStore } from "@/store/filterStore";
 import { useCityStore } from "@/store/cityStore";
 import {
-  BENGALURU_AREAS, ALL_SPORTS, ALL_EXTRACURRICULARS,
+  BENGALURU_AREAS, AREAS_BY_CITY, ALL_SPORTS, ALL_EXTRACURRICULARS,
   ALL_LANGUAGES, GRADE_OPTIONS,
   Curriculum, SchoolType, SchoolGender,
   CURRICULUM_LABELS, SCHOOL_TYPE_LABELS, GENDER_LABELS,
@@ -373,13 +373,19 @@ export function FilterPanel({ className }: { className?: string }) {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.from("schools").select("area").then(({ data }) => {
+    // When city changes, clear selected areas that don't belong to new city
+    setFilter("areas", []);
+    const q = supabase.from("schools").select("area");
+    // Filter counts by city if one is selected
+    const cityName = selectedCity === "bangalore" ? "Bengaluru" : selectedCity === "delhi" ? "Delhi" : null;
+    (cityName ? q.eq("city", cityName) : q).then(({ data }) => {
       if (!data) return;
       const counts: Record<string, number> = {};
       data.forEach((s) => { if (s.area) counts[s.area] = (counts[s.area] || 0) + 1; });
       setAreaCounts(counts);
     });
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCity]);
 
   return (
     <div className="fp-wrap">
@@ -401,7 +407,9 @@ export function FilterPanel({ className }: { className?: string }) {
       {/* 1. Area — blurred until city is selected */}
       <div style={{ position: "relative" }}>
         <Section icon={MapPin} title="Area / Neighbourhood" count={filters.areas.length} defaultOpen>
-          <SearchableList items={BENGALURU_AREAS} selected={filters.areas}
+          <SearchableList
+            items={selectedCity ? (AREAS_BY_CITY[selectedCity] ?? BENGALURU_AREAS) : BENGALURU_AREAS}
+            selected={filters.areas}
             onToggle={(v) => toggleArrayFilter("areas", v)} placeholder="Search areas…"
             counts={areaCounts} />
         </Section>

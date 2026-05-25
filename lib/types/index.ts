@@ -289,32 +289,33 @@ export const GENDER_LABELS: Record<SchoolGender, string> = {
 };
 
 export const BENGALURU_AREAS = [
-  "Banashankari",
-  "Basavanagudi",
-  "Bellandur",
-  "Benson Town",
-  "BTM Layout",
-  "Chamrajpet",
-  "Domlur",
-  "Electronic City",
-  "Frazer Town",
-  "Hebbal",
-  "HSR Layout",
-  "Indiranagar",
-  "Jayanagar",
-  "JP Nagar",
-  "Kengeri",
-  "Koramangala",
-  "Malleshwaram",
-  "Marathahalli",
-  "Nagarbhavi",
-  "Rajajinagar",
-  "RT Nagar",
-  "Sadashivanagar",
-  "Sarjapur",
-  "Whitefield",
-  "Yelahanka",
+  "Banashankari", "Basavanagudi", "Bellandur", "Benson Town",
+  "BTM Layout", "Chamrajpet", "Domlur", "Electronic City",
+  "Frazer Town", "Hebbal", "HSR Layout", "Indiranagar",
+  "Jayanagar", "JP Nagar", "Kengeri", "Koramangala",
+  "Malleshwaram", "Marathahalli", "Nagarbhavi", "Outer Ring Road",
+  "Rajajinagar", "RT Nagar", "Sadashivanagar", "Sarjapur",
+  "Whitefield", "Yelahanka",
 ];
+
+export const DELHI_AREAS = [
+  "Alaknanda", "Anand Niketan", "Anand Vihar", "Barakhamba Road",
+  "Chattarpur", "Chanakyapuri", "Dakshinpuri", "Delhi Cantt",
+  "Dhaula Kuan", "Dilshad Garden", "Dwarka Sec-6", "Dwarka Sec-9",
+  "Dwarka Sec-10", "Dwarka Sec-11", "Dwarka Sec-13", "Dwarka Sec-18",
+  "Dwarka Sec-23", "G.T. Karnal Road", "Geeta Colony", "Janakpuri",
+  "Kailash Colony", "Karkardooma", "Krishna Nagar", "Meera Bagh",
+  "Model Town", "Panchsheel Park", "Paschim Vihar", "Patparganj",
+  "Pitampura", "Preet Vihar", "Pushp Vihar", "R.K. Puram",
+  "Rajinder Nagar", "Rajouri Garden", "Rohini Sec-14", "Saket",
+  "Sangam Vihar", "Sri Aurobindo Marg", "Vasant Kunj", "Vasant Vihar",
+  "Vikas Puri", "Vivek Vihar", "Vasundhara Enclave",
+];
+
+export const AREAS_BY_CITY: Record<string, string[]> = {
+  bangalore: BENGALURU_AREAS,
+  delhi:     DELHI_AREAS,
+};
 
 export const ALL_SPORTS = [
   "Cricket",

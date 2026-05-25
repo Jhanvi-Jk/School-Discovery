@@ -22,6 +22,9 @@ import { CURRICULUM_LABELS, SCHOOL_TYPE_LABELS, GENDER_LABELS } from "@/lib/type
 // Dynamic rendering — no static params needed at build time
 export const dynamic = "force-dynamic";
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.schoolfind360.com";
+const YEAR = new Date().getFullYear();
+
 // ── Metadata ─────────────────────────────────────────────────────────────────
 export async function generateMetadata({
   params,
@@ -31,47 +34,61 @@ export async function generateMetadata({
   const supabase = await createClient();
   const { data } = await supabase
     .from("schools_with_details")
-    .select("name, description, area, city, cover_image_url, total_fees_min, total_fees_max, avg_rating")
+    .select("name, description, area, city, cover_image_url, total_fees_min, total_fees_max, avg_rating, type, verified")
     .eq("slug", params.slug)
     .single();
 
-  if (!data) return { title: "School Not Found" };
+  if (!data) return { title: "School Not Found", robots: { index: false, follow: false } };
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.schoolfind360.com";
-  const canonicalUrl = `${appUrl}/schools/${params.slug}`;
-  const location = data.area || data.city;
-  const feesStr = data.total_fees_min
-    ? `₹${(data.total_fees_min / 100000).toFixed(1)}L–₹${(data.total_fees_max! / 100000).toFixed(1)}L/yr`
-    : null;
+  // Count populated fields to detect thin content
+  const fieldsPopulated = [
+    data.name, data.description, data.area, data.total_fees_min,
+    data.total_fees_max, data.avg_rating, data.type,
+  ].filter(Boolean).length;
+  const isThinContent = fieldsPopulated < 3; // less than 30% of key fields
 
-  const description =
-    data.description ||
-    `${data.name} in ${location}, Bengaluru.${feesStr ? ` Annual fees: ${feesStr}.` : ""} View curriculum, admissions, reviews and compare on SchoolFinder.`;
+  const canonicalUrl = `${APP_URL}/schools/${params.slug}`;
+  const location  = data.area || data.city;
+  const city      = data.city || "Bengaluru";
+
+  // Dynamic title template: {School_Name}, {Neighbourhood} | Fees, Admissions {Year} & Reviews
+  const title = `${data.name}, ${location} | Fees, Admissions ${YEAR} & Reviews - SchoolFind360`;
+
+  // Dynamic description template
+  const description = data.description
+    ? `${data.description} View full fees, admissions ${YEAR}, and parent reviews on SchoolFind360.`
+    : `Looking for admissions at ${data.name} in ${location}, ${city}? Check the complete ${YEAR} fee structure, board curriculum, facilities, and real parent reviews on SchoolFind360.`;
 
   return {
-    title: `${data.name} | School in ${location}, Bengaluru`,
+    title,
     description,
     keywords: [
       data.name,
+      `${data.name} fees ${YEAR}`,
+      `${data.name} admissions ${YEAR}`,
       `schools in ${location}`,
-      `${location} schools Bengaluru`,
-      "school admission Bengaluru",
-      "best schools Bengaluru",
+      `best schools ${city}`,
+      `school admission ${city} ${YEAR}`,
     ],
+    // Self-referential canonical — every profile points to itself
     alternates: { canonical: canonicalUrl },
+    // noindex thin/incomplete profiles
+    robots: isThinContent
+      ? { index: false, follow: true }
+      : { index: true, follow: true, googleBot: { index: true, follow: true, "max-snippet": -1 } },
     openGraph: {
-      title: `${data.name} | ${location}, Bengaluru`,
+      title,
       description,
       url: canonicalUrl,
       type: "website",
-      siteName: "SchoolFinder Bengaluru",
+      siteName: "SchoolFind360",
       ...(data.cover_image_url && {
         images: [{ url: data.cover_image_url, alt: data.name, width: 1200, height: 630 }],
       }),
     },
     twitter: {
       card: "summary_large_image",
-      title: `${data.name} | ${location}, Bengaluru`,
+      title,
       description,
       ...(data.cover_image_url && { images: [data.cover_image_url] }),
     },
@@ -173,6 +190,17 @@ export default async function SchoolProfilePage({
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.schoolfind360.com";
   const sd = Array.isArray(school.school_details) ? school.school_details[0] : school.school_details;
 
+  // Map city name → state for schema
+  const STATE_BY_CITY: Record<string, string> = {
+    Bengaluru: "Karnataka",
+    Delhi: "Delhi",
+    Chennai: "Tamil Nadu",
+    Mumbai: "Maharashtra",
+    Pune: "Maharashtra",
+    Kolkata: "West Bengal",
+  };
+  const addressRegion = STATE_BY_CITY[school.city] || "India";
+
   const schoolSchema = {
     "@context": "https://schema.org",
     "@type": "School",
@@ -184,7 +212,7 @@ export default async function SchoolProfilePage({
     address: {
       "@type": "PostalAddress",
       addressLocality: school.area || school.city,
-      addressRegion: "Karnataka",
+      addressRegion,
       addressCountry: "IN",
     },
     ...(school.latitude && school.longitude && {
@@ -207,11 +235,43 @@ export default async function SchoolProfilePage({
     }),
   };
 
+  // BreadcrumbList JSON-LD
+  const citySlug = school.city?.toLowerCase().replace(/\s+/g, "-") || "bengaluru";
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: appUrl },
+      { "@type": "ListItem", position: 2, name: "Schools", item: `${appUrl}/schools` },
+      ...(school.city
+        ? [{ "@type": "ListItem", position: 3, name: `${school.city} Schools`, item: `${appUrl}/schools?city=${citySlug}` }]
+        : []),
+      ...(school.area
+        ? [{ "@type": "ListItem", position: school.city ? 4 : 3, name: school.area, item: `${appUrl}/schools?city=${citySlug}&area=${encodeURIComponent(school.area)}` }]
+        : []),
+      { "@type": "ListItem", position: school.city && school.area ? 5 : school.city || school.area ? 4 : 3, name: school.name, item: `${appUrl}/schools/${school.slug}` },
+    ],
+  };
+
+  // Related schools (same area/city, excluding current)
+  const { data: relatedSchools } = await supabase
+    .from("schools_with_details")
+    .select("id, slug, name, area, city, total_fees_min, total_fees_max, avg_rating, cover_image_url")
+    .eq("city", school.city)
+    .neq("slug", school.slug)
+    .not("total_fees_min", "is", null)
+    .limit(4);
+
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schoolSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
       <Header />
       <main className="bg-gray-50 min-h-screen pb-24">
@@ -264,12 +324,28 @@ export default async function SchoolProfilePage({
 
         {/* Breadcrumb */}
         <div className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-1 text-xs text-gray-500">
-            <Link href="/" className="hover:text-blue-600">Home</Link>
-            <ChevronRight className="w-3 h-3" />
-            <Link href="/schools" className="hover:text-blue-600">Schools</Link>
-            <ChevronRight className="w-3 h-3" />
-            <span className="text-gray-900">{school.name}</span>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-1 text-xs text-gray-500 overflow-x-auto whitespace-nowrap">
+            <Link href="/" className="hover:text-blue-600 flex-shrink-0">Home</Link>
+            <ChevronRight className="w-3 h-3 flex-shrink-0" />
+            <Link href="/schools" className="hover:text-blue-600 flex-shrink-0">Schools</Link>
+            {school.city && (
+              <>
+                <ChevronRight className="w-3 h-3 flex-shrink-0" />
+                <Link href={`/schools?city=${citySlug}`} className="hover:text-blue-600 flex-shrink-0">
+                  {school.city} Schools
+                </Link>
+              </>
+            )}
+            {school.area && (
+              <>
+                <ChevronRight className="w-3 h-3 flex-shrink-0" />
+                <Link href={`/schools?city=${citySlug}&area=${encodeURIComponent(school.area)}`} className="hover:text-blue-600 flex-shrink-0">
+                  {school.area}
+                </Link>
+              </>
+            )}
+            <ChevronRight className="w-3 h-3 flex-shrink-0" />
+            <span className="text-gray-900 flex-shrink-0 truncate max-w-[180px]">{school.name}</span>
           </div>
         </div>
 
@@ -621,6 +697,42 @@ export default async function SchoolProfilePage({
             </aside>
           </div>
         </div>
+        {/* Related Schools */}
+        {relatedSchools && relatedSchools.length > 0 && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              More Schools in {school.city}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {relatedSchools.map((s: any) => (
+                <Link
+                  key={s.slug}
+                  href={`/schools/${s.slug}`}
+                  className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 group"
+                >
+                  <div className="h-28 bg-gradient-to-br from-blue-100 to-indigo-100 relative overflow-hidden">
+                    {s.cover_image_url && (
+                      <Image src={s.cover_image_url} alt={s.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <p className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2 mb-1">{s.name}</p>
+                    {s.area && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <MapPin className="w-3 h-3" /> {s.area}
+                      </p>
+                    )}
+                    {s.total_fees_min && (
+                      <p className="text-xs font-medium text-blue-700 mt-1">
+                        {formatFeesRange(s.total_fees_min, s.total_fees_max)}
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
       <Footer />
     </>
