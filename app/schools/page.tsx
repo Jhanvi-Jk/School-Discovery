@@ -13,9 +13,9 @@ import { useSavedPrefsStore } from "@/store/savedPrefsStore";
 import type { SchoolFilters, SchoolSummary } from "@/lib/types";
 
 const CITY_DESCRIPTIONS: Record<CityKey, string> = {
-  bangalore: "India's tech capital · over 350 schools",
-  delhi:     "The national capital · over 50 schools",
-  chennai:   "Gateway to the South · coming soon",
+  bangalore: "India's tech capital · 350+ schools",
+  delhi:     "The national capital · 50+ schools",
+  chennai:   "Gateway to the South · 50+ schools",
   pune:      "Oxford of the East · coming soon",
   mumbai:    "City of dreams · coming soon",
   kolkata:   "City of joy · coming soon",
