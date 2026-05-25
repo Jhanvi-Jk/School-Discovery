@@ -5,6 +5,49 @@
 -- Safe to run multiple times (ON CONFLICT DO UPDATE).
 -- ================================================================
 
+-- Re-declare helper to guarantee the exact signature used below.
+CREATE OR REPLACE FUNCTION _upsert_school(
+  p_slug TEXT, p_name TEXT, p_desc TEXT,
+  p_type school_type, p_gender school_gender,
+  p_area TEXT, p_pincode TEXT,
+  p_ratio NUMERIC,
+  p_start TEXT, p_end TEXT,
+  p_fees_min INT, p_fees_max INT,
+  p_grade_from TEXT, p_grade_to TEXT,
+  p_curricula curriculum_type[]
+) RETURNS VOID LANGUAGE plpgsql AS $$
+DECLARE v UUID;
+BEGIN
+  INSERT INTO schools (slug,name,description,type,gender,area,city,pincode,verified)
+  VALUES (p_slug,p_name,p_desc,p_type,p_gender,p_area,'Bengaluru',p_pincode,true)
+  ON CONFLICT (slug) DO UPDATE SET
+    description=EXCLUDED.description, area=EXCLUDED.area,
+    pincode=EXCLUDED.pincode, updated_at=NOW()
+  RETURNING id INTO v;
+
+  INSERT INTO school_details
+    (school_id,student_teacher_ratio,school_hours_start,school_hours_end,total_fees_min,total_fees_max,has_transport)
+  VALUES (v, p_ratio,
+    CASE WHEN p_start IS NULL THEN NULL ELSE p_start::TIME END,
+    CASE WHEN p_end   IS NULL THEN NULL ELSE p_end::TIME   END,
+    p_fees_min, p_fees_max, true)
+  ON CONFLICT (school_id) DO UPDATE SET
+    student_teacher_ratio=EXCLUDED.student_teacher_ratio,
+    school_hours_start=EXCLUDED.school_hours_start,
+    school_hours_end=EXCLUDED.school_hours_end,
+    total_fees_min=EXCLUDED.total_fees_min,
+    total_fees_max=EXCLUDED.total_fees_max;
+
+  DELETE FROM school_curricula WHERE school_id=v;
+  IF p_curricula IS NOT NULL AND array_length(p_curricula,1)>0 THEN
+    INSERT INTO school_curricula(school_id,curriculum)
+    SELECT v,c FROM unnest(p_curricula) c ON CONFLICT DO NOTHING;
+  END IF;
+
+  INSERT INTO school_languages(school_id,language,type)
+  VALUES(v,'English','medium_of_instruction') ON CONFLICT DO NOTHING;
+END $$;
+
 -- ── Electronic City / Sarjapur ──────────────────────────────────
 
 SELECT _upsert_school('vellore-international-school-branch','Vellore International School Branch',NULL::TEXT,'private'::school_type,'coed'::school_gender,'Sarjapur Belt','562125',15.0,NULL::TEXT,NULL::TEXT,170000,230000,NULL::TEXT,NULL::TEXT,ARRAY['icse']::curriculum_type[]);
