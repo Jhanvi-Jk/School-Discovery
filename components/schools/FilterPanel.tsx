@@ -91,6 +91,38 @@ function SearchableList({ items, selected, onToggle, placeholder, counts }: {
   );
 }
 
+// ── Advanced Filters collapsible tray ───────────────────────
+
+function AdvancedSection({ count, children }: { count: number; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ borderTop: "1px solid var(--beige-400)" }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "12px 16px", background: "none", border: "none", cursor: "pointer",
+          fontSize: 12, fontWeight: 700, color: "var(--muted)",
+          textTransform: "uppercase", letterSpacing: "0.08em",
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          Advanced Filters
+          {count > 0 && (
+            <span style={{
+              background: "var(--brown-dark)", color: "white",
+              borderRadius: 99, fontSize: 10, fontWeight: 700,
+              padding: "1px 6px", lineHeight: 1.6,
+            }}>{count}</span>
+          )}
+        </span>
+        <ChevronDown size={13} className={`fp-chevron${open ? " open" : ""}`} />
+      </button>
+      {open && <div>{children}</div>}
+    </div>
+  );
+}
+
 // ── Toggle switch ────────────────────────────────────────────
 
 function Toggle({ label, sub, value, onChange }: {
@@ -524,7 +556,8 @@ export function FilterPanel({ className }: { className?: string }) {
 
       {/* 6. Fees */}
       <Section icon={IndianRupee} title="Annual Fees"
-        count={filters.fees_min > 0 || filters.fees_max < 1000000 ? 1 : 0}>
+        count={filters.fees_min > 0 || filters.fees_max < 1000000 ? 1 : 0}
+        defaultOpen>
         <FeeSlider />
       </Section>
 
@@ -537,29 +570,32 @@ export function FilterPanel({ className }: { className?: string }) {
           value={filters.mid_year} onChange={(v) => setFilter("mid_year", v)} />
       </Section>
 
-      {/* 8. Transport */}
-      <Section icon={Bus} title="Transport" count={filters.has_transport !== null ? 1 : 0}>
-        <Toggle label="School bus available"
-          value={filters.has_transport} onChange={(v) => setFilter("has_transport", v)} />
-      </Section>
+      {/* ── Advanced Filters (collapsible tray) ─────────────── */}
+      <AdvancedSection count={filters.sports.length + filters.extracurriculars.length + filters.languages.length + (filters.has_transport !== null ? 1 : 0)}>
+        {/* 8. Transport */}
+        <Section icon={Bus} title="Transport" count={filters.has_transport !== null ? 1 : 0}>
+          <Toggle label="School bus available"
+            value={filters.has_transport} onChange={(v) => setFilter("has_transport", v)} />
+        </Section>
 
-      {/* 9. Sports */}
-      <Section icon={Trophy} title="Sports" count={filters.sports.length}>
-        <SearchableList items={ALL_SPORTS} selected={filters.sports}
-          onToggle={(v) => toggleArrayFilter("sports", v)} placeholder="Search sports…" />
-      </Section>
+        {/* 9. Sports */}
+        <Section icon={Trophy} title="Sports" count={filters.sports.length}>
+          <SearchableList items={ALL_SPORTS} selected={filters.sports}
+            onToggle={(v) => toggleArrayFilter("sports", v)} placeholder="Search sports…" />
+        </Section>
 
-      {/* 10. Extracurriculars */}
-      <Section icon={Music} title="Extracurriculars" count={filters.extracurriculars.length}>
-        <SearchableList items={ALL_EXTRACURRICULARS} selected={filters.extracurriculars}
-          onToggle={(v) => toggleArrayFilter("extracurriculars", v)} placeholder="Search activities…" />
-      </Section>
+        {/* 10. Extracurriculars */}
+        <Section icon={Music} title="Extracurriculars" count={filters.extracurriculars.length}>
+          <SearchableList items={ALL_EXTRACURRICULARS} selected={filters.extracurriculars}
+            onToggle={(v) => toggleArrayFilter("extracurriculars", v)} placeholder="Search activities…" />
+        </Section>
 
-      {/* 11. Languages */}
-      <Section icon={Languages} title="Languages Offered" count={filters.languages.length}>
-        <SearchableList items={ALL_LANGUAGES} selected={filters.languages}
-          onToggle={(v) => toggleArrayFilter("languages", v)} placeholder="Search languages…" />
-      </Section>
+        {/* 11. Languages */}
+        <Section icon={Languages} title="Languages Offered" count={filters.languages.length}>
+          <SearchableList items={ALL_LANGUAGES} selected={filters.languages}
+            onToggle={(v) => toggleArrayFilter("languages", v)} placeholder="Search languages…" />
+        </Section>
+      </AdvancedSection>
 
       {/* ── Save preferences ───────────────────────────────── */}
       <div style={{

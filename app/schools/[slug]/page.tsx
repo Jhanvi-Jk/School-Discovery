@@ -13,6 +13,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { EnquiryForm } from "@/components/schools/EnquiryForm";
 import { SchoolActionsSidebar } from "@/components/schools/SchoolActionsSidebar";
+import { SchoolProfileTabs } from "@/components/schools/SchoolProfileTabs";
 import {
   formatFeesRange, formatRating, formatSchoolHours,
   getVerificationBadge, cn
@@ -27,12 +28,14 @@ const YEAR = new Date().getFullYear();
 
 // Lookup maps used by generateMetadata (hoisted before function call)
 const CITY_HUB_SLUGS_META: Record<string, string> = {
-  bengaluru: "bangalore", bangalore: "bangalore", delhi: "delhi", chennai: "chennai",
+  bengaluru: "bangalore", bangalore: "bangalore", delhi: "delhi",
+  chennai: "chennai", mumbai: "mumbai",
 };
 const CITY_META_LABELS: Record<string, { label: string }> = {
   bangalore: { label: "Bengaluru" },
   delhi:     { label: "Delhi" },
   chennai:   { label: "Chennai" },
+  mumbai:    { label: "Mumbai" },
 };
 
 // ── Metadata ─────────────────────────────────────────────────────────────────
@@ -161,9 +164,10 @@ function RatingBar({ label, value }: { label: string; value: number }) {
 
 // ── City hub page (SSR) ───────────────────────────────────────────────────────
 const CITY_META: Record<string, { label: string; state: string; description: string; boards: string[] }> = {
-  bangalore: { label: "Bengaluru", state: "Karnataka", description: "India's tech capital", boards: ["CBSE","ICSE","IB","IGCSE","Cambridge","State Board"] },
-  delhi:     { label: "Delhi",     state: "Delhi",     description: "The national capital",  boards: ["CBSE","ICSE","IB","IGCSE","Cambridge"] },
-  chennai:   { label: "Chennai",   state: "Tamil Nadu", description: "Gateway to the South", boards: ["CBSE","ICSE","IB","Cambridge","State Board"] },
+  bangalore: { label: "Bengaluru", state: "Karnataka",    description: "India's tech capital",  boards: ["CBSE","ICSE","IB","IGCSE","Cambridge","State Board"] },
+  delhi:     { label: "Delhi",     state: "Delhi",        description: "The national capital",   boards: ["CBSE","ICSE","IB","IGCSE","Cambridge"] },
+  chennai:   { label: "Chennai",   state: "Tamil Nadu",   description: "Gateway to the South",  boards: ["CBSE","ICSE","IB","Cambridge","State Board"] },
+  mumbai:    { label: "Mumbai",    state: "Maharashtra",  description: "India's financial hub",  boards: ["CBSE","ICSE","IB","Cambridge","State Board"] },
 };
 
 async function CityHubPage({ cityKey, citySlug }: { cityKey: string; citySlug: string }) {
@@ -326,6 +330,7 @@ const CITY_HUB_SLUGS: Record<string, string> = {
   bangalore: "bangalore",
   delhi: "delhi",
   chennai: "chennai",
+  mumbai: "mumbai",
 };
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -365,7 +370,9 @@ export default async function SchoolProfilePage({
 
   if (error || !school) notFound();
 
-  const details = school.school_details;
+  const details = Array.isArray(school.school_details)
+    ? school.school_details[0] ?? null
+    : school.school_details ?? null;
   const curricula = (school.school_curricula || []).map((c: any) => c.curriculum);
   const sports = (school.school_sports || []).map((s: any) => s.sports?.name).filter(Boolean);
   const extras = (school.school_extracurriculars || []).map((e: any) => e.extracurriculars?.name).filter(Boolean);
@@ -505,7 +512,7 @@ export default async function SchoolProfilePage({
                   </span>
                   {openAdmissions.length > 0 && (
                     <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-medium">
-                      Admissions Open
+                      Admissions Open 2026-27
                     </span>
                   )}
                 </div>
@@ -550,14 +557,20 @@ export default async function SchoolProfilePage({
           </div>
         </div>
 
+        {/* Tab navigation bar — always show all tabs */}
+        <SchoolProfileTabs />
+
         {/* Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main content */}
             <div className="lg:col-span-2 space-y-8">
 
+              {/* Photos anchor — links to cover image at top */}
+              <div id="section-photos" className="scroll-mt-20" />
+
               {/* Quick stats */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div id="section-basic" className="grid grid-cols-2 sm:grid-cols-4 gap-3 scroll-mt-20">
                 <StatBox
                   icon={IndianRupee}
                   label="Annual Fees"
@@ -588,35 +601,36 @@ export default async function SchoolProfilePage({
                 )}
               </div>
 
-              {/* About */}
-              {school.description && (
-                <section className="bg-white rounded-2xl p-6 shadow-sm">
-                  <h2 className="text-lg font-bold text-gray-900 mb-3">About</h2>
-                  <p className="text-gray-600 leading-relaxed">{school.description}</p>
-                  <div className="flex flex-wrap gap-2 mt-4">
+              {/* About / Summary — always rendered */}
+              <section id="section-summary" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
+                <h2 className="text-lg font-bold text-gray-900 mb-3">About</h2>
+                {school.description
+                  ? <p className="text-gray-600 leading-relaxed">{school.description}</p>
+                  : <p className="text-sm text-gray-400 italic">School description coming soon.</p>
+                }
+                <div className="flex flex-wrap gap-2 mt-4">
+                  <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+                    {SCHOOL_TYPE_LABELS[school.type as keyof typeof SCHOOL_TYPE_LABELS]}
+                  </span>
+                  <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+                    {GENDER_LABELS[school.gender as keyof typeof GENDER_LABELS]}
+                  </span>
+                  {school.established_year && (
                     <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
-                      {SCHOOL_TYPE_LABELS[school.type as keyof typeof SCHOOL_TYPE_LABELS]}
+                      Est. {school.established_year}
                     </span>
-                    <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
-                      {GENDER_LABELS[school.gender as keyof typeof GENDER_LABELS]}
+                  )}
+                  {curricula.map((c: string) => (
+                    <span key={c} className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-medium">
+                      {CURRICULUM_LABELS[c as keyof typeof CURRICULUM_LABELS] || c}
                     </span>
-                    {school.established_year && (
-                      <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
-                        Est. {school.established_year}
-                      </span>
-                    )}
-                    {curricula.map((c: string) => (
-                      <span key={c} className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-medium">
-                        {CURRICULUM_LABELS[c as keyof typeof CURRICULUM_LABELS] || c}
-                      </span>
-                    ))}
-                  </div>
-                </section>
-              )}
+                  ))}
+                </div>
+              </section>
 
-              {/* Fees breakdown */}
-              {details && (
-                <section className="bg-white rounded-2xl p-6 shadow-sm">
+              {/* Fees breakdown — always rendered */}
+              <section id="section-fees" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
+                {details ? (<>
                   <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <IndianRupee className="w-5 h-5 text-blue-600" />
                     Fee Breakdown
@@ -645,11 +659,14 @@ export default async function SchoolProfilePage({
                       </span>
                     </div>
                   </div>
-                </section>
-              )}
+                </>) : (
+                  <><h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><IndianRupee className="w-5 h-5 text-blue-600" /> Fee Breakdown</h2>
+                  <p className="text-sm text-gray-400 italic">Fee information not yet available. Contact the school for 2026-27 fee details.</p></>
+                )}
+              </section>
 
-              {/* School info */}
-              <section className="bg-white rounded-2xl p-6 shadow-sm">
+              {/* School info / Basic Details */}
+              <section id="section-basic-details" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
                 <h2 className="text-lg font-bold text-gray-900 mb-4">School Details</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {details?.school_hours_start && (
@@ -727,10 +744,10 @@ export default async function SchoolProfilePage({
                 )}
               </section>
 
-              {/* Sports & Extracurriculars */}
-              {(sports.length > 0 || extras.length > 0) && (
-                <section className="bg-white rounded-2xl p-6 shadow-sm">
-                  <h2 className="text-lg font-bold text-gray-900 mb-4">Sports & Extracurriculars</h2>
+              {/* Campus — Sports & Extracurriculars (always rendered for tab anchor) */}
+              <section id="section-campus" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
+                <h2 className="text-lg font-bold text-gray-900 mb-4">Sports & Extracurriculars</h2>
+                {(sports.length > 0 || extras.length > 0) ? (<>
                   {sports.length > 0 && (
                     <div className="mb-4">
                       <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
@@ -759,15 +776,29 @@ export default async function SchoolProfilePage({
                       </div>
                     </div>
                   )}
-                </section>
-              )}
+                </>) : (
+                  <p className="text-sm text-gray-400 italic">Campus activity details coming soon.</p>
+                )}
+              </section>
+
+              {/* Peer Group */}
+              <section id="section-peer" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
+                <h2 className="text-lg font-bold text-gray-900 mb-3">Peer Group</h2>
+                <p className="text-sm text-gray-400 italic">Peer group analysis and similar schools coming soon.</p>
+              </section>
+
+              {/* Unique Things */}
+              <section id="section-unique" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
+                <h2 className="text-lg font-bold text-gray-900 mb-3">What Makes This School Unique</h2>
+                <p className="text-sm text-gray-400 italic">Unique differentiators and parent insights coming soon.</p>
+              </section>
 
               {/* Admissions */}
-              {admissions.length > 0 && (
-                <section className="bg-white rounded-2xl p-6 shadow-sm">
-                  <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-blue-600" /> Admissions
-                  </h2>
+              <section id="section-admission" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
+                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-blue-600" /> Admissions
+                </h2>
+                {admissions.length > 0 ? (<>
                   <div className="space-y-3">
                     {admissions.map((a: any) => (
                       <div
@@ -790,7 +821,7 @@ export default async function SchoolProfilePage({
                               "bg-gray-200 text-gray-600"
                             )}
                           >
-                            {a.status.charAt(0).toUpperCase() + a.status.slice(1)}
+                            {a.status ? a.status.charAt(0).toUpperCase() + a.status.slice(1) : "Unknown"}
                           </span>
                         </div>
                         {a.is_mid_year && (
@@ -819,18 +850,21 @@ export default async function SchoolProfilePage({
                       </div>
                     ))}
                   </div>
-                </section>
-              )}
+                </>) : (
+                  <p className="text-sm text-gray-400 italic">Admission window details not yet available. Contact the school directly.</p>
+                )}
+              </section>
 
-              {/* Reviews */}
-              <section className="bg-white rounded-2xl p-6 shadow-sm" id="reviews">
+              {/* Reviews — sentiment + parent feedback */}
+              <section id="section-sentiment" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20" >
                 <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Star className="w-5 h-5 text-amber-500" /> Reviews & Ratings
+                  <Star className="w-5 h-5 text-amber-500" /> Sentiment Analysis
                   {reviews.length > 0 && (
-                    <span className="text-sm font-normal text-gray-500">({reviews.length})</span>
+                    <span className="text-sm font-normal text-gray-500">({reviews.length} reviews)</span>
                   )}
                 </h2>
 
+                {!avgBreakdown && <p className="text-sm text-gray-400 italic">No review data yet — sentiment analysis will appear once parents submit reviews.</p>}
                 {avgBreakdown && (
                   <div className="mb-6 p-4 bg-amber-50 rounded-xl">
                     <div className="flex items-center gap-3 mb-3">
@@ -857,7 +891,13 @@ export default async function SchoolProfilePage({
                     </div>
                   </div>
                 )}
+              </section>
 
+              {/* Parent feedback */}
+              <section id="section-feedback" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
+                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Star className="w-5 h-5 text-amber-500" /> Parent Feedback
+                </h2>
                 {reviews.length === 0 ? (
                   <p className="text-gray-500 text-sm text-center py-6">
                     No reviews yet. Be the first to review!
@@ -875,7 +915,7 @@ export default async function SchoolProfilePage({
                               <p className="text-sm font-medium text-gray-800">
                                 {r.users?.full_name || "Anonymous"}
                               </p>
-                              <p className="text-xs text-gray-400 capitalize">{r.relation.replace(/_/g, " ")}</p>
+                              <p className="text-xs text-gray-400 capitalize">{(r.relation || "parent").replace(/_/g, " ")}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
@@ -889,6 +929,35 @@ export default async function SchoolProfilePage({
                     ))}
                   </div>
                 )}
+              </section>
+
+              {/* Sources — always rendered */}
+              <section id="section-sources" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
+                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <ExternalLink className="w-5 h-5 text-blue-600" /> Sources & Links
+                </h2>
+                <div className="space-y-3">
+                  {school.website ? (
+                    <a
+                      href={school.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                    >
+                      <Globe className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 group-hover:text-blue-700">Official Website</p>
+                        <p className="text-xs text-gray-400 truncate">{school.website}</p>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 ml-auto" />
+                    </a>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">No official website on record yet.</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-2">
+                    Fee and rating data sourced from school websites, Ezyschooling, and parent surveys. Last updated {YEAR}.
+                  </p>
+                </div>
               </section>
             </div>
 

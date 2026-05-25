@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Utility: hide scrollbar while preserving scroll behavior */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
 @import "leaflet/dist/leaflet.css";
 
 /* ── Design tokens ────────────────────────────────────────── */
@@ -189,42 +193,86 @@ input { font-family: inherit; }
 
 /* ── Search bar ───────────────────────────────────────────── */
 .search-row { display: flex; gap: 10px; align-items: center; }
-.search-wrap { position: relative; flex: 1; }
-.search-wrap svg {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
+
+/* search-wrap: flex row so X stays visually inside the input */
+.search-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--beige-200);
+  border: 1px solid var(--beige-500);
+  border-radius: var(--radius);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.search-wrap:focus-within {
+  border-color: var(--brown-dark);
+  box-shadow: 0 0 0 3px rgba(44,24,16,0.08);
+}
+.search-wrap > svg {
+  flex-shrink: 0;
+  margin-left: 14px;
   width: 16px; height: 16px;
   color: var(--muted);
   pointer-events: none;
 }
 .search-input {
-  width: 100%;
-  padding: 12px 40px 12px 40px;
-  background: var(--beige-200);
-  border: 1px solid var(--beige-500);
-  border-radius: var(--radius);
+  flex: 1;
+  padding: 12px 10px 12px 10px;
+  background: transparent;
+  border: none;
   font-size: 14px;
   color: var(--dark);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  min-width: 0;
 }
 .search-input::placeholder { color: var(--muted); }
-.search-input:focus {
-  border-color: var(--brown-dark);
-  box-shadow: 0 0 0 3px rgba(44,24,16,0.08);
-}
 .search-clear {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
+  flex-shrink: 0;
+  margin-right: 8px;
+  background: var(--beige-400);
   border: none;
   color: var(--muted);
-  padding: 2px;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
 }
+.search-clear:hover { background: var(--beige-500); }
+
+/* ── Search suggestions dropdown ─────────────────────────── */
+.suggestions-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0; right: 0;
+  background: var(--beige-100);
+  border: 1px solid var(--beige-500);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+  z-index: 200;
+  overflow: hidden;
+}
+.suggestion-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--beige-400);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item:hover { background: var(--beige-300); }
+.suggestion-name { font-size: 13px; font-weight: 600; color: var(--dark); }
+.suggestion-meta { font-size: 11px; color: var(--muted); margin-top: 1px; }
 .btn-toggle-map {
   padding: 12px 16px;
   background: var(--beige-200);
@@ -581,6 +629,57 @@ input { font-family: inherit; }
 .mob-action-btn.city-active {
   color: var(--beige-400);
   background: rgba(255,255,255,0.07);
+}
+
+/* ── Mobile List / Map view toggle ────────────────────────── */
+.mob-view-toggle {
+  display: none;
+}
+@media (max-width: 1024px) {
+  .mob-view-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex: 1.5;
+    min-height: 40px;
+    border-radius: 10px;
+    border: 1.5px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.08);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    margin: 4px 4px;
+  }
+  .mob-view-toggle.map-active {
+    border-color: var(--beige-400);
+    background: rgba(255,255,255,0.15);
+  }
+  /* Mobile map fullscreen */
+  .mob-map-fullscreen {
+    display: none;
+  }
+  .mob-map-fullscreen:has(> div) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    bottom: 68px; /* above action bar */
+    z-index: 20;
+  }
+  /* Hide school list on mobile when showing map */
+  .mob-hide {
+    display: none !important;
+  }
+  /* Hide desktop-only map on mobile */
+  .desktop-only.map-box { display: none !important; }
+}
+
+/* mob-map-fullscreen hidden on desktop */
+@media (min-width: 1025px) {
+  .mob-map-fullscreen { display: none; }
 }
 
 /* ── Thumb-friendly touch targets ─────────────────────────── */

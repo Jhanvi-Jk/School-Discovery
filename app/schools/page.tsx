@@ -16,8 +16,8 @@ const CITY_DESCRIPTIONS: Record<CityKey, string> = {
   bangalore: "India's tech capital · 350+ schools",
   delhi:     "The national capital · 50+ schools",
   chennai:   "Gateway to the South · 50+ schools",
+  mumbai:    "India's financial hub · 50+ schools",
   pune:      "Oxford of the East · coming soon",
-  mumbai:    "City of dreams · coming soon",
   kolkata:   "City of joy · coming soon",
 };
 
@@ -125,7 +125,7 @@ function CityPanel({
         <div style={{ flex: 1, overflowY: "auto", padding: "12px 12px" }}>
           {CITY_KEYS.map((key) => {
             const isSelected  = selected === key;
-            const isAvailable = key === "bangalore" || key === "delhi" || key === "chennai";
+            const isAvailable = key === "bangalore" || key === "delhi" || key === "chennai" || key === "mumbai";
             const isComingSoon = !isAvailable;
             return (
               <button
@@ -203,9 +203,14 @@ export default function SchoolsPage() {
   const [schools, setSchools] = useState<SchoolSummary[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [showMap, setShowMap] = useState(false); // lazy — user taps to load
+  const [showMap, setShowMap] = useState(false);
+  const [mobileView, setMobileView] = useState<"list" | "map">("list"); // mobile-only toggle
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [cityPanelOpen, setCityPanelOpen] = useState(false);
+  // Search suggestions
+  const [suggestions, setSuggestions] = useState<SchoolSummary[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [softMatches, setSoftMatches] = useState<SchoolSummary[]>([]);
 
   // ── First-session init ───────────────────────────────────────
   // Fires ONCE per page load (sessionStorage clears on Ctrl+R).
@@ -255,6 +260,42 @@ export default function SchoolsPage() {
     return () => clearTimeout(t);
   }, [fetchSchools]);
 
+  // Suggestions: fast lightweight fetch while user types (150 ms debounce)
+  useEffect(() => {
+    const q = filters.query.trim();
+    if (q.length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
+    const t = setTimeout(async () => {
+      try {
+        const cityParam = cityDbName ? `&city=${encodeURIComponent(cityDbName)}` : "";
+        const res = await fetch(`/api/v1/schools?q=${encodeURIComponent(q)}&limit=6${cityParam}`);
+        const json = await res.json();
+        if (json.success) {
+          setSuggestions(json.data || []);
+          setShowSuggestions(true);
+        }
+      } catch {/* silent */}
+    }, 150);
+    return () => clearTimeout(t);
+  }, [filters.query, cityDbName]);
+
+  // Soft match: when main search returns 0 results and at least one filter is active
+  useEffect(() => {
+    const hasActiveFilters =
+      filters.query.trim().length > 0 ||
+      filters.areas.length > 0 ||
+      filters.curricula.length > 0 ||
+      filters.fees_max < 1000000;
+    if (loading || schools.length > 0 || !hasActiveFilters) { setSoftMatches([]); return; }
+    (async () => {
+      try {
+        const cityParam = cityDbName ? `&city=${encodeURIComponent(cityDbName)}` : "";
+        const res = await fetch(`/api/v1/schools?limit=3${cityParam}`);
+        const json = await res.json();
+        setSoftMatches(json.success ? (json.data || []) : []);
+      } catch {/* silent */}
+    })();
+  }, [loading, schools.length, filters.query, filters.areas, filters.curricula, filters.fees_max, cityDbName]);
+
   const noCity = !selectedCity;
 
   return (
@@ -289,7 +330,7 @@ export default function SchoolsPage() {
               {/* Search row */}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
 
-                {/* Go back button — desktop only (mobile uses bottom bar) */}
+                {/* Go back button — desktop only */}
                 {selectedCity && (
                   <button
                     className="desktop-only"
@@ -305,19 +346,51 @@ export default function SchoolsPage() {
                   </button>
                 )}
 
-                <div className="search-wrap" style={{ flex: 1, minWidth: 200 }}>
+                {/* Search with suggestions dropdown */}
+                <div className="search-wrap" style={{ minWidth: 200 }}
+                  onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setShowSuggestions(false); }}
+                >
                   <Search size={16} />
                   <input
                     type="text"
                     className="search-input"
-                    placeholder="Search by school name, area or curriculum…"
+                    placeholder="Search school name, area or curriculum…"
                     value={filters.query}
-                    onChange={(e) => setFilter("query", e.target.value)}
+                    autoComplete="off"
+                    onChange={(e) => { setFilter("query", e.target.value); if (!e.target.value) setShowSuggestions(false); }}
+                    onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
                   />
                   {filters.query && (
-                    <button className="search-clear" onClick={() => setFilter("query", "")}>
-                      <X size={15} />
+                    <button
+                      className="search-clear"
+                      onMouseDown={(e) => { e.preventDefault(); setFilter("query", ""); setSuggestions([]); setShowSuggestions(false); }}
+                      aria-label="Clear search"
+                    >
+                      <X size={14} />
                     </button>
+                  )}
+
+                  {/* Suggestions dropdown */}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="suggestions-dropdown">
+                      {suggestions.map((s) => (
+                        <button
+                          key={s.id}
+                          className="suggestion-item"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setFilter("query", s.name);
+                            setShowSuggestions(false);
+                          }}
+                        >
+                          <span className="suggestion-name">{s.name}</span>
+                          <span className="suggestion-meta">
+                            {[s.area, s.city].filter(Boolean).join(", ")}
+                            {s.curricula?.length ? ` · ${s.curricula.map(c => c.toUpperCase()).join(", ")}` : ""}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
 
@@ -350,9 +423,9 @@ export default function SchoolsPage() {
                 @media (max-width: 1024px) { .mob-filter-btn { display: block; } }
               `}</style>
 
-              {/* Map — dimmed when no city selected */}
+              {/* Desktop map — controlled by showMap toggle */}
               {showMap && (
-                <div className="map-box" style={{ position: "relative" }}>
+                <div className="map-box desktop-only" style={{ position: "relative" }}>
                   <SchoolsMapWrapper schools={noCity ? [] : schools} />
                   {noCity && (
                     <div
@@ -374,6 +447,33 @@ export default function SchoolsPage() {
                   )}
                 </div>
               )}
+
+              {/* Mobile map — full screen when mobileView === "map" */}
+              <div className="mob-map-fullscreen">
+                {mobileView === "map" && (
+                  <div style={{ position: "relative", height: "100%" }}>
+                    <SchoolsMapWrapper schools={noCity ? [] : schools} />
+                    {noCity && (
+                      <div
+                        onClick={() => setCityPanelOpen(true)}
+                        style={{
+                          position: "absolute", inset: 0,
+                          background: "rgba(245,240,235,0.82)", backdropFilter: "blur(3px)",
+                          display: "flex", flexDirection: "column",
+                          alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer",
+                        }}
+                      >
+                        <MapPin size={28} color="var(--muted)" />
+                        <p style={{ fontWeight: 700, color: "var(--dark)", fontSize: 15 }}>Select a city</p>
+                        <p style={{ fontSize: 12, color: "var(--muted)" }}>Tap to choose</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* School list — hidden on mobile when map is active */}
+              <div className={mobileView === "map" ? "mob-hide" : ""}>
 
               {/* Explore header */}
               <div className="explore-header">
@@ -409,12 +509,30 @@ export default function SchoolsPage() {
               ) : schools.length === 0 ? (
                 <div style={{
                   background: "var(--beige-200)", border: "1px solid var(--beige-500)",
-                  borderRadius: "var(--radius)", padding: "60px 24px",
+                  borderRadius: "var(--radius)", padding: "40px 24px",
                   textAlign: "center"
                 }}>
-                  <div style={{ fontSize: 48, marginBottom: 12 }}>🏫</div>
-                  <p style={{ fontWeight: 700, color: "var(--dark)", marginBottom: 6 }}>No schools found</p>
-                  <p style={{ color: "var(--muted)", fontSize: 13 }}>Try adjusting your filters</p>
+                  <div style={{ fontSize: 40, marginBottom: 10 }}>🔍</div>
+                  <p style={{ fontWeight: 700, color: "var(--dark)", marginBottom: 6, fontSize: 16 }}>
+                    No exact matches found
+                  </p>
+                  <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: filters.query ? 20 : 0 }}>
+                    {filters.query
+                      ? `We couldn't find schools matching "${filters.query}" with your current filters.`
+                      : "Try adjusting your filters to see more schools."}
+                  </p>
+                  {softMatches.length > 0 && (
+                    <div style={{ textAlign: "left", marginTop: 20 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--dark)", marginBottom: 12 }}>
+                        Here are some schools you might like instead:
+                      </p>
+                      <div className="school-grid" style={{ marginTop: 0 }}>
+                        {softMatches.map((s) => (
+                          <SchoolCard key={s.id} school={s} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : viewMode === "grid" ? (
                 <div className="school-grid">
@@ -464,6 +582,7 @@ export default function SchoolsPage() {
                   </table>
                 </div>
               )}
+              </div> {/* end mob-hide wrapper */}
             </div>
           </div>
         </div>
@@ -472,7 +591,7 @@ export default function SchoolsPage() {
       <MobileFilterSheet open={mobileFilterOpen} onClose={() => setMobileFilterOpen(false)} />
       <CompareTray />
 
-      {/* ── Mobile thumb-zone bottom action bar ── */}
+      {/* ── Mobile bottom action bar ── */}
       <div className="mob-action-bar">
         <button
           className={`mob-action-btn${mobileFilterOpen ? " active" : ""}`}
@@ -481,13 +600,18 @@ export default function SchoolsPage() {
           <SlidersHorizontal size={20} />
           Filters
         </button>
+
+        {/* Strict mobile List / Map toggle */}
         <button
-          className={`mob-action-btn${showMap ? " active" : ""}`}
-          onClick={() => setShowMap((v) => !v)}
+          className={`mob-view-toggle${mobileView === "map" ? " map-active" : ""}`}
+          onClick={() => setMobileView(v => v === "list" ? "map" : "list")}
         >
-          <MapIcon size={20} />
-          {showMap ? "Hide Map" : "Map"}
+          {mobileView === "map"
+            ? <><SlidersHorizontal size={18} /> List View</>
+            : <><MapIcon size={18} /> Map View</>
+          }
         </button>
+
         <button
           className={`mob-action-btn${selectedCity ? " city-active" : ""}${cityPanelOpen ? " active" : ""}`}
           onClick={() => setCityPanelOpen(true)}
@@ -496,10 +620,7 @@ export default function SchoolsPage() {
           {selectedCity ? CITY_LABELS[selectedCity] : "City"}
         </button>
         {selectedCity && (
-          <button
-            className="mob-action-btn"
-            onClick={clearCity}
-          >
+          <button className="mob-action-btn" onClick={clearCity}>
             <ArrowLeft size={20} />
             All Cities
           </button>

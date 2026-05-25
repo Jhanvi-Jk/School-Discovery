@@ -53,12 +53,11 @@ export async function GET(request: NextRequest) {
       queryBuilder = queryBuilder.eq("city", city);
     }
 
-    // Full-text search
+    // Case-insensitive partial match on name, area, or description
     if (query) {
-      queryBuilder = queryBuilder.textSearch("name", query, {
-        type: "websearch",
-        config: "english",
-      });
+      queryBuilder = queryBuilder.or(
+        `name.ilike.%${query}%,area.ilike.%${query}%,description.ilike.%${query}%`
+      );
     }
 
     // Area filter

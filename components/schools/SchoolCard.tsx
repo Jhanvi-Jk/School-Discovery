@@ -13,9 +13,28 @@ interface SchoolCardProps {
   onSave?: (id: string) => void;
 }
 
+// Metadata completeness: key fields a well-populated school should have
+function getMetadataScore(s: SchoolSummary): number {
+  const fields = [
+    s.description,
+    s.area,
+    s.total_fees_min,
+    s.curricula?.length,
+    s.student_teacher_ratio,
+    s.school_hours_start,
+    s.avg_rating,
+    s.review_count,
+    s.languages?.length,
+    s.sports?.length,
+  ];
+  return fields.filter(Boolean).length / fields.length;
+}
+
 export function SchoolCard({ school }: SchoolCardProps) {
   const { isInCompare, addSchool, removeSchool, canAdd } = useCompareStore();
   const inCompare = isInCompare(school.id);
+  const metaScore = getMetadataScore(school);
+  const profileIncomplete = metaScore < 0.6; // < 60% metadata populated
 
   const handleCompare = () => {
     if (inCompare) removeSchool(school.id);
@@ -89,7 +108,7 @@ export function SchoolCard({ school }: SchoolCardProps) {
               fontSize: 11, fontWeight: 600,
               padding: "2px 8px", borderRadius: 99,
             }}>
-              Open
+              Admissions Open 2026-27
             </span>
           </div>
         )}
@@ -124,17 +143,33 @@ export function SchoolCard({ school }: SchoolCardProps) {
         >
           <MessageSquare size={13} /> Reviews
         </Link>
-        <button
-          onClick={handleCompare}
-          disabled={!inCompare && !canAdd()}
-          className={`btn-compare${inCompare ? " added" : ""}`}
-        >
-          {inCompare ? (
-            <><Check size={13} /> Added</>
-          ) : (
-            <><Plus size={13} /> Compare</>
-          )}
-        </button>
+        {profileIncomplete && !inCompare ? (
+          <a
+            href={`/schools/${school.slug}`}
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              padding: "10px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600,
+              border: "1.5px dashed var(--beige-500)", color: "var(--muted)",
+              background: "transparent", textDecoration: "none",
+              whiteSpace: "nowrap", cursor: "pointer",
+            }}
+            title="Profile needs more data before comparing"
+          >
+            Request Info
+          </a>
+        ) : (
+          <button
+            onClick={handleCompare}
+            disabled={!inCompare && !canAdd()}
+            className={`btn-compare${inCompare ? " added" : ""}`}
+          >
+            {inCompare ? (
+              <><Check size={13} /> Added</>
+            ) : (
+              <><Plus size={13} /> Compare</>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
