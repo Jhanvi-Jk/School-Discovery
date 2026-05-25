@@ -124,31 +124,46 @@ function CityPanel({
         {/* City list */}
         <div style={{ flex: 1, overflowY: "auto", padding: "12px 12px" }}>
           {CITY_KEYS.map((key) => {
-            const isSelected = selected === key;
-            const isAvailable = key === "bangalore" || key === "delhi";
+            const isSelected  = selected === key;
+            const isAvailable = key === "bangalore" || key === "delhi" || key === "chennai";
+            const isComingSoon = !isAvailable;
             return (
               <button
                 key={key}
                 onClick={() => { if (isAvailable) { onSelect(key); onClose(); } }}
-                disabled={!isAvailable}
+                disabled={isComingSoon}
                 style={{
                   width: "100%", textAlign: "left",
                   padding: "14px 16px", marginBottom: 8,
                   borderRadius: 12,
-                  border: isSelected ? "2px solid var(--dark)" : "1.5px solid var(--beige-400)",
-                  background: isSelected ? "var(--dark)" : isAvailable ? "var(--beige-200)" : "var(--beige-100)",
+                  border: isSelected
+                    ? "2px solid var(--dark)"
+                    : isComingSoon
+                    ? "1.5px solid var(--beige-500)"
+                    : "1.5px solid var(--beige-400)",
+                  background: isSelected
+                    ? "var(--dark)"
+                    : isComingSoon
+                    ? "var(--beige-300)"
+                    : "var(--beige-200)",
                   cursor: isAvailable ? "pointer" : "default",
-                  opacity: isAvailable ? 1 : 0.45,
+                  opacity: isComingSoon ? 0.72 : 1,
                   transition: "all 0.15s",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <MapPin size={14} color={isSelected ? "white" : "var(--muted)"} />
+                  <MapPin size={14} color={isSelected ? "white" : isComingSoon ? "var(--beige-600)" : "var(--muted)"} />
                   <div>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: isSelected ? "white" : "var(--dark)", marginBottom: 1 }}>
+                    <p style={{
+                      fontSize: 14, fontWeight: 700, marginBottom: 1,
+                      color: isSelected ? "white" : isComingSoon ? "var(--muted)" : "var(--dark)",
+                    }}>
                       {CITY_LABELS[key]}
                     </p>
-                    <p style={{ fontSize: 11, color: isSelected ? "rgba(255,255,255,0.7)" : "var(--muted)" }}>
+                    <p style={{
+                      fontSize: 11,
+                      color: isSelected ? "rgba(255,255,255,0.7)" : isComingSoon ? "var(--beige-600)" : "var(--muted)",
+                    }}>
                       {CITY_DESCRIPTIONS[key]}
                     </p>
                   </div>

@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -25,12 +25,38 @@ export const dynamic = "force-dynamic";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.schoolfind360.com";
 const YEAR = new Date().getFullYear();
 
+// Lookup maps used by generateMetadata (hoisted before function call)
+const CITY_HUB_SLUGS_META: Record<string, string> = {
+  bengaluru: "bangalore", bangalore: "bangalore", delhi: "delhi", chennai: "chennai",
+};
+const CITY_META_LABELS: Record<string, { label: string }> = {
+  bangalore: { label: "Bengaluru" },
+  delhi:     { label: "Delhi" },
+  chennai:   { label: "Chennai" },
+};
+
 // ── Metadata ─────────────────────────────────────────────────────────────────
 export async function generateMetadata({
   params,
 }: {
   params: { slug: string };
 }): Promise<Metadata> {
+  // City hub pages get their own meta
+  const cityKey = CITY_HUB_SLUGS_META[params.slug.toLowerCase()];
+  if (cityKey) {
+    const m = CITY_META_LABELS[cityKey];
+    const canonicalUrl = `${APP_URL}/schools/${params.slug.toLowerCase()}`;
+    const title = `Top Schools in ${m.label} ${YEAR} | CBSE, ICSE, IB — SchoolFind360`;
+    const description = `Browse 50+ verified schools in ${m.label}. Compare ${YEAR} fees, CBSE, ICSE, IB boards, area-wise listings, and real parent reviews on SchoolFind360.`;
+    return {
+      title, description,
+      alternates: { canonical: canonicalUrl },
+      robots: { index: true, follow: true },
+      openGraph: { title, description, url: canonicalUrl, type: "website", siteName: "SchoolFind360" },
+      twitter: { card: "summary_large_image", title, description },
+    };
+  }
+
   const supabase = await createClient();
   const { data } = await supabase
     .from("schools_with_details")
@@ -133,12 +159,187 @@ function RatingBar({ label, value }: { label: string; value: number }) {
   );
 }
 
+// ── City hub page (SSR) ───────────────────────────────────────────────────────
+const CITY_META: Record<string, { label: string; state: string; description: string; boards: string[] }> = {
+  bangalore: { label: "Bengaluru", state: "Karnataka", description: "India's tech capital", boards: ["CBSE","ICSE","IB","IGCSE","Cambridge","State Board"] },
+  delhi:     { label: "Delhi",     state: "Delhi",     description: "The national capital",  boards: ["CBSE","ICSE","IB","IGCSE","Cambridge"] },
+  chennai:   { label: "Chennai",   state: "Tamil Nadu", description: "Gateway to the South", boards: ["CBSE","ICSE","IB","Cambridge","State Board"] },
+};
+
+async function CityHubPage({ cityKey, citySlug }: { cityKey: string; citySlug: string }) {
+  const supabase = await createClient();
+  const meta = CITY_META[cityKey];
+  const cityDbName = meta.label;
+
+  // Fetch top schools in this city (server-side, no JS needed)
+  const { data: schools } = await supabase
+    .from("schools_with_details")
+    .select("slug, name, area, type, total_fees_min, total_fees_max, avg_rating, cover_image_url")
+    .eq("city", cityDbName)
+    .not("total_fees_min", "is", null)
+    .order("avg_rating", { ascending: false, nullsFirst: false })
+    .limit(24);
+
+  // Unique areas with school counts
+  const { data: areaRows } = await supabase
+    .from("schools")
+    .select("area")
+    .eq("city", cityDbName)
+    .not("area", "is", null);
+
+  const areaCounts: Record<string, number> = {};
+  (areaRows || []).forEach((r: any) => {
+    if (r.area) areaCounts[r.area] = (areaCounts[r.area] || 0) + 1;
+  });
+  const areas = Object.entries(areaCounts).sort((a, b) => b[1] - a[1]);
+
+  const canonicalUrl = `${APP_URL}/schools/${citySlug}`;
+  const title = `Top Schools in ${meta.label} ${YEAR} | CBSE, ICSE, IB Schools — SchoolFind360`;
+  const desc  = `Browse ${(schools || []).length}+ verified schools in ${meta.label}. Compare ${YEAR} fees, CBSE, ICSE, IB boards, area-wise listings, and real parent reviews.`;
+
+  const itemListSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `Top Schools in ${meta.label}`,
+    description: desc,
+    numberOfItems: (schools || []).length,
+    itemListElement: (schools || []).map((s: any, i: number) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: s.name,
+      url: `${APP_URL}/schools/${s.slug}`,
+    })),
+  };
+
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
+      {/* Inline metadata via Next.js Head is handled by generateMetadata above; here we just render the page */}
+      <Header />
+      <main className="bg-gray-50 min-h-screen pb-16">
+        {/* Hero */}
+        <div className="bg-gradient-to-br from-[#2C1810] to-[#5C3820] text-white py-12 px-4">
+          <div className="max-w-4xl mx-auto">
+            <nav className="text-xs text-white/60 mb-4 flex items-center gap-1">
+              <Link href="/" className="hover:text-white">Home</Link>
+              <ChevronRight className="w-3 h-3" />
+              <Link href="/schools" className="hover:text-white">Schools</Link>
+              <ChevronRight className="w-3 h-3" />
+              <span className="text-white">{meta.label}</span>
+            </nav>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+              Schools in {meta.label}
+            </h1>
+            <p className="text-white/70 text-base mb-6">{meta.description} · {(schools || []).length}+ verified schools</p>
+            <div className="flex flex-wrap gap-2">
+              {meta.boards.map((b) => (
+                <Link
+                  key={b}
+                  href={`/schools?city=${cityKey}&curriculum=${b.toLowerCase().replace(/\s/g,"-")}`}
+                  className="text-xs px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-medium transition-colors"
+                >
+                  {b} Schools
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 py-8 space-y-10">
+          {/* Neighbourhoods */}
+          {areas.length > 0 && (
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Browse by Neighbourhood</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {areas.map(([area, count]) => (
+                  <Link
+                    key={area}
+                    href={`/schools?city=${cityKey}&area=${encodeURIComponent(area)}`}
+                    className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-100 group"
+                  >
+                    <p className="font-semibold text-gray-900 text-sm group-hover:text-blue-600 transition-colors">{area}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{count} school{count !== 1 ? "s" : ""}</p>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* School list */}
+          {(schools || []).length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Top Schools in {meta.label}</h2>
+                <Link href={`/schools?city=${cityKey}`} className="text-sm text-blue-600 hover:underline">
+                  View all →
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {(schools || []).map((s: any) => (
+                  <Link
+                    key={s.slug}
+                    href={`/schools/${s.slug}`}
+                    className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex gap-0"
+                  >
+                    <div className="w-24 h-24 flex-shrink-0 bg-gradient-to-br from-blue-100 to-indigo-100 relative self-stretch">
+                      {s.cover_image_url && (
+                        <Image src={s.cover_image_url} alt={s.name} fill className="object-cover" />
+                      )}
+                    </div>
+                    <div className="p-3 flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">{s.name}</p>
+                      {s.area && (
+                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                          <MapPin className="w-3 h-3 flex-shrink-0" />{s.area}
+                        </p>
+                      )}
+                      {s.total_fees_min && (
+                        <p className="text-xs font-medium text-blue-700 mt-1">
+                          {formatFeesRange(s.total_fees_min, s.total_fees_max)}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+              <div className="text-center mt-6">
+                <Link
+                  href={`/schools?city=${cityKey}`}
+                  className="inline-block px-6 py-3 bg-[#2C1810] text-white rounded-xl font-semibold text-sm hover:bg-[#5C3820] transition-colors"
+                >
+                  Explore all {meta.label} schools →
+                </Link>
+              </div>
+            </section>
+          )}
+        </div>
+      </main>
+      <Footer />
+    </>
+  );
+}
+
+// ── City hub redirect ─────────────────────────────────────────────────────────
+// /schools/bengaluru, /schools/delhi, /schools/chennai → city hub pages
+const CITY_HUB_SLUGS: Record<string, string> = {
+  bengaluru: "bangalore",
+  bangalore: "bangalore",
+  delhi: "delhi",
+  chennai: "chennai",
+};
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default async function SchoolProfilePage({
   params,
 }: {
   params: { slug: string };
 }) {
+  // Intercept city hub URLs and render city landing page
+  const cityKey = CITY_HUB_SLUGS[params.slug.toLowerCase()];
+  if (cityKey) {
+    return <CityHubPage cityKey={cityKey} citySlug={params.slug.toLowerCase()} />;
+  }
+
   const supabase = await createClient();
 
   const { data: school, error } = await supabase
