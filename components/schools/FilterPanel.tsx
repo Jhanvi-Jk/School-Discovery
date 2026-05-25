@@ -8,7 +8,7 @@ import {
   ChevronDown, X, Search, SlidersHorizontal, FlaskConical, ExternalLink, Info,
 } from "lucide-react";
 import { useFilterStore } from "@/store/filterStore";
-import { useCityStore } from "@/store/cityStore";
+import { useCityStore, CITY_DB_NAMES } from "@/store/cityStore";
 import {
   BENGALURU_AREAS, AREAS_BY_CITY, ALL_SPORTS, ALL_EXTRACURRICULARS,
   ALL_LANGUAGES, GRADE_OPTIONS,
@@ -376,8 +376,7 @@ export function FilterPanel({ className }: { className?: string }) {
     // When city changes, clear selected areas that don't belong to new city
     setFilter("areas", []);
     const q = supabase.from("schools").select("area");
-    // Filter counts by city if one is selected
-    const cityName = selectedCity === "bangalore" ? "Bengaluru" : selectedCity === "delhi" ? "Delhi" : null;
+    const cityName = selectedCity ? CITY_DB_NAMES[selectedCity] : null;
     (cityName ? q.eq("city", cityName) : q).then(({ data }) => {
       if (!data) return;
       const counts: Record<string, number> = {};
@@ -404,15 +403,28 @@ export function FilterPanel({ className }: { className?: string }) {
         </div>
       )}
 
-      {/* 1. Area — blurred until city is selected */}
+      {/* 1. Area — always-open, keyed on city so it remounts on city change */}
       <div style={{ position: "relative" }}>
-        <Section icon={MapPin} title="Area / Neighbourhood" count={filters.areas.length} defaultOpen>
-          <SearchableList
-            items={selectedCity ? (AREAS_BY_CITY[selectedCity] ?? BENGALURU_AREAS) : BENGALURU_AREAS}
-            selected={filters.areas}
-            onToggle={(v) => toggleArrayFilter("areas", v)} placeholder="Search areas…"
-            counts={areaCounts} />
-        </Section>
+        {/* Always-open area section — no collapsing, so city switch is always visible */}
+        <div className="fp-section">
+          <div className="fp-trigger" style={{ cursor: "default" }}>
+            <div className="fp-trigger-left">
+              <MapPin size={14} />
+              <span className="fp-trigger-title">Area / Neighbourhood</span>
+              {filters.areas.length > 0 && <span className="fp-badge">{filters.areas.length}</span>}
+            </div>
+          </div>
+          <div className="fp-body">
+            <SearchableList
+              key={selectedCity || "all"}
+              items={selectedCity ? (AREAS_BY_CITY[selectedCity] ?? BENGALURU_AREAS) : BENGALURU_AREAS}
+              selected={filters.areas}
+              onToggle={(v) => toggleArrayFilter("areas", v)}
+              placeholder="Search areas…"
+              counts={areaCounts}
+            />
+          </div>
+        </div>
         {!selectedCity && (
           <div style={{
             position: "absolute", inset: 0, zIndex: 10,
@@ -424,7 +436,7 @@ export function FilterPanel({ className }: { className?: string }) {
           }}>
             <MapPin size={16} color="#a89880" />
             <span style={{ fontSize: 11, color: "#a89880", fontWeight: 600, textAlign: "center", padding: "0 12px" }}>
-              Select a city on the map first
+              Select a city first
             </span>
           </div>
         )}

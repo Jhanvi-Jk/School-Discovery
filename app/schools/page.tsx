@@ -8,17 +8,8 @@ import { SchoolCard } from "@/components/schools/SchoolCard";
 import { CompareTray } from "@/components/schools/CompareTray";
 import { SchoolsMapWrapper } from "@/components/map/SchoolsMapWrapper";
 import { useFilterStore } from "@/store/filterStore";
-import { useCityStore, CITY_LABELS, type CityKey } from "@/store/cityStore";
+import { useCityStore, CITY_LABELS, CITY_DB_NAMES, type CityKey } from "@/store/cityStore";
 import type { SchoolSummary } from "@/lib/types";
-
-const CITY_DB_NAMES: Record<CityKey, string> = {
-  bangalore: "Bengaluru",
-  delhi:     "Delhi",
-  chennai:   "Chennai",
-  pune:      "Pune",
-  mumbai:    "Mumbai",
-  kolkata:   "Kolkata",
-};
 
 const CITY_DESCRIPTIONS: Record<CityKey, string> = {
   bangalore: "India's tech capital · over 350 schools",

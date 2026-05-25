@@ -12,6 +12,16 @@ export const CITY_LABELS: Record<CityKey, string> = {
   kolkata:   "Kolkata",
 };
 
+// Maps city key → exact value stored in the `city` column of the DB
+export const CITY_DB_NAMES: Record<CityKey, string> = {
+  bangalore: "Bengaluru",
+  delhi:     "Delhi",
+  chennai:   "Chennai",
+  pune:      "Pune",
+  mumbai:    "Mumbai",
+  kolkata:   "Kolkata",
+};
+
 export const CITY_CENTERS: Record<CityKey, [number, number, number]> = {
   // [lat, lng, zoom]
   bangalore: [12.9716, 77.5946, 11],
