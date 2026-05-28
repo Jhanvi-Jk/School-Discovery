@@ -11,9 +11,10 @@ interface SchoolCardProps {
   view?: "grid" | "list";
   isSaved?: boolean;
   onSave?: (id: string) => void;
+  highlighted?: boolean;
 }
 
-export function SchoolCard({ school }: SchoolCardProps) {
+export function SchoolCard({ school, highlighted }: SchoolCardProps) {
   const { isInCompare, addSchool, removeSchool, canAdd } = useCompareStore();
   const inCompare = isInCompare(school.id);
 
@@ -23,7 +24,16 @@ export function SchoolCard({ school }: SchoolCardProps) {
   };
 
   return (
-    <div className="school-card" style={{ position: "relative" }}>
+    <div
+      id={`card-${school.slug}`}
+      className="school-card"
+      style={{
+        position: "relative",
+        transition: "box-shadow 0.4s, outline 0.4s",
+        outline: highlighted ? "2.5px solid var(--brown-dark)" : "none",
+        boxShadow: highlighted ? "0 0 0 4px rgba(44,24,16,0.12)" : undefined,
+      }}
+    >
 
       {/* ── Rating badge — top right ── */}
       {school.avg_rating && (

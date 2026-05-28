@@ -1,7 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-// GET — public: anyone can read reviews
+type Source = "schoolfind360" | "curious_parent" | "ezyschooling";
+
+const SOURCE_LABELS: Record<Source, string> = {
+  schoolfind360:  "SchoolFind360",
+  curious_parent: "The Curious Parent",
+  ezyschooling:   "Ezyschooling",
+};
+
+// ── helpers ──────────────────────────────────────────────────
+function avgField(reviews: any[], field: string): string | null {
+  const vals = reviews.map((r) => r[field]).filter((v) => v != null);
+  if (!vals.length) return null;
+  return (vals.reduce((s: number, v: number) => s + v, 0) / vals.length).toFixed(1);
+}
+
+function buildAverages(reviews: any[]) {
+  return {
+    overall:    avgField(reviews, "rating_overall"),
+    academics:  avgField(reviews, "rating_academics"),
+    facilities: avgField(reviews, "rating_facilities"),
+    faculty:    avgField(reviews, "rating_faculty"),
+    value:      avgField(reviews, "rating_value"),
+  };
+}
+
+// ── GET — public: returns combined + per-source averages ─────
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -9,7 +34,6 @@ export async function GET(
   const supabase = await createClient();
   const { slug } = await params;
 
-  // Get school by slug
   const { data: school, error: schoolErr } = await supabase
     .from("schools")
     .select("id, name, description")
@@ -24,6 +48,7 @@ export async function GET(
     .from("reviews")
     .select(`
       id,
+      source,
       rating_overall,
       rating_academics,
       rating_facilities,
@@ -33,8 +58,7 @@ export async function GET(
       body,
       relation,
       is_verified,
-      created_at,
-      users (full_name)
+      created_at
     `)
     .eq("school_id", school.id)
     .order("created_at", { ascending: false });
@@ -43,29 +67,37 @@ export async function GET(
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 
-  // Calculate averages
-  const count = reviews?.length || 0;
-  const avg = (field: string) =>
-    count > 0
-      ? ((reviews || []).reduce((s: number, r: any) => s + (r[field] || 0), 0) / count).toFixed(1)
-      : null;
+  const allReviews = reviews || [];
+  const count = allReviews.length;
+
+  // Combined averages (equal weight per review regardless of source)
+  const averages = buildAverages(allReviews);
+
+  // Per-source breakdown
+  const sources = (["schoolfind360", "curious_parent", "ezyschooling"] as Source[])
+    .map((src) => {
+      const subset = allReviews.filter((r) => (r.source || "schoolfind360") === src);
+      if (!subset.length) return null;
+      return {
+        source:      src,
+        label:       SOURCE_LABELS[src],
+        count:       subset.length,
+        averages:    buildAverages(subset),
+      };
+    })
+    .filter(Boolean);
 
   return NextResponse.json({
     success: true,
-    school: { id: school.id, name: school.name, description: school.description },
-    averages: {
-      overall:    avg("rating_overall"),
-      academics:  avg("rating_academics"),
-      facilities: avg("rating_facilities"),
-      faculty:    avg("rating_faculty"),
-      value:      avg("rating_value"),
-    },
+    school:  { id: school.id, name: school.name, description: school.description },
     count,
-    data: reviews,
+    averages,   // combined across all sources
+    sources,    // per-source breakdown
+    data: allReviews,
   });
 }
 
-// POST — auth required: submit a review
+// ── POST — auth required: submit a review ────────────────────
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -73,13 +105,11 @@ export async function POST(
   const supabase = await createClient();
   const { slug } = await params;
 
-  // Auth check
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ success: false, error: "Sign in required" }, { status: 401 });
   }
 
-  // Get school
   const { data: school } = await supabase
     .from("schools")
     .select("id")
@@ -91,9 +121,11 @@ export async function POST(
   }
 
   const body = await request.json();
-  const { rating_overall, rating_academics, rating_facilities, rating_faculty, rating_value, title, review_body, relation } = body;
+  const {
+    rating_overall, rating_academics, rating_facilities,
+    rating_faculty, rating_value, title, review_body, relation,
+  } = body;
 
-  // Validate
   const ratings = [rating_overall, rating_academics, rating_facilities, rating_faculty, rating_value];
   if (ratings.some((r) => !r || r < 1 || r > 5)) {
     return NextResponse.json({ success: false, error: "All ratings must be between 1 and 5" }, { status: 400 });
@@ -105,6 +137,7 @@ export async function POST(
   const { data, error } = await supabase.from("reviews").insert({
     school_id:         school.id,
     user_id:           user.id,
+    source:            "schoolfind360",   // user-submitted reviews are always our platform
     rating_overall,
     rating_academics,
     rating_facilities,

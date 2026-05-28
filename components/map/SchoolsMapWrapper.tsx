@@ -14,8 +14,9 @@ const SchoolsMapInner = dynamic(() => import("@/components/map/SchoolsMapInner")
 
 interface Props {
   schools: SchoolSummary[];
+  onSchoolClick?: (slug: string) => void;
 }
 
-export function SchoolsMapWrapper({ schools }: Props) {
-  return <SchoolsMapInner schools={schools} />;
+export function SchoolsMapWrapper({ schools, onSchoolClick }: Props) {
+  return <SchoolsMapInner schools={schools} onSchoolClick={onSchoolClick} />;
 }

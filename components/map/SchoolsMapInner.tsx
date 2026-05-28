@@ -316,9 +316,12 @@ function getPinDims(zoom: number): [number, number] {
   return [w, h];
 }
 
-interface Props { schools: SchoolSummary[]; }
+interface Props {
+  schools: SchoolSummary[];
+  onSchoolClick?: (slug: string) => void;
+}
 
-export default function SchoolsMapInner({ schools }: Props) {
+export default function SchoolsMapInner({ schools, onSchoolClick }: Props) {
   const [MC, setMC] = useState<any>(null);
   const [L, setL]   = useState<any>(null);
   const [zoom, setZoom] = useState(11);
@@ -475,16 +478,31 @@ export default function SchoolsMapInner({ schools }: Props) {
             pos = [base[0] + radius * Math.sin(angle), base[1] + radius * Math.cos(angle)];
           }
           return (
-            <Marker key={school.id} position={pos} icon={schoolIcon}>
+            <Marker key={school.id} position={pos} icon={schoolIcon}
+              eventHandlers={{
+                click: () => onSchoolClick?.(school.slug),
+              }}>
               <Popup>
                 <div style={{ minWidth:160 }}>
                   <p style={{ fontWeight:700, fontSize:13, marginBottom:4 }}>{school.name}</p>
                   <p style={{ color:"#7a6a5a", fontSize:12, marginBottom:8 }}>{school.area}</p>
-                  <a href={`/schools/${school.slug}`} style={{
-                    display:"block", background:"#2C1810", color:"white",
-                    borderRadius:8, padding:"5px 10px", fontSize:12,
-                    textAlign:"center", textDecoration:"none", fontWeight:600,
-                  }}>View Profile</a>
+                  <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                    <button
+                      onClick={() => onSchoolClick?.(school.slug)}
+                      style={{
+                        display:"block", background:"#2C1810", color:"white",
+                        borderRadius:8, padding:"5px 10px", fontSize:12,
+                        textAlign:"center", border:"none", fontWeight:600, cursor:"pointer", width:"100%",
+                      }}>
+                      Scroll to Card
+                    </button>
+                    <a href={`/schools/${school.slug}`} style={{
+                      display:"block", background:"transparent", color:"#2C1810",
+                      borderRadius:8, padding:"5px 10px", fontSize:12,
+                      textAlign:"center", textDecoration:"none", fontWeight:600,
+                      border:"1px solid #2C1810",
+                    }}>View Profile</a>
+                  </div>
                 </div>
               </Popup>
             </Marker>

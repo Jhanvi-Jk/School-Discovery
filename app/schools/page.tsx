@@ -207,6 +207,7 @@ export default function SchoolsPage() {
   const [mobileView, setMobileView] = useState<"list" | "map">("list"); // mobile-only toggle
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [cityPanelOpen, setCityPanelOpen] = useState(false);
+  const [highlightedSlug, setHighlightedSlug] = useState<string | null>(null);
   // Search suggestions
   const [suggestions, setSuggestions] = useState<SchoolSummary[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -234,6 +235,22 @@ export default function SchoolsPage() {
   // Show map by default on desktop only (avoids hydration mismatch)
   useEffect(() => {
     if (window.innerWidth >= 1024) setShowMap(true);
+  }, []);
+
+  // Map pin → card: scroll to the card and briefly highlight it
+  const handleSchoolClick = useCallback((slug: string) => {
+    setHighlightedSlug(slug);
+    // Switch to list view on mobile if map is showing
+    setMobileView("list");
+    // Scroll after a short delay to allow list render
+    setTimeout(() => {
+      const el = document.getElementById(`card-${slug}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      // Clear highlight after animation
+      setTimeout(() => setHighlightedSlug(null), 2000);
+    }, 120);
   }, []);
 
   const cityDbName = selectedCity ? CITY_DB_NAMES[selectedCity] : "";
@@ -426,7 +443,7 @@ export default function SchoolsPage() {
               {/* Desktop map — controlled by showMap toggle */}
               {showMap && (
                 <div className="map-box desktop-only" style={{ position: "relative" }}>
-                  <SchoolsMapWrapper schools={noCity ? [] : schools} />
+                  <SchoolsMapWrapper schools={noCity ? [] : schools} onSchoolClick={handleSchoolClick} />
                   {noCity && (
                     <div
                       onClick={() => setCityPanelOpen(true)}
@@ -452,7 +469,7 @@ export default function SchoolsPage() {
               <div className="mob-map-fullscreen">
                 {mobileView === "map" && (
                   <div style={{ position: "relative", height: "100%" }}>
-                    <SchoolsMapWrapper schools={noCity ? [] : schools} />
+                    <SchoolsMapWrapper schools={noCity ? [] : schools} onSchoolClick={handleSchoolClick} />
                     {noCity && (
                       <div
                         onClick={() => setCityPanelOpen(true)}
@@ -528,7 +545,7 @@ export default function SchoolsPage() {
                       </p>
                       <div className="school-grid" style={{ marginTop: 0 }}>
                         {softMatches.map((s) => (
-                          <SchoolCard key={s.id} school={s} />
+                          <SchoolCard key={s.id} school={s} highlighted={highlightedSlug === s.slug} />
                         ))}
                       </div>
                     </div>
@@ -537,7 +554,7 @@ export default function SchoolsPage() {
               ) : viewMode === "grid" ? (
                 <div className="school-grid">
                   {schools.map((school) => (
-                    <SchoolCard key={school.id} school={school} />
+                    <SchoolCard key={school.id} school={school} highlighted={highlightedSlug === school.slug} />
                   ))}
                 </div>
               ) : (

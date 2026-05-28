@@ -22,7 +22,7 @@ export function SchoolActionsSidebar({ school }: Props) {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:sticky" style={{ top: 120 }}>
       {/* CTA card */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
         <h3 className="font-bold text-gray-900 mb-1">{school.name}</h3>

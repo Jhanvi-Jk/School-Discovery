@@ -38,6 +38,13 @@ export const metadata: Metadata = {
     description: "Browse 150+ verified schools in Bengaluru. Compare fees, curriculum, and more.",
     images: ["/og-preview.jpg"],
   },
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },          // fallback for old browsers
+    ],
+    apple: "/favicon.svg",
+  },
   robots: {
     index: true,
     follow: true,

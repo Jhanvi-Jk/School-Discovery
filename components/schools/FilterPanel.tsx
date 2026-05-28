@@ -22,6 +22,24 @@ import {
   CBSE_STREAMS, STATE_BOARD_STREAMS,
 } from "@/lib/types";
 
+// ── Data pending notice ──────────────────────────────────────
+function DataPendingNotice() {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 6,
+      margin: "0 0 8px 0", padding: "6px 10px",
+      background: "var(--beige-300)", borderRadius: 8,
+      border: "1px dashed var(--beige-500)",
+    }}>
+      <span style={{ fontSize: 13 }}>⏳</span>
+      <span style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.4 }}>
+        <strong style={{ color: "var(--dark)" }}>Data pending</strong> — most schools don't have this yet.
+        Selecting may return zero results.
+      </span>
+    </div>
+  );
+}
+
 // ── Section wrapper ──────────────────────────────────────────
 
 function Section({
@@ -572,26 +590,31 @@ export function FilterPanel({ className }: { className?: string }) {
 
       {/* ── Advanced Filters (collapsible tray) ─────────────── */}
       <AdvancedSection count={filters.sports.length + filters.extracurriculars.length + filters.languages.length + (filters.has_transport !== null ? 1 : 0)}>
+
         {/* 8. Transport */}
         <Section icon={Bus} title="Transport" count={filters.has_transport !== null ? 1 : 0}>
+          <DataPendingNotice />
           <Toggle label="School bus available"
             value={filters.has_transport} onChange={(v) => setFilter("has_transport", v)} />
         </Section>
 
         {/* 9. Sports */}
         <Section icon={Trophy} title="Sports" count={filters.sports.length}>
+          <DataPendingNotice />
           <SearchableList items={ALL_SPORTS} selected={filters.sports}
             onToggle={(v) => toggleArrayFilter("sports", v)} placeholder="Search sports…" />
         </Section>
 
         {/* 10. Extracurriculars */}
         <Section icon={Music} title="Extracurriculars" count={filters.extracurriculars.length}>
+          <DataPendingNotice />
           <SearchableList items={ALL_EXTRACURRICULARS} selected={filters.extracurriculars}
             onToggle={(v) => toggleArrayFilter("extracurriculars", v)} placeholder="Search activities…" />
         </Section>
 
         {/* 11. Languages */}
         <Section icon={Languages} title="Languages Offered" count={filters.languages.length}>
+          <DataPendingNotice />
           <SearchableList items={ALL_LANGUAGES} selected={filters.languages}
             onToggle={(v) => toggleArrayFilter("languages", v)} placeholder="Search languages…" />
         </Section>
