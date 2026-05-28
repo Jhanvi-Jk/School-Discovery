@@ -557,57 +557,70 @@ export default async function SchoolProfilePage({
           </div>
         </div>
 
-        {/* Tab navigation bar — always show all tabs */}
+        {/* Tab navigation bar — sticky below the site header (top-14 = 56px) */}
         <SchoolProfileTabs />
 
         {/* Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main content */}
+            {/* ── Main content ── */}
             <div className="lg:col-span-2 space-y-8">
 
-              {/* Photos anchor — links to cover image at top */}
-              <div id="section-photos" className="scroll-mt-20" />
+              {/* ── PHOTOS ── */}
+              <section id="section-photos" className="bg-white rounded-2xl overflow-hidden shadow-sm scroll-mt-[116px]">
+                {school.cover_image_url ? (
+                  <div className="relative h-56 sm:h-72">
+                    <Image src={school.cover_image_url} alt={`${school.name} campus`} fill className="object-cover" />
+                  </div>
+                ) : (
+                  <div className="p-6">
+                    <h2 className="text-lg font-bold text-gray-900 mb-4">Campus Photos</h2>
+                    <div className="sheen-wrap">
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                        {[160, 140, 155, 145, 165, 150].map((h, i) => (
+                          <div key={i} className="sheen" style={{ height: h, borderRadius: 12 }} />
+                        ))}
+                      </div>
+                      <div className="sheen-overlay"><span className="sheen-badge">📷 Photos Coming Soon</span></div>
+                    </div>
+                  </div>
+                )}
+              </section>
 
-              {/* Quick stats */}
-              <div id="section-basic" className="grid grid-cols-2 sm:grid-cols-4 gap-3 scroll-mt-20">
-                <StatBox
-                  icon={IndianRupee}
-                  label="Annual Fees"
-                  value={formatFeesRange(details?.total_fees_min, details?.total_fees_max)}
-                />
+              {/* ── BASIC DETAILS (stats) ── */}
+              <div id="section-basic" className="grid grid-cols-2 sm:grid-cols-4 gap-3 scroll-mt-[116px]">
+                <StatBox icon={IndianRupee} label="Annual Fees"
+                  value={formatFeesRange(details?.total_fees_min, details?.total_fees_max)} />
                 {avgRating && (
-                  <StatBox
-                    icon={Star}
-                    label="Overall Rating"
+                  <StatBox icon={Star} label="Overall Rating"
                     value={`${formatRating(avgRating)} / 5`}
-                    sub={`${reviews.length} reviews`}
-                    color="text-amber-600"
-                  />
+                    sub={`${reviews.length} reviews`} color="text-amber-600" />
                 )}
                 {details?.student_count && (
-                  <StatBox
-                    icon={Users}
-                    label="Students"
-                    value={details.student_count.toLocaleString()}
-                  />
+                  <StatBox icon={Users} label="Students"
+                    value={details.student_count.toLocaleString()} />
                 )}
                 {details?.student_teacher_ratio && (
-                  <StatBox
-                    icon={Users}
-                    label="Student:Teacher"
-                    value={`${details.student_teacher_ratio}:1`}
-                  />
+                  <StatBox icon={Users} label="Student:Teacher"
+                    value={`${details.student_teacher_ratio}:1`} />
                 )}
               </div>
 
-              {/* About / Summary — always rendered */}
-              <section id="section-summary" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
+              {/* ── SUMMARY ── */}
+              <section id="section-summary" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-[116px]">
                 <h2 className="text-lg font-bold text-gray-900 mb-3">About</h2>
-                {school.description
-                  ? <p className="text-gray-600 leading-relaxed">{school.description}</p>
-                  : <p className="text-sm text-gray-400 italic">School description coming soon.</p>
-                }
+                {school.description ? (
+                  <p className="text-gray-600 leading-relaxed">{school.description}</p>
+                ) : (
+                  <div className="sheen-wrap" style={{ minHeight: 90 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {[85, 65, 75, 55].map((w, i) => (
+                        <div key={i} className="sheen" style={{ height: 13, width: `${w}%` }} />
+                      ))}
+                    </div>
+                    <div className="sheen-overlay"><span className="sheen-badge">📝 Summary Coming Soon</span></div>
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2 mt-4">
                   <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
                     {SCHOOL_TYPE_LABELS[school.type as keyof typeof SCHOOL_TYPE_LABELS]}
@@ -628,13 +641,12 @@ export default async function SchoolProfilePage({
                 </div>
               </section>
 
-              {/* Fees breakdown — always rendered */}
-              <section id="section-fees" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
-                {details ? (<>
-                  <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <IndianRupee className="w-5 h-5 text-blue-600" />
-                    Fee Breakdown
-                  </h2>
+              {/* ── FEES ── */}
+              <section id="section-fees" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-[116px]">
+                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <IndianRupee className="w-5 h-5 text-blue-600" /> Fee Breakdown
+                </h2>
+                {details ? (
                   <div className="space-y-3">
                     {[
                       { label: "Annual Tuition", min: details.annual_tuition_fees_min, max: details.annual_tuition_fees_max },
@@ -647,9 +659,7 @@ export default async function SchoolProfilePage({
                       .map((fee) => (
                         <div key={fee.label} className="flex justify-between items-center py-2 border-b border-gray-50">
                           <span className="text-sm text-gray-600">{fee.label}</span>
-                          <span className="text-sm font-semibold text-gray-900">
-                            {formatFeesRange(fee.min, fee.max)}
-                          </span>
+                          <span className="text-sm font-semibold text-gray-900">{formatFeesRange(fee.min, fee.max)}</span>
                         </div>
                       ))}
                     <div className="flex justify-between items-center pt-2">
@@ -659,14 +669,23 @@ export default async function SchoolProfilePage({
                       </span>
                     </div>
                   </div>
-                </>) : (
-                  <><h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><IndianRupee className="w-5 h-5 text-blue-600" /> Fee Breakdown</h2>
-                  <p className="text-sm text-gray-400 italic">Fee information not yet available. Contact the school for 2026-27 fee details.</p></>
+                ) : (
+                  <div className="sheen-wrap" style={{ minHeight: 110 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {["Annual Tuition", "Development Fee", "Transport Fee", "Total Annual"].map((label) => (
+                        <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div className="sheen" style={{ height: 13, width: "40%" }} />
+                          <div className="sheen" style={{ height: 13, width: "20%" }} />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="sheen-overlay"><span className="sheen-badge">💰 Fee Details Coming Soon</span></div>
+                  </div>
                 )}
               </section>
 
-              {/* School info / Basic Details */}
-              <section id="section-basic-details" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
+              {/* ── SCHOOL DETAILS ── */}
+              <section id="section-basic-details" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-[116px]">
                 <h2 className="text-lg font-bold text-gray-900 mb-4">School Details</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {details?.school_hours_start && (
@@ -697,12 +716,8 @@ export default async function SchoolProfilePage({
                       <Globe className="w-4 h-4 text-blue-500 mt-0.5" />
                       <div>
                         <p className="text-xs text-gray-500">Website</p>
-                        <a
-                          href={school.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm font-medium text-blue-600 hover:underline flex items-center gap-1"
-                        >
+                        <a href={school.website} target="_blank" rel="noopener noreferrer"
+                          className="text-sm font-medium text-blue-600 hover:underline flex items-center gap-1">
                           Visit website <ExternalLink className="w-3 h-3" />
                         </a>
                       </div>
@@ -720,8 +735,6 @@ export default async function SchoolProfilePage({
                     </div>
                   )}
                 </div>
-
-                {/* Languages */}
                 {languages.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
@@ -729,10 +742,8 @@ export default async function SchoolProfilePage({
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {languages.map((l: any) => (
-                        <span
-                          key={`${l.language}-${l.type}`}
-                          className="text-xs px-2.5 py-1 rounded-full border border-gray-200 text-gray-600"
-                        >
+                        <span key={`${l.language}-${l.type}`}
+                          className="text-xs px-2.5 py-1 rounded-full border border-gray-200 text-gray-600">
                           {l.language}
                           {l.type === "medium_of_instruction" && (
                             <span className="text-blue-500 ml-1">(medium)</span>
@@ -744,90 +755,102 @@ export default async function SchoolProfilePage({
                 )}
               </section>
 
-              {/* Campus — Sports & Extracurriculars (always rendered for tab anchor) */}
-              <section id="section-campus" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
+              {/* ── CAMPUS ── */}
+              <section id="section-campus" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-[116px]">
                 <h2 className="text-lg font-bold text-gray-900 mb-4">Sports & Extracurriculars</h2>
-                {(sports.length > 0 || extras.length > 0) ? (<>
-                  {sports.length > 0 && (
-                    <div className="mb-4">
-                      <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                        <Trophy className="w-4 h-4 text-amber-500" /> Sports
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {sports.map((s: string) => (
-                          <span key={s} className="text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full border border-amber-200">
-                            {s}
-                          </span>
-                        ))}
+                {(sports.length > 0 || extras.length > 0) ? (
+                  <>
+                    {sports.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <Trophy className="w-4 h-4 text-amber-500" /> Sports
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {sports.map((s: string) => (
+                            <span key={s} className="text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full border border-amber-200">{s}</span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  {extras.length > 0 && (
-                    <div>
-                      <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                        <Music className="w-4 h-4 text-purple-500" /> Activities
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {extras.map((e: string) => (
-                          <span key={e} className="text-xs bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full border border-purple-200">
-                            {e}
-                          </span>
-                        ))}
+                    )}
+                    {extras.length > 0 && (
+                      <div>
+                        <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <Music className="w-4 h-4 text-purple-500" /> Activities
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {extras.map((e: string) => (
+                            <span key={e} className="text-xs bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full border border-purple-200">{e}</span>
+                          ))}
+                        </div>
                       </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="sheen-wrap" style={{ minHeight: 100 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {[80, 100, 65, 90, 75, 110, 70, 95].map((w, i) => (
+                        <div key={i} className="sheen" style={{ height: 28, width: w, borderRadius: 99 }} />
+                      ))}
                     </div>
-                  )}
-                </>) : (
-                  <p className="text-sm text-gray-400 italic">Campus activity details coming soon.</p>
+                    <div className="sheen-overlay"><span className="sheen-badge">🏟️ Campus Details Coming Soon</span></div>
+                  </div>
                 )}
               </section>
 
-              {/* Peer Group */}
-              <section id="section-peer" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
-                <h2 className="text-lg font-bold text-gray-900 mb-3">Peer Group</h2>
-                <p className="text-sm text-gray-400 italic">Peer group analysis and similar schools coming soon.</p>
+              {/* ── PEER GROUP ── */}
+              <section id="section-peer" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-[116px]">
+                <h2 className="text-lg font-bold text-gray-900 mb-4">Peer Group</h2>
+                <div className="sheen-wrap" style={{ minHeight: 110 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="sheen" style={{ height: 90, borderRadius: 14 }} />
+                    ))}
+                  </div>
+                  <div className="sheen-overlay"><span className="sheen-badge">🏫 Peer Analysis Coming Soon</span></div>
+                </div>
               </section>
 
-              {/* Unique Things */}
-              <section id="section-unique" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
-                <h2 className="text-lg font-bold text-gray-900 mb-3">What Makes This School Unique</h2>
-                <p className="text-sm text-gray-400 italic">Unique differentiators and parent insights coming soon.</p>
+              {/* ── UNIQUE THINGS ── */}
+              <section id="section-unique" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-[116px]">
+                <h2 className="text-lg font-bold text-gray-900 mb-4">What Makes This School Unique</h2>
+                <div className="sheen-wrap" style={{ minHeight: 100 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    {[70, 55, 65].map((w, i) => (
+                      <div key={i} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <div className="sheen" style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0 }} />
+                        <div className="sheen" style={{ height: 13, width: `${w}%` }} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="sheen-overlay"><span className="sheen-badge">✨ Unique Insights Coming Soon</span></div>
+                </div>
               </section>
 
-              {/* Admissions */}
-              <section id="section-admission" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
+              {/* ── ADMISSIONS ── */}
+              <section id="section-admission" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-[116px]">
                 <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-blue-600" /> Admissions
                 </h2>
-                {admissions.length > 0 ? (<>
+                {admissions.length > 0 ? (
                   <div className="space-y-3">
                     {admissions.map((a: any) => (
-                      <div
-                        key={a.id}
-                        className={cn(
-                          "border rounded-xl p-4",
-                          a.status === "open" ? "border-green-200 bg-green-50" : "border-gray-200 bg-gray-50"
-                        )}
-                      >
+                      <div key={a.id}
+                        className={cn("border rounded-xl p-4",
+                          a.status === "open" ? "border-green-200 bg-green-50" : "border-gray-200 bg-gray-50")}>
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-semibold text-sm text-gray-800">
                             {a.academic_year} · {a.grade_from} – {a.grade_to}
                           </span>
-                          <span
-                            className={cn(
-                              "text-xs px-2 py-0.5 rounded-full font-medium",
-                              a.status === "open" ? "bg-green-500 text-white" :
-                              a.status === "upcoming" ? "bg-blue-100 text-blue-700" :
-                              a.status === "waitlist" ? "bg-orange-100 text-orange-700" :
-                              "bg-gray-200 text-gray-600"
-                            )}
-                          >
+                          <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium",
+                            a.status === "open" ? "bg-green-500 text-white" :
+                            a.status === "upcoming" ? "bg-blue-100 text-blue-700" :
+                            a.status === "waitlist" ? "bg-orange-100 text-orange-700" :
+                            "bg-gray-200 text-gray-600")}>
                             {a.status ? a.status.charAt(0).toUpperCase() + a.status.slice(1) : "Unknown"}
                           </span>
                         </div>
                         {a.is_mid_year && (
-                          <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full mr-2">
-                            Mid-year
-                          </span>
+                          <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full mr-2">Mid-year</span>
                         )}
                         {(a.opens_at || a.closes_at) && (
                           <p className="text-xs text-gray-500 mt-1">
@@ -838,71 +861,80 @@ export default async function SchoolProfilePage({
                         )}
                         {a.notes && <p className="text-xs text-gray-500 mt-1">{a.notes}</p>}
                         {a.application_url && (
-                          <a
-                            href={a.application_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:underline mt-2 inline-flex items-center gap-1"
-                          >
+                          <a href={a.application_url} target="_blank" rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline mt-2 inline-flex items-center gap-1">
                             Apply online <ExternalLink className="w-3 h-3" />
                           </a>
                         )}
                       </div>
                     ))}
                   </div>
-                </>) : (
-                  <p className="text-sm text-gray-400 italic">Admission window details not yet available. Contact the school directly.</p>
+                ) : (
+                  <div className="sheen-wrap" style={{ minHeight: 90 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {[1, 2].map((i) => (
+                        <div key={i} className="sheen" style={{ height: 56, borderRadius: 14 }} />
+                      ))}
+                    </div>
+                    <div className="sheen-overlay"><span className="sheen-badge">📅 Admissions Details Coming Soon</span></div>
+                  </div>
                 )}
               </section>
 
-              {/* Reviews — sentiment + parent feedback */}
-              <section id="section-sentiment" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20" >
+              {/* ── SENTIMENT ANALYSIS ── */}
+              <section id="section-sentiment" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-[116px]">
                 <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <Star className="w-5 h-5 text-amber-500" /> Sentiment Analysis
                   {reviews.length > 0 && (
                     <span className="text-sm font-normal text-gray-500">({reviews.length} reviews)</span>
                   )}
                 </h2>
-
-                {!avgBreakdown && <p className="text-sm text-gray-400 italic">No review data yet — sentiment analysis will appear once parents submit reviews.</p>}
-                {avgBreakdown && (
+                {avgBreakdown ? (
                   <div className="mb-6 p-4 bg-amber-50 rounded-xl">
                     <div className="flex items-center gap-3 mb-3">
-                      <span className="text-4xl font-bold text-amber-600">
-                        {formatRating(avgRating)}
-                      </span>
+                      <span className="text-4xl font-bold text-amber-600">{formatRating(avgRating)}</span>
                       <div>
                         <div className="flex gap-0.5 mb-0.5">
                           {[1, 2, 3, 4, 5].map((s) => (
-                            <Star
-                              key={s}
-                              className={cn("w-4 h-4", s <= Math.round(avgRating || 0) ? "fill-amber-400 text-amber-400" : "text-gray-300")}
-                            />
+                            <Star key={s}
+                              className={cn("w-4 h-4", s <= Math.round(avgRating || 0) ? "fill-amber-400 text-amber-400" : "text-gray-300")} />
                           ))}
                         </div>
                         <p className="text-xs text-gray-500">{reviews.length} reviews</p>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <RatingBar label="Academics" value={parseFloat(avgBreakdown.academics.toFixed(1))} />
+                      <RatingBar label="Academics"  value={parseFloat(avgBreakdown.academics.toFixed(1))} />
                       <RatingBar label="Facilities" value={parseFloat(avgBreakdown.facilities.toFixed(1))} />
-                      <RatingBar label="Faculty" value={parseFloat(avgBreakdown.faculty.toFixed(1))} />
-                      <RatingBar label="Value" value={parseFloat(avgBreakdown.value.toFixed(1))} />
+                      <RatingBar label="Faculty"    value={parseFloat(avgBreakdown.faculty.toFixed(1))} />
+                      <RatingBar label="Value"      value={parseFloat(avgBreakdown.value.toFixed(1))} />
                     </div>
+                  </div>
+                ) : (
+                  <div className="sheen-wrap" style={{ minHeight: 130 }}>
+                    {/* Skeleton: big score circle + 4 rating bars */}
+                    <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+                      <div className="sheen" style={{ width: 72, height: 72, borderRadius: "50%", flexShrink: 0 }} />
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, paddingTop: 4 }}>
+                        {["Academics", "Facilities", "Faculty", "Value"].map((label) => (
+                          <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div className="sheen" style={{ height: 11, width: 70, flexShrink: 0 }} />
+                            <div className="sheen" style={{ height: 8, flex: 1, borderRadius: 99 }} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="sheen-overlay"><span className="sheen-badge">📊 Analytics Coming Soon</span></div>
                   </div>
                 )}
               </section>
 
-              {/* Parent feedback */}
-              <section id="section-feedback" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
+              {/* ── PARENT FEEDBACK ── */}
+              <section id="section-feedback" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-[116px]">
                 <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <Star className="w-5 h-5 text-amber-500" /> Parent Feedback
                 </h2>
-                {reviews.length === 0 ? (
-                  <p className="text-gray-500 text-sm text-center py-6">
-                    No reviews yet. Be the first to review!
-                  </p>
-                ) : (
+                {reviews.length > 0 ? (
                   <div className="space-y-4">
                     {reviews.slice(0, 5).map((r: any) => (
                       <div key={r.id} className="border-b border-gray-100 pb-4 last:border-0">
@@ -912,9 +944,7 @@ export default async function SchoolProfilePage({
                               {r.users?.full_name?.[0] || "?"}
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-gray-800">
-                                {r.users?.full_name || "Anonymous"}
-                              </p>
+                              <p className="text-sm font-medium text-gray-800">{r.users?.full_name || "Anonymous"}</p>
                               <p className="text-xs text-gray-400 capitalize">{(r.relation || "parent").replace(/_/g, " ")}</p>
                             </div>
                           </div>
@@ -924,44 +954,66 @@ export default async function SchoolProfilePage({
                           </div>
                         </div>
                         {r.title && <p className="text-sm font-semibold text-gray-800 mb-1">{r.title}</p>}
-                        {r.body && <p className="text-sm text-gray-600">{r.body}</p>}
+                        {r.body  && <p className="text-sm text-gray-600">{r.body}</p>}
                       </div>
                     ))}
                   </div>
+                ) : (
+                  <div className="sheen-wrap" style={{ minHeight: 160 }}>
+                    {/* 3 review card skeletons */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                          <div className="sheen" style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0 }} />
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+                            <div className="sheen" style={{ height: 12, width: "45%" }} />
+                            <div className="sheen" style={{ height: 11, width: "80%" }} />
+                            <div className="sheen" style={{ height: 11, width: "65%" }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="sheen-overlay">
+                      <span className="sheen-badge">✍️ Be the first to review {school.name}!</span>
+                    </div>
+                  </div>
                 )}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <Link href={`/schools/${school.slug}/reviews`}
+                    className="text-sm text-blue-600 hover:underline font-medium">
+                    View all reviews & leave a review →
+                  </Link>
+                </div>
               </section>
 
-              {/* Sources — always rendered */}
-              <section id="section-sources" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
+              {/* ── SOURCES ── */}
+              <section id="section-sources" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-[116px]">
                 <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <ExternalLink className="w-5 h-5 text-blue-600" /> Sources & Links
                 </h2>
-                <div className="space-y-3">
-                  {school.website ? (
-                    <a
-                      href={school.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group"
-                    >
-                      <Globe className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800 group-hover:text-blue-700">Official Website</p>
-                        <p className="text-xs text-gray-400 truncate">{school.website}</p>
-                      </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 ml-auto" />
-                    </a>
-                  ) : (
-                    <p className="text-sm text-gray-400 italic">No official website on record yet.</p>
-                  )}
-                  <p className="text-xs text-gray-400 mt-2">
-                    Fee and rating data sourced from school websites, Ezyschooling, and parent surveys. Last updated {YEAR}.
-                  </p>
-                </div>
+                {school.website ? (
+                  <a href={school.website} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group">
+                    <Globe className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-800 group-hover:text-blue-700">Official Website</p>
+                      <p className="text-xs text-gray-400 truncate">{school.website}</p>
+                    </div>
+                    <ExternalLink className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 ml-auto" />
+                  </a>
+                ) : (
+                  <div className="sheen-wrap" style={{ minHeight: 60 }}>
+                    <div className="sheen" style={{ height: 52, borderRadius: 12 }} />
+                    <div className="sheen-overlay"><span className="sheen-badge">🔗 Links Coming Soon</span></div>
+                  </div>
+                )}
+                <p className="text-xs text-gray-400 mt-3">
+                  Fee and rating data sourced from school websites, Ezyschooling, and parent surveys. Last updated {YEAR}.
+                </p>
               </section>
             </div>
 
-            {/* Sticky sidebar */}
+            {/* ── Sidebar ── */}
             <aside className="lg:col-span-1">
               <SchoolActionsSidebar school={school} />
             </aside>

@@ -17,7 +17,7 @@ export type TabId =
   | "sources";
 
 export const ALL_TABS: { id: TabId; label: string }[] = [
-  { id: "photos",    label: "Photos" },
+  { id: "photos",    label: "📷 Photos" },
   { id: "basic",     label: "Basic Details" },
   { id: "summary",   label: "Summary" },
   { id: "sentiment", label: "Sentiment Analysis" },
@@ -31,11 +31,13 @@ export const ALL_TABS: { id: TabId; label: string }[] = [
 ];
 
 interface Props {
-  availableTabs?: TabId[]; // if omitted, all tabs are shown
+  availableTabs?: TabId[];
 }
 
+// Total sticky offset: 56px site-header + ~52px this tab bar + 8px breathing = 116px
+const SCROLL_OFFSET = 116;
+
 export function SchoolProfileTabs({ availableTabs }: Props) {
-  // Always show all tabs — availableTabs only controls scroll-to-section behavior
   const visibleTabs = ALL_TABS;
   const [active, setActive] = useState<TabId>(ALL_TABS[0].id);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -43,7 +45,6 @@ export function SchoolProfileTabs({ availableTabs }: Props) {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
-  // Update scroll arrow visibility
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -63,7 +64,6 @@ export function SchoolProfileTabs({ availableTabs }: Props) {
     };
   }, [updateScrollState]);
 
-  // Scroll active pill into view within the nav bar
   useEffect(() => {
     activeButtonRef.current?.scrollIntoView({
       behavior: "smooth",
@@ -72,7 +72,7 @@ export function SchoolProfileTabs({ availableTabs }: Props) {
     });
   }, [active]);
 
-  // IntersectionObserver: highlight tab as section enters viewport
+  // IntersectionObserver: highlight tab as section scrolls into view
   useEffect(() => {
     const sections = ALL_TABS
       .map((t) => document.getElementById(`section-${t.id}`))
@@ -89,7 +89,8 @@ export function SchoolProfileTabs({ availableTabs }: Props) {
           setActive(visible[0].target.id.replace("section-", "") as TabId);
         }
       },
-      { rootMargin: "-72px 0px -55% 0px", threshold: 0 }
+      // rootMargin top offset = SCROLL_OFFSET so sections activate when they clear the sticky bars
+      { rootMargin: `-${SCROLL_OFFSET}px 0px -50% 0px`, threshold: 0 }
     );
 
     sections.forEach((s) => observer.observe(s));
@@ -99,8 +100,7 @@ export function SchoolProfileTabs({ availableTabs }: Props) {
   function scrollTo(id: TabId) {
     const el = document.getElementById(`section-${id}`);
     if (!el) return;
-    const offset = 72;
-    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    const top = el.getBoundingClientRect().top + window.scrollY - SCROLL_OFFSET;
     window.scrollTo({ top, behavior: "smooth" });
     setActive(id);
   }
@@ -112,9 +112,10 @@ export function SchoolProfileTabs({ availableTabs }: Props) {
   }
 
   return (
-    <div className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm">
+    // top-14 = 56px — sits directly below the sticky site header
+    <div className="sticky top-14 z-30 bg-white border-b border-gray-100 shadow-sm">
       <div className="flex items-center">
-        {/* Left arrow */}
+        {/* Left scroll arrow */}
         <button
           onClick={() => scrollNav("left")}
           aria-label="Scroll tabs left"
@@ -142,14 +143,11 @@ export function SchoolProfileTabs({ availableTabs }: Props) {
                   "flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap",
                   isActive
                     ? "text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-800",
+                    : "text-gray-500 hover:text-gray-800 hover:bg-gray-100",
                 ].join(" ")}
                 style={
                   isActive
-                    ? {
-                        background:
-                          "linear-gradient(135deg, #E8524A 0%, #D14E7A 100%)",
-                      }
+                    ? { background: "linear-gradient(135deg, #E8524A 0%, #D14E7A 100%)" }
                     : {}
                 }
               >
@@ -159,7 +157,7 @@ export function SchoolProfileTabs({ availableTabs }: Props) {
           })}
         </div>
 
-        {/* Right arrow */}
+        {/* Right scroll arrow */}
         <button
           onClick={() => scrollNav("right")}
           aria-label="Scroll tabs right"
