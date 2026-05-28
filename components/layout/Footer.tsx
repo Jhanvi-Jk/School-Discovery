@@ -1,61 +1,121 @@
 import Link from "next/link";
-import { GraduationCap } from "lucide-react";
+
+const YEAR = new Date().getFullYear();
 
 export function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-300 mt-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          <div className="col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2 text-white font-bold text-lg mb-3">
-              <GraduationCap className="w-6 h-6" />
-              SchoolFinder
+    <footer style={{ background: "var(--dark)", color: "rgba(255,255,255,0.65)" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "48px 20px 0" }}>
+
+        {/* ── Top grid ── */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: "36px 24px",
+        }}>
+
+          {/* Brand */}
+          <div style={{ gridColumn: "span 1" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 22, fontWeight: 800, color: "white", letterSpacing: -0.5 }}>
+                SchoolFind<span style={{ color: "var(--beige-500)" }}>360</span>
+              </span>
             </div>
-            <p className="text-sm text-gray-400 leading-relaxed">
-              Helping Bengaluru families find the right school — verified data, intuitive search.
+            <p style={{ fontSize: 13, lineHeight: 1.7, color: "rgba(255,255,255,0.45)", maxWidth: 220 }}>
+              Helping families across India find the right school — verified data, intuitive search.
             </p>
           </div>
 
+          {/* Discover */}
           <div>
-            <h4 className="text-white font-semibold mb-3 text-sm">Discover</h4>
-            <ul className="space-y-2 text-sm">
-              <li><Link href="/schools" className="hover:text-white transition-colors">Find Schools</Link></li>
-              <li><Link href="/compare" className="hover:text-white transition-colors">Compare Schools</Link></li>
-              <li><Link href="/quiz" className="hover:text-white transition-colors">Get Matched</Link></li>
-              <li><Link href="/blog" className="hover:text-white transition-colors">School Guides</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-white font-semibold mb-3 text-sm">For Schools</h4>
-            <ul className="space-y-2 text-sm">
-              <li><Link href="/schools/claim" className="hover:text-white transition-colors">Claim Your Profile</Link></li>
-              <li><Link href="/manage/profile" className="hover:text-white transition-colors">School Portal</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-white font-semibold mb-3 text-sm">Curricula</h4>
-            <ul className="space-y-2 text-sm">
-              {["CBSE", "ICSE", "IB", "IGCSE", "State Board"].map((c) => (
-                <li key={c}>
-                  <Link
-                    href={`/schools?curriculum=${c.toLowerCase()}`}
-                    className="hover:text-white transition-colors"
-                  >
-                    {c} Schools
-                  </Link>
-                </li>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.9)",
+              textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>
+              Discover
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {[
+                { label: "Find Schools",    href: "/schools" },
+                { label: "Compare Schools", href: "/compare" },
+                { label: "Get Matched",     href: "/quiz" },
+                { label: "School Guides",   href: "/blog" },
+              ].map(({ label, href }) => (
+                <Link key={href} href={href} style={{ fontSize: 13, color: "rgba(255,255,255,0.5)",
+                  transition: "color 0.15s" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "white")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.5)")}>
+                  {label}
+                </Link>
               ))}
-            </ul>
+            </div>
+          </div>
+
+          {/* For Schools */}
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.9)",
+              textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>
+              For Schools
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {[
+                { label: "Claim Your Profile", href: "/schools/claim" },
+                { label: "School Portal",      href: "/manage/profile" },
+              ].map(({ label, href }) => (
+                <Link key={href} href={href} style={{ fontSize: 13, color: "rgba(255,255,255,0.5)",
+                  transition: "color 0.15s" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "white")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.5)")}>
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Curricula */}
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.9)",
+              textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>
+              Curricula
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {["CBSE", "ICSE", "IB", "IGCSE", "State Board"].map((c) => (
+                <Link key={c} href={`/schools?curriculum=${c.toLowerCase().replace(" ", "-")}`}
+                  style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", transition: "color 0.15s" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "white")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.5)")}>
+                  {c} Schools
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-gray-500">
-          <p>© {new Date().getFullYear()} SchoolFinder Bengaluru. All rights reserved.</p>
-          <div className="flex gap-4">
-            <Link href="/privacy" className="hover:text-gray-300">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-gray-300">Terms of Use</Link>
+        {/* ── Bottom bar ── */}
+        <div style={{
+          marginTop: 40,
+          paddingTop: 20,
+          paddingBottom: 24,
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+        }}>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>
+            © {YEAR} SchoolFind360. All rights reserved.
+          </p>
+          <div style={{ display: "flex", gap: 20 }}>
+            {[
+              { label: "Privacy Policy", href: "/privacy" },
+              { label: "Terms of Use",   href: "/terms" },
+            ].map(({ label, href }) => (
+              <Link key={href} href={href}
+                style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", transition: "color 0.15s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.65)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.3)")}>
+                {label}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
