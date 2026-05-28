@@ -1137,9 +1137,9 @@ export default async function SchoolProfilePage({
           </div>
         )}
 
-        {/* Scroll spacer — guarantees every section can reach the 116px sticky offset.
-            Height = full viewport so even section-sources (last) can scroll into position. */}
-        <div aria-hidden="true" style={{ height: "100vh", flexShrink: 0 }} />
+        {/* Scroll spacer — 1000px of hard space so section-sources (last) can always
+            scroll to the 116px sticky offset, even when all sections are sheen skeletons. */}
+        <div aria-hidden="true" style={{ height: 1000 }} />
       </main>
       <Footer />
     </>
