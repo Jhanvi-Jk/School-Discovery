@@ -366,6 +366,7 @@ export default async function SchoolProfilePage({
         school_sports(sports(id, name)),
         school_extracurriculars(extracurriculars(id, name, category)),
         admission_windows(*),
+        school_photos(url, sort_order, alt_text, is_cover),
         reviews(
           id, rating_academics, rating_facilities,
           rating_faculty, rating_value, rating_overall,
@@ -386,12 +387,16 @@ export default async function SchoolProfilePage({
   const details = Array.isArray(school.school_details)
     ? school.school_details[0] ?? null
     : school.school_details ?? null;
-  const curricula = (school.school_curricula || []).map((c: any) => c.curriculum);
-  const sports = (school.school_sports || []).map((s: any) => s.sports?.name).filter(Boolean);
-  const extras = (school.school_extracurriculars || []).map((e: any) => e.extracurriculars?.name).filter(Boolean);
-  const languages = school.school_languages || [];
+  const curricula  = (school.school_curricula || []).map((c: any) => c.curriculum);
+  const sports     = (school.school_sports || []).map((s: any) => s.sports?.name).filter(Boolean);
+  const extras     = (school.school_extracurriculars || []).map((e: any) => e.extracurriculars?.name).filter(Boolean);
+  const languages  = school.school_languages || [];
   const admissions = school.admission_windows || [];
-  const reviews = school.reviews || [];
+  const reviews    = school.reviews || [];
+  // Photos: sorted by sort_order; falls back to cover_image_url if table empty
+  const photos: { url: string; alt: string }[] = (school.school_photos || [])
+    .sort((a: any, b: any) => a.sort_order - b.sort_order)
+    .map((p: any) => ({ url: p.url, alt: p.alt_text || school.name }));
 
   const avgRating = reviews.length
     ? reviews.reduce((s: number, r: any) => s + r.rating_overall, 0) / reviews.length
@@ -495,7 +500,7 @@ export default async function SchoolProfilePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
       <Header />
-      <main style={{ background: "var(--beige-300)", paddingBottom: "calc(100vh - 116px)" }}>
+      <main style={{ background: "var(--beige-300)" }}>
 
         {/* ── Hero ── */}
         <div style={{ position: "relative", height: 220, overflow: "hidden", background: "#1a1a1a" }}>
@@ -589,19 +594,40 @@ export default async function SchoolProfilePage({
               {/* PHOTOS */}
               <section id="section-photos" className="scroll-mt-[116px]"
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, overflow: "hidden" }}>
-                {school.cover_image_url ? (
-                  <div style={{ position: "relative", height: 240 }}>
-                    <Image src={school.cover_image_url} alt={`${school.name} campus`} fill className="object-cover" />
+                {photos.length > 0 ? (
+                  /* Gallery grid — up to 3 photos from school_photos table */
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: photos.length === 1 ? "1fr" : photos.length === 2 ? "1fr 1fr" : "2fr 1fr",
+                    gridTemplateRows: photos.length >= 3 ? "180px 180px" : "260px",
+                    gap: 3,
+                  }}>
+                    {photos.map((p, i) => (
+                      <div key={p.url} style={{
+                        position: "relative",
+                        gridRow: photos.length >= 3 && i === 0 ? "1 / 3" : undefined,
+                        overflow: "hidden",
+                      }}>
+                        <Image src={p.url} alt={p.alt} fill className="object-cover"
+                          style={{ transition: "transform 0.3s" }} priority={i === 0} />
+                      </div>
+                    ))}
+                  </div>
+                ) : school.cover_image_url ? (
+                  /* Fallback: single cover image */
+                  <div style={{ position: "relative", height: 260 }}>
+                    <Image src={school.cover_image_url} alt={`${school.name} campus`} fill className="object-cover" priority />
                   </div>
                 ) : (
+                  /* Sheen skeleton — no photos yet */
                   <div style={{ padding: 24 }}>
                     <p style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase",
                       letterSpacing: "0.08em", marginBottom: 14 }}>Campus Photos</p>
                     <div className="sheen-wrap">
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                        {[160, 140, 155, 145, 165, 150].map((h, i) => (
-                          <div key={i} className="sheen" style={{ height: h, borderRadius: 12 }} />
-                        ))}
+                      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gridTemplateRows: "180px 180px", gap: 3 }}>
+                        <div className="sheen" style={{ gridRow: "1 / 3", borderRadius: "10px 0 0 10px" }} />
+                        <div className="sheen" style={{ borderRadius: "0 10px 0 0" }} />
+                        <div className="sheen" style={{ borderRadius: "0 0 10px 0" }} />
                       </div>
                       <div className="sheen-overlay"><span className="sheen-badge">📷 Photos Coming Soon</span></div>
                     </div>
@@ -1098,6 +1124,10 @@ export default async function SchoolProfilePage({
             </div>
           </div>
         )}
+
+        {/* Scroll spacer — guarantees every section can reach the 116px sticky offset.
+            Height = full viewport so even section-sources (last) can scroll into position. */}
+        <div aria-hidden="true" style={{ height: "100vh", flexShrink: 0 }} />
       </main>
       <Footer />
     </>
