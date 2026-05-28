@@ -4,15 +4,16 @@ import { createClient } from "@/lib/supabase/server";
 // GET — public: anyone can read reviews
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   const supabase = await createClient();
+  const { slug } = await params;
 
   // Get school by slug
   const { data: school, error: schoolErr } = await supabase
     .from("schools")
     .select("id, name, description")
-    .eq("slug", params.slug)
+    .eq("slug", slug)
     .single();
 
   if (schoolErr || !school) {
@@ -67,9 +68,10 @@ export async function GET(
 // POST — auth required: submit a review
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   const supabase = await createClient();
+  const { slug } = await params;
 
   // Auth check
   const { data: { user } } = await supabase.auth.getUser();
@@ -81,7 +83,7 @@ export async function POST(
   const { data: school } = await supabase
     .from("schools")
     .select("id")
-    .eq("slug", params.slug)
+    .eq("slug", slug)
     .single();
 
   if (!school) {

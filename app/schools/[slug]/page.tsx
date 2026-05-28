@@ -42,13 +42,15 @@ const CITY_META_LABELS: Record<string, { label: string }> = {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
+  const { slug } = await params;
+
   // City hub pages get their own meta
-  const cityKey = CITY_HUB_SLUGS_META[params.slug.toLowerCase()];
+  const cityKey = CITY_HUB_SLUGS_META[slug.toLowerCase()];
   if (cityKey) {
     const m = CITY_META_LABELS[cityKey];
-    const canonicalUrl = `${APP_URL}/schools/${params.slug.toLowerCase()}`;
+    const canonicalUrl = `${APP_URL}/schools/${slug.toLowerCase()}`;
     const title = `Top Schools in ${m.label} ${YEAR} | CBSE, ICSE, IB — SchoolFind360`;
     const description = `Browse 50+ verified schools in ${m.label}. Compare ${YEAR} fees, CBSE, ICSE, IB boards, area-wise listings, and real parent reviews on SchoolFind360.`;
     return {
@@ -64,7 +66,7 @@ export async function generateMetadata({
   const { data } = await supabase
     .from("schools_with_details")
     .select("name, description, area, city, cover_image_url, total_fees_min, total_fees_max, avg_rating, type, verified")
-    .eq("slug", params.slug)
+    .eq("slug", slug)
     .single();
 
   if (!data) return { title: "School Not Found", robots: { index: false, follow: false } };
@@ -76,7 +78,7 @@ export async function generateMetadata({
   ].filter(Boolean).length;
   const isThinContent = fieldsPopulated < 3; // less than 30% of key fields
 
-  const canonicalUrl = `${APP_URL}/schools/${params.slug}`;
+  const canonicalUrl = `${APP_URL}/schools/${slug}`;
   const location  = data.area || data.city;
   const city      = data.city || "Bengaluru";
 
@@ -337,12 +339,14 @@ const CITY_HUB_SLUGS: Record<string, string> = {
 export default async function SchoolProfilePage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
+  const { slug } = await params;
+
   // Intercept city hub URLs and render city landing page
-  const cityKey = CITY_HUB_SLUGS[params.slug.toLowerCase()];
+  const cityKey = CITY_HUB_SLUGS[slug.toLowerCase()];
   if (cityKey) {
-    return <CityHubPage cityKey={cityKey} citySlug={params.slug.toLowerCase()} />;
+    return <CityHubPage cityKey={cityKey} citySlug={slug.toLowerCase()} />;
   }
 
   const supabase = await createClient();
@@ -368,7 +372,7 @@ export default async function SchoolProfilePage({
           title, body, relation, is_verified, created_at
         )
       `)
-      .eq("slug", params.slug)
+      .eq("slug", slug)
       .single();
 
     if (error || !data) fetchFailed = true;

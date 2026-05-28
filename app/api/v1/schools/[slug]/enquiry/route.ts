@@ -12,16 +12,17 @@ const enquirySchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   const supabase = await createClient();
+  const { slug } = await params;
 
   try {
     // Get school ID from slug
     const { data: school } = await supabase
       .from("schools")
       .select("id")
-      .eq("slug", params.slug)
+      .eq("slug", slug)
       .single();
 
     if (!school) {
