@@ -112,25 +112,31 @@ export function SchoolProfileTabs({ availableTabs }: Props) {
   }
 
   return (
-    // top-14 = 56px — sits directly below the sticky site header
-    <div className="sticky top-14 z-30 bg-white border-b border-gray-100 shadow-sm">
-      <div className="flex items-center">
-        {/* Left scroll arrow */}
+    <div
+      className="sticky top-14 z-30"
+      style={{ background: "var(--beige-200)", borderBottom: "1px solid var(--beige-500)" }}
+    >
+      <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", alignItems: "center" }}>
+        {/* Left arrow */}
         <button
           onClick={() => scrollNav("left")}
           aria-label="Scroll tabs left"
-          className={[
-            "flex-shrink-0 ml-2 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center transition-opacity",
-            canScrollLeft ? "opacity-100 cursor-pointer" : "opacity-0 pointer-events-none",
-          ].join(" ")}
+          style={{
+            flexShrink: 0, marginLeft: 8, width: 26, height: 26, borderRadius: "50%",
+            background: "var(--beige-300)", border: "none", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "opacity 0.2s",
+            opacity: canScrollLeft ? 1 : 0, pointerEvents: canScrollLeft ? "auto" : "none",
+          }}
         >
-          <ChevronLeft className="w-4 h-4 text-gray-600" />
+          <ChevronLeft style={{ width: 13, height: 13, color: "var(--muted)" }} />
         </button>
 
-        {/* Scrollable tab row */}
+        {/* Tab strip */}
         <div
           ref={scrollRef}
-          className="flex-1 flex items-center gap-1 overflow-x-auto scrollbar-hide px-2 py-2.5"
+          className="scrollbar-hide"
+          style={{ flex: 1, display: "flex", alignItems: "center", gap: 2, overflowX: "auto", padding: "7px 6px" }}
         >
           {visibleTabs.map((tab) => {
             const isActive = active === tab.id;
@@ -139,17 +145,13 @@ export function SchoolProfileTabs({ availableTabs }: Props) {
                 key={tab.id}
                 ref={isActive ? activeButtonRef : undefined}
                 onClick={() => scrollTo(tab.id)}
-                className={[
-                  "flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap",
-                  isActive
-                    ? "text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-800 hover:bg-gray-100",
-                ].join(" ")}
-                style={
-                  isActive
-                    ? { background: "linear-gradient(135deg, #E8524A 0%, #D14E7A 100%)" }
-                    : {}
-                }
+                style={{
+                  flexShrink: 0, padding: "5px 14px", borderRadius: 99, fontSize: 12,
+                  fontWeight: 600, whiteSpace: "nowrap", border: "none", cursor: "pointer",
+                  transition: "background 0.15s, color 0.15s",
+                  background: isActive ? "var(--dark)" : "transparent",
+                  color: isActive ? "white" : "var(--muted)",
+                }}
               >
                 {tab.label}
               </button>
@@ -157,16 +159,19 @@ export function SchoolProfileTabs({ availableTabs }: Props) {
           })}
         </div>
 
-        {/* Right scroll arrow */}
+        {/* Right arrow */}
         <button
           onClick={() => scrollNav("right")}
           aria-label="Scroll tabs right"
-          className={[
-            "flex-shrink-0 mr-2 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center transition-opacity",
-            canScrollRight ? "opacity-100 cursor-pointer" : "opacity-0 pointer-events-none",
-          ].join(" ")}
+          style={{
+            flexShrink: 0, marginRight: 8, width: 26, height: 26, borderRadius: "50%",
+            background: "var(--beige-300)", border: "none", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "opacity 0.2s",
+            opacity: canScrollRight ? 1 : 0, pointerEvents: canScrollRight ? "auto" : "none",
+          }}
         >
-          <ChevronRight className="w-4 h-4 text-gray-600" />
+          <ChevronRight style={{ width: 13, height: 13, color: "var(--muted)" }} />
         </button>
       </div>
     </div>

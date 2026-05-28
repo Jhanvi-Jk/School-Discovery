@@ -22,15 +22,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // City landing pages (highest priority after home)
   const cityUrls: MetadataRoute.Sitemap = [
-    { city: "bangalore", label: "Bengaluru" },
-    { city: "delhi",     label: "Delhi" },
-    { city: "chennai",   label: "Chennai" },
-  ].map(({ city }) => ({
-    url: `${APP_URL}/schools?city=${city}`,
-    lastModified: new Date(),
-    changeFrequency: "weekly",
-    priority: 0.9,
-  }));
+    { city: "bangalore", slug: "bengaluru" },
+    { city: "delhi",     slug: "delhi" },
+    { city: "chennai",   slug: "chennai" },
+    { city: "mumbai",    slug: "mumbai" },
+  ].flatMap(({ city, slug }) => ([
+    {
+      url: `${APP_URL}/schools/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: "weekly" as const,
+      priority: 0.9,
+    },
+    {
+      url: `${APP_URL}/schools?city=${city}`,
+      lastModified: new Date(),
+      changeFrequency: "weekly" as const,
+      priority: 0.85,
+    },
+  ]));
 
   return [
     {

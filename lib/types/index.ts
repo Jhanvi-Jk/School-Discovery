@@ -289,10 +289,11 @@ export const GENDER_LABELS: Record<SchoolGender, string> = {
 };
 
 export const BENGALURU_AREAS = [
-  "Banashankari", "Basavanagudi", "Bellandur", "Benson Town",
-  "BTM Layout", "Chamrajpet", "Domlur", "Electronic City",
-  "Frazer Town", "Hebbal", "HSR Layout", "Indiranagar",
-  "Jayanagar", "JP Nagar", "Kengeri", "Koramangala",
+  "Ashok Nagar", "Banashankari", "Bannerghatta Road", "Basavanagudi",
+  "Bellandur", "Benson Town", "BTM Layout", "Chamrajpet",
+  "Devanahalli", "Domlur", "Electronic City", "Frazer Town",
+  "Hebbal", "HSR Layout", "Indiranagar", "Jayanagar",
+  "JP Nagar", "Kanakapura Road", "Kengeri", "Koramangala",
   "Malleshwaram", "Marathahalli", "Nagarbhavi", "Outer Ring Road",
   "Rajajinagar", "RT Nagar", "Sadashivanagar", "Sarjapur",
   "Whitefield", "Yelahanka",
@@ -303,13 +304,14 @@ export const DELHI_AREAS = [
   "Chattarpur", "Chanakyapuri", "Dakshinpuri", "Delhi Cantt",
   "Dhaula Kuan", "Dilshad Garden", "Dwarka Sec-6", "Dwarka Sec-9",
   "Dwarka Sec-10", "Dwarka Sec-11", "Dwarka Sec-13", "Dwarka Sec-18",
-  "Dwarka Sec-23", "G.T. Karnal Road", "Geeta Colony", "Janakpuri",
-  "Kailash Colony", "Karkardooma", "Krishna Nagar", "Meera Bagh",
-  "Model Town", "Panchsheel Park", "Paschim Vihar", "Patparganj",
-  "Pitampura", "Preet Vihar", "Pushp Vihar", "R.K. Puram",
-  "Rajinder Nagar", "Rajouri Garden", "Rohini Sec-14", "Saket",
-  "Sangam Vihar", "Sri Aurobindo Marg", "Vasant Kunj", "Vasant Vihar",
-  "Vikas Puri", "Vivek Vihar", "Vasundhara Enclave",
+  "Dwarka Sec-23", "G.T. Karnal Road", "Geeta Colony", "Gole Market",
+  "Janakpuri", "Kailash Colony", "Karkardooma", "Krishna Nagar",
+  "Lodi Estate", "Meera Bagh", "Model Town", "Panchsheel Park",
+  "Paschim Vihar", "Patparganj", "Pitampura", "Preet Vihar",
+  "Pushp Vihar", "R.K. Puram", "Rajinder Nagar", "Rajouri Garden",
+  "Rohini Sec-14", "Saket", "Sangam Vihar", "Sri Aurobindo Marg",
+  "Vasant Kunj", "Vasant Vihar", "Vikas Puri", "Vivek Vihar",
+  "Vasundhara Enclave",
 ];
 
 export const CHENNAI_AREAS = [
@@ -322,13 +324,27 @@ export const CHENNAI_AREAS = [
   "Nungambakkam", "Padappai", "Padur", "Perambur",
   "Perumbakkam", "Perungudi", "Ponmar", "Poonamallee",
   "R.A. Puram", "Royapettah", "Sholinganallur", "Surapet",
-  "Velachery",
+  "Triplicane", "Velachery",
+];
+
+export const MUMBAI_AREAS = [
+  "Airoli", "Andheri East", "Andheri West", "Bandra West",
+  "Borivali West", "Byculla", "Chandivali", "Chembur",
+  "Colaba", "Cuffe Parade", "Dahisar", "Dahisar East",
+  "Dahisar West", "Fort", "Ghatkopar East", "Goregaon East",
+  "Goregaon West", "Juhu", "Kalyan", "Kandivali East",
+  "Kandivali West", "Khar West", "Kurla", "Mahim",
+  "Malad East", "Malad West", "Matunga", "Mazgaon",
+  "Mulund West", "Nerul", "Powai", "Santacruz West",
+  "Tardeo", "Thane", "Thane West", "Vile Parle",
+  "Warden Road",
 ];
 
 export const AREAS_BY_CITY: Record<string, string[]> = {
   bangalore: BENGALURU_AREAS,
   delhi:     DELHI_AREAS,
   chennai:   CHENNAI_AREAS,
+  mumbai:    MUMBAI_AREAS,
 };
 
 export const ALL_SPORTS = [

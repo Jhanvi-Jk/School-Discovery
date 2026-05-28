@@ -7,10 +7,10 @@ const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.schoolfind360.com
 export const metadata: Metadata = {
   title: "Explore Schools Across India — Filter by City, Board, Area & Fees",
   description:
-    "Discover and compare 400+ verified schools in Bengaluru, Delhi, Chennai and more. Filter by CBSE, ICSE, IB, IGCSE, area, fees, gender, and more. Find the right school for your child.",
+    "Discover and compare 500+ verified schools in Bengaluru, Delhi, Chennai, Mumbai and more. Filter by CBSE, ICSE, IB, IGCSE, area, fees, gender, and more. Find the right school for your child.",
   keywords: [
     "schools in India", "best schools Bangalore", "schools in Delhi",
-    "schools in Chennai", "CBSE schools India", "IB schools India",
+    "schools in Chennai", "schools in Mumbai", "CBSE schools India", "IB schools India",
     "school fees comparison", "school admission 2026",
   ],
   alternates: { canonical: `${appUrl}/schools` },
