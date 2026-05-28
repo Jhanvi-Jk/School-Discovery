@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { Heart, GitCompare, Send, ExternalLink, BookmarkPlus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Heart, GitCompare, Send, ExternalLink, Phone, Mail, MapPin } from "lucide-react";
 import { useCompareStore } from "@/store/compareStore";
 import { EnquiryForm } from "./EnquiryForm";
 
@@ -21,103 +19,164 @@ export function SchoolActionsSidebar({ school }: Props) {
     (a: any) => a.status === "open"
   );
 
+  const hasContact = school.phone || school.email || school.address_line1 || school.area;
+
   return (
-    <div className="space-y-4 lg:sticky" style={{ top: 120 }}>
-      {/* CTA card */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
-        <h3 className="font-bold text-gray-900 mb-1">{school.name}</h3>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 120 }}>
+
+      {/* ── CTA card ── */}
+      <div style={{
+        background: "var(--beige-100)",
+        border: "1px solid var(--beige-500)",
+        borderRadius: 16,
+        padding: 20,
+      }}>
+        <p style={{ fontSize: 15, fontWeight: 800, color: "var(--dark)", marginBottom: 6, lineHeight: 1.3 }}>
+          {school.name}
+        </p>
+
         {openAdmission && (
-          <div className="text-xs text-green-700 bg-green-50 px-2 py-1 rounded-lg mb-3 inline-block font-medium">
-            ✓ Admissions currently open
+          <div style={{
+            fontSize: 11, fontWeight: 700, color: "#15803d",
+            background: "rgba(22,163,74,0.1)", padding: "4px 10px",
+            borderRadius: 99, display: "inline-flex", alignItems: "center",
+            gap: 4, marginBottom: 14,
+          }}>
+            ✓ Admissions Open {new Date().getFullYear()}-{(new Date().getFullYear() + 1).toString().slice(2)}
           </div>
         )}
 
-        <div className="space-y-2 mt-3">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: openAdmission ? 0 : 12 }}>
+          {/* Enquire Now — primary CTA */}
           <button
             onClick={() => setShowEnquiry(true)}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 transition-colors"
+            style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+              gap: 8, padding: "11px 0", borderRadius: 12, border: "none",
+              background: "var(--brown-dark)", color: "white",
+              fontSize: 13, fontWeight: 700, cursor: "pointer",
+              transition: "opacity 0.15s",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.88")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
           >
-            <Send className="w-4 h-4" />
+            <Send style={{ width: 14, height: 14 }} />
             Enquire Now
           </button>
 
+          {/* Apply Online — only when there's an application URL */}
           {openAdmission?.application_url && (
             <a
               href={openAdmission.application_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-xl font-semibold text-sm hover:bg-green-700 transition-colors"
+              style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+                gap: 8, padding: "11px 0", borderRadius: 12,
+                border: "1px solid #16a34a", background: "rgba(22,163,74,0.08)",
+                color: "#15803d", fontSize: 13, fontWeight: 700,
+                textDecoration: "none", transition: "background 0.15s",
+              }}
             >
-              Apply Online <ExternalLink className="w-4 h-4" />
+              Apply Online <ExternalLink style={{ width: 13, height: 13 }} />
             </a>
           )}
 
+          {/* Save School */}
           <button
             onClick={() => setSaved(!saved)}
-            className={cn(
-              "w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium text-sm border transition-colors",
-              saved
-                ? "bg-red-50 border-red-200 text-red-600"
-                : "border-gray-200 text-gray-700 hover:bg-gray-50"
-            )}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+              gap: 8, padding: "10px 0", borderRadius: 12,
+              border: `1px solid ${saved ? "var(--brown-dark)" : "var(--beige-500)"}`,
+              background: saved ? "rgba(44,24,16,0.06)" : "transparent",
+              color: saved ? "var(--brown-dark)" : "var(--muted)",
+              fontSize: 13, fontWeight: 600, cursor: "pointer",
+              transition: "all 0.15s",
+            }}
           >
-            <Heart className={cn("w-4 h-4", saved && "fill-current")} />
+            <Heart style={{ width: 14, height: 14, fill: saved ? "var(--brown-dark)" : "none" }} />
             {saved ? "Saved" : "Save School"}
           </button>
 
+          {/* Add to Compare */}
           <button
             onClick={() => inCompare ? removeSchool(school.id) : canAdd() && addSchool(school)}
             disabled={!inCompare && !canAdd()}
-            className={cn(
-              "w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium text-sm border transition-colors",
-              inCompare
-                ? "bg-blue-50 border-blue-300 text-blue-700"
-                : canAdd()
-                  ? "border-gray-200 text-gray-700 hover:bg-gray-50"
-                  : "border-gray-100 text-gray-300 cursor-not-allowed"
-            )}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+              gap: 8, padding: "10px 0", borderRadius: 12,
+              border: `1px solid ${inCompare ? "var(--dark)" : "var(--beige-500)"}`,
+              background: inCompare ? "var(--dark)" : "transparent",
+              color: inCompare ? "white" : !canAdd() ? "var(--beige-500)" : "var(--muted)",
+              fontSize: 13, fontWeight: 600,
+              cursor: (!inCompare && !canAdd()) ? "not-allowed" : "pointer",
+              transition: "all 0.15s",
+              opacity: (!inCompare && !canAdd()) ? 0.5 : 1,
+            }}
           >
-            <GitCompare className="w-4 h-4" />
-            {inCompare ? "Added to Compare" : canAdd() ? "Add to Compare" : "Compare full (3/3)"}
+            <GitCompare style={{ width: 14, height: 14 }} />
+            {inCompare ? "In Compare List" : canAdd() ? "Add to Compare" : "Compare full (3/3)"}
           </button>
         </div>
       </div>
 
-      {/* Contact info card */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 text-sm space-y-3">
-        <h4 className="font-semibold text-gray-800">Contact</h4>
-        {school.phone && (
-          <a href={`tel:${school.phone}`} className="text-blue-600 hover:underline block">
-            {school.phone}
-          </a>
-        )}
-        {school.email && (
-          <a href={`mailto:${school.email}`} className="text-blue-600 hover:underline block truncate">
-            {school.email}
-          </a>
-        )}
-        {school.address_line1 && (
-          <p className="text-gray-600 text-xs leading-relaxed">
-            {school.address_line1}
-            {school.address_line2 && `, ${school.address_line2}`}
-            <br />
-            {school.area && `${school.area}, `}{school.city}
-            {school.pincode && ` – ${school.pincode}`}
+      {/* ── Contact card — only when data exists ── */}
+      {hasContact && (
+        <div style={{
+          background: "var(--beige-100)",
+          border: "1px solid var(--beige-500)",
+          borderRadius: 16,
+          padding: 20,
+        }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)",
+            textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>
+            Contact
           </p>
-        )}
-      </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {school.phone && (
+              <a href={`tel:${school.phone}`} style={{
+                display: "flex", alignItems: "center", gap: 8,
+                fontSize: 13, fontWeight: 600, color: "var(--dark)", textDecoration: "none",
+              }}>
+                <Phone style={{ width: 13, height: 13, color: "var(--muted)", flexShrink: 0 }} />
+                {school.phone}
+              </a>
+            )}
+            {school.email && (
+              <a href={`mailto:${school.email}`} style={{
+                display: "flex", alignItems: "center", gap: 8,
+                fontSize: 13, fontWeight: 600, color: "var(--dark)", textDecoration: "none",
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
+                <Mail style={{ width: 13, height: 13, color: "var(--muted)", flexShrink: 0 }} />
+                {school.email}
+              </a>
+            )}
+            {(school.address_line1 || school.area) && (
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <MapPin style={{ width: 13, height: 13, color: "var(--muted)", flexShrink: 0, marginTop: 2 }} />
+                <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>
+                  {school.address_line1 && <>{school.address_line1}<br /></>}
+                  {school.address_line2 && <>{school.address_line2}<br /></>}
+                  {[school.area, school.city, school.pincode && `– ${school.pincode}`].filter(Boolean).join(", ")}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
-      {/* Data freshness */}
+      {/* ── Last updated ── */}
       {school.last_data_updated_at && (
-        <p className="text-xs text-gray-400 text-center">
+        <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "center" }}>
           Last updated:{" "}
           {new Date(school.last_data_updated_at).toLocaleDateString("en-IN", {
-            year: "numeric", month: "short", day: "numeric"
+            year: "numeric", month: "short", day: "numeric",
           })}
         </p>
       )}
 
-      {/* Enquiry modal */}
       {showEnquiry && (
         <EnquiryForm
           schoolSlug={school.slug}
