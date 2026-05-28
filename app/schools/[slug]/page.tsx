@@ -63,35 +63,31 @@ export async function generateMetadata({
   }
 
   const supabase = await createClient();
+  // Query schools table directly — schools_with_details view may lag newly-added schools
   const { data } = await supabase
-    .from("schools_with_details")
-    .select("name, description, area, city, cover_image_url, total_fees_min, total_fees_max, avg_rating, type, verified")
+    .from("schools")
+    .select("name, description, area, city, cover_image_url, type, verified")
     .eq("slug", slug)
     .single();
 
-  if (!data) return { title: "School Not Found", robots: { index: false, follow: false } };
-
-  // Count populated fields to detect thin content
-  const fieldsPopulated = [
-    data.name, data.description, data.area, data.total_fees_min,
-    data.total_fees_max, data.avg_rating, data.type,
-  ].filter(Boolean).length;
-  const isThinContent = fieldsPopulated < 3; // less than 30% of key fields
+  if (!data) return {
+    title: { absolute: "SchoolFind360 — School Profile" },
+    robots: { index: false, follow: false },
+  };
 
   const canonicalUrl = `${APP_URL}/schools/${slug}`;
-  const location  = data.area || data.city;
+  const location  = data.area || data.city || "India";
   const city      = data.city || "Bengaluru";
 
-  // Dynamic title template: {School_Name}, {Neighbourhood} | Fees, Admissions {Year} & Reviews
-  const title = `${data.name}, ${location} | Fees, Admissions ${YEAR} & Reviews - SchoolFind360`;
+  // absolute bypasses the layout template so the tab reads exactly "SchoolFind360 — Name"
+  const titleAbsolute = `SchoolFind360 — ${data.name}`;
 
-  // Dynamic description template
   const description = data.description
     ? `${data.description} View full fees, admissions ${YEAR}, and parent reviews on SchoolFind360.`
-    : `Looking for admissions at ${data.name} in ${location}, ${city}? Check the complete ${YEAR} fee structure, board curriculum, facilities, and real parent reviews on SchoolFind360.`;
+    : `Admissions at ${data.name} in ${location}, ${city} — ${YEAR} fee structure, curriculum, facilities & real parent reviews on SchoolFind360.`;
 
   return {
-    title,
+    title: { absolute: titleAbsolute },
     description,
     keywords: [
       data.name,
@@ -99,16 +95,11 @@ export async function generateMetadata({
       `${data.name} admissions ${YEAR}`,
       `schools in ${location}`,
       `best schools ${city}`,
-      `school admission ${city} ${YEAR}`,
     ],
-    // Self-referential canonical — every profile points to itself
     alternates: { canonical: canonicalUrl },
-    // noindex thin/incomplete profiles
-    robots: isThinContent
-      ? { index: false, follow: true }
-      : { index: true, follow: true, googleBot: { index: true, follow: true, "max-snippet": -1 } },
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-snippet": -1 } },
     openGraph: {
-      title,
+      title: titleAbsolute,
       description,
       url: canonicalUrl,
       type: "website",
@@ -119,7 +110,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: titleAbsolute,
       description,
       ...(data.cover_image_url && { images: [data.cover_image_url] }),
     },
@@ -383,19 +374,17 @@ export default async function SchoolProfilePage({
 
   if (fetchFailed || !school) notFound();
 
-  // Fetch photos separately so a missing school_photos table never 404s the page.
-  // Once you run migration 024, this will start returning real data automatically.
-  let schoolPhotosRaw: any[] = [];
-  try {
-    const { data: photosData } = await supabase
-      .from("school_photos")
-      .select("url, sort_order, alt_text, is_cover")
-      .eq("school_id", school.id)
-      .order("sort_order");
-    if (photosData) schoolPhotosRaw = photosData;
-  } catch {
-    // Table doesn't exist yet — silently fall back to cover_image_url / sheen
-  }
+  // Photos: disabled until migration 024_school_photos.sql is applied in Supabase.
+  // To enable: delete this block and un-comment the query block below it.
+  // ─── DISABLED ─────────────────────────────────────────────────────────────
+  // const { data: photosData } = await supabase
+  //   .from("school_photos")
+  //   .select("url, sort_order, alt_text, is_cover")
+  //   .eq("school_id", school.id)
+  //   .order("sort_order");
+  // const schoolPhotosRaw = photosData ?? [];
+  // ─── END DISABLED ─────────────────────────────────────────────────────────
+  const schoolPhotosRaw: any[] = [];
 
   const details = Array.isArray(school.school_details)
     ? school.school_details[0] ?? null
@@ -409,6 +398,40 @@ export default async function SchoolProfilePage({
   // Photos: from separate safe query; empty array → sheen fallback in UI
   const photos: { url: string; alt: string }[] = schoolPhotosRaw
     .map((p: any) => ({ url: p.url, alt: p.alt_text || school.name }));
+
+  // ── School level detection from grade data ────────────────────────────────
+  // Maps grade strings to a numeric order so we can detect level coverage.
+  const GRADE_NUM_MAP: Record<string, number> = {
+    "nursery": -3, "playgroup": -3, "pre-kg": -3, "pre kg": -3, "prekindergarten": -3,
+    "lkg": -2, "lower kg": -2, "kg1": -2, "kg 1": -2, "prep": -2, "pp1": -2,
+    "ukg": -1, "upper kg": -1, "kg2": -1, "kg 2": -1, "kg": -1, "pp2": -1, "kindergarten": -1,
+  };
+  function parseGradeNum(g: string | null | undefined): number {
+    if (!g) return NaN;
+    const s = g.toLowerCase().trim()
+      .replace(/^class\s+/, "").replace(/^grade\s+/, "").replace(/^std\s+/, "");
+    if (GRADE_NUM_MAP[s] !== undefined) return GRADE_NUM_MAP[s];
+    const n = parseInt(s, 10);
+    return isNaN(n) ? NaN : n;
+  }
+  const rawGrades = (school.school_grades || []) as { grade_from: string; grade_to: string }[];
+  const gradeNums = rawGrades
+    .flatMap((g) => [parseGradeNum(g.grade_from), parseGradeNum(g.grade_to)])
+    .filter((n) => !isNaN(n));
+  const minGrade = gradeNums.length ? Math.min(...gradeNums) : null;
+  const maxGrade = gradeNums.length ? Math.max(...gradeNums) : null;
+
+  const ALL_LEVELS = [
+    { name: "Pre-School",    min: -3, max: 0  },
+    { name: "Elementary",    min: 1,  max: 5  },
+    { name: "Middle School", min: 6,  max: 8  },
+    { name: "High School",   min: 9,  max: 12 },
+  ];
+  // A level is applicable if the school's grade range overlaps with the level range
+  const applicableLevels =
+    minGrade !== null && maxGrade !== null
+      ? ALL_LEVELS.filter((l) => l.max >= minGrade && l.min <= maxGrade)
+      : [];
 
   const avgRating = reviews.length
     ? reviews.reduce((s: number, r: any) => s + r.rating_overall, 0) / reviews.length
@@ -604,7 +627,7 @@ export default async function SchoolProfilePage({
             <div className="lg:col-span-2" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
               {/* PHOTOS */}
-              <section id="section-photos" className="scroll-mt-[116px]"
+              <section id="section-photos" className="profile-section"
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, overflow: "hidden" }}>
                 {photos.length > 0 ? (
                   /* Gallery grid — up to 3 photos from school_photos table */
@@ -625,13 +648,8 @@ export default async function SchoolProfilePage({
                       </div>
                     ))}
                   </div>
-                ) : school.cover_image_url ? (
-                  /* Fallback: single cover image */
-                  <div style={{ position: "relative", height: 260 }}>
-                    <Image src={school.cover_image_url} alt={`${school.name} campus`} fill className="object-cover" priority />
-                  </div>
                 ) : (
-                  /* Sheen skeleton — no photos yet */
+                  /* Sheen skeleton — photos not yet available; cover is shown in hero above */
                   <div style={{ padding: 24 }}>
                     <p style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase",
                       letterSpacing: "0.08em", marginBottom: 14 }}>Campus Photos</p>
@@ -648,7 +666,7 @@ export default async function SchoolProfilePage({
               </section>
 
               {/* BASIC STATS */}
-              <div id="section-basic" className="scroll-mt-[116px]"
+              <div id="section-basic" className="profile-section"
                 style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
                 {[
                   { icon: IndianRupee, label: "Annual Fees", value: formatFeesRange(details?.total_fees_min, details?.total_fees_max) },
@@ -672,13 +690,13 @@ export default async function SchoolProfilePage({
               </div>
 
               {/* SUMMARY */}
-              <section id="section-summary" className="scroll-mt-[116px]"
+              <section id="section-summary" className="profile-section"
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>About</p>
                 {school.description ? (
                   <p style={{ fontSize: 14, color: "var(--dark)", lineHeight: 1.7 }}>{school.description}</p>
                 ) : (
-                  <div className="sheen-wrap" style={{ minHeight: 90 }}>
+                  <div className="sheen-wrap">
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       {[85, 65, 75, 55].map((w, i) => (
                         <div key={i} className="sheen" style={{ height: 13, width: `${w}%` }} />
@@ -707,7 +725,7 @@ export default async function SchoolProfilePage({
               </section>
 
               {/* FEES */}
-              <section id="section-fees" className="scroll-mt-[116px]"
+              <section id="section-fees" className="profile-section"
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>Fee Breakdown</p>
                 {details ? (
@@ -727,14 +745,40 @@ export default async function SchoolProfilePage({
                     ))}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
                       paddingTop: 12, marginTop: 4, borderTop: "2px solid var(--beige-400)" }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--dark)" }}>Total Annual</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--dark)" }}>Total Annual Fees</span>
                       <span style={{ fontSize: 15, fontWeight: 800, color: "var(--brown-dark)" }}>
                         {formatFeesRange(details.total_fees_min, details.total_fees_max)}
                       </span>
                     </div>
+
+                    {/* Level breakdown — only shown when school spans 2+ distinct levels */}
+                    {applicableLevels.length > 1 && (
+                      <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--beige-400)" }}>
+                        <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: 10,
+                          textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 700 }}>
+                          By School Level
+                        </p>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                          {applicableLevels.map((level, i) => (
+                            <div key={level.name} style={{
+                              display: "flex", justifyContent: "space-between", alignItems: "center",
+                              padding: "9px 0",
+                              borderBottom: i < applicableLevels.length - 1 ? "1px solid var(--beige-400)" : "none",
+                            }}>
+                              <span style={{ fontSize: 13, color: "var(--dark)", fontWeight: 500 }}>{level.name}</span>
+                              <span style={{ fontSize: 12, color: "var(--muted)",
+                                background: "var(--beige-300)", padding: "3px 10px", borderRadius: 99,
+                                border: "1px solid var(--beige-500)" }}>
+                                Data pending
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="sheen-wrap" style={{ minHeight: 110 }}>
+                  <div className="sheen-wrap">
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                       {["Annual Tuition", "Development Fee", "Transport Fee", "Total"].map((label) => (
                         <div key={label} style={{ display: "flex", justifyContent: "space-between" }}>
@@ -749,7 +793,7 @@ export default async function SchoolProfilePage({
               </section>
 
               {/* SCHOOL DETAILS */}
-              <section id="section-basic-details" className="scroll-mt-[116px]"
+              <section id="section-basic-details" className="profile-section"
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>School Details</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14 }}>
@@ -822,7 +866,7 @@ export default async function SchoolProfilePage({
               </section>
 
               {/* CAMPUS */}
-              <section id="section-campus" className="scroll-mt-[116px]"
+              <section id="section-campus" className="profile-section"
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>Sports & Extracurriculars</p>
                 {(sports.length > 0 || extras.length > 0) ? (
@@ -859,7 +903,7 @@ export default async function SchoolProfilePage({
                     )}
                   </>
                 ) : (
-                  <div className="sheen-wrap" style={{ minHeight: 100 }}>
+                  <div className="sheen-wrap">
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                       {[80, 100, 65, 90, 75, 110, 70, 95].map((w, i) => (
                         <div key={i} className="sheen" style={{ height: 28, width: w, borderRadius: 99 }} />
@@ -871,10 +915,10 @@ export default async function SchoolProfilePage({
               </section>
 
               {/* PEER GROUP */}
-              <section id="section-peer" className="scroll-mt-[116px]"
+              <section id="section-peer" className="profile-section"
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>Peer Group</p>
-                <div className="sheen-wrap" style={{ minHeight: 110 }}>
+                <div className="sheen-wrap">
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                     {[1, 2, 3].map((i) => (
                       <div key={i} className="sheen" style={{ height: 90, borderRadius: 14 }} />
@@ -885,10 +929,10 @@ export default async function SchoolProfilePage({
               </section>
 
               {/* UNIQUE THINGS */}
-              <section id="section-unique" className="scroll-mt-[116px]"
+              <section id="section-unique" className="profile-section"
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>What Makes This School Unique</p>
-                <div className="sheen-wrap" style={{ minHeight: 100 }}>
+                <div className="sheen-wrap">
                   <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                     {[70, 55, 65].map((w, i) => (
                       <div key={i} style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -902,7 +946,7 @@ export default async function SchoolProfilePage({
               </section>
 
               {/* ADMISSIONS */}
-              <section id="section-admission" className="scroll-mt-[116px]"
+              <section id="section-admission" className="profile-section"
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>Admissions</p>
                 {admissions.length > 0 ? (
@@ -939,7 +983,7 @@ export default async function SchoolProfilePage({
                     ))}
                   </div>
                 ) : (
-                  <div className="sheen-wrap" style={{ minHeight: 90 }}>
+                  <div className="sheen-wrap">
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       {[1, 2].map((i) => (
                         <div key={i} className="sheen" style={{ height: 56, borderRadius: 14 }} />
@@ -951,7 +995,7 @@ export default async function SchoolProfilePage({
               </section>
 
               {/* SENTIMENT */}
-              <section id="section-sentiment" className="scroll-mt-[116px]"
+              <section id="section-sentiment" className="profile-section"
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>
                   Sentiment Analysis {reviews.length > 0 && <span style={{ fontWeight: 400, textTransform: "none", fontSize: 11 }}>({reviews.length} reviews)</span>}
@@ -988,7 +1032,7 @@ export default async function SchoolProfilePage({
                     ))}
                   </div>
                 ) : (
-                  <div className="sheen-wrap" style={{ minHeight: 130 }}>
+                  <div className="sheen-wrap">
                     <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
                       <div className="sheen" style={{ width: 72, height: 72, borderRadius: "50%", flexShrink: 0 }} />
                       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, paddingTop: 4 }}>
@@ -1006,7 +1050,7 @@ export default async function SchoolProfilePage({
               </section>
 
               {/* FEEDBACK */}
-              <section id="section-feedback" className="scroll-mt-[116px]"
+              <section id="section-feedback" className="profile-section"
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>Parent Feedback</p>
                 {reviews.length > 0 ? (
@@ -1037,7 +1081,7 @@ export default async function SchoolProfilePage({
                     ))}
                   </div>
                 ) : (
-                  <div className="sheen-wrap" style={{ minHeight: 160 }}>
+                  <div className="sheen-wrap">
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                       {[1, 2, 3].map((i) => (
                         <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
@@ -1064,7 +1108,7 @@ export default async function SchoolProfilePage({
               </section>
 
               {/* SOURCES */}
-              <section id="section-sources" className="scroll-mt-[116px]"
+              <section id="section-sources" className="profile-section"
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>Sources & Links</p>
                 {school.website ? (
@@ -1082,7 +1126,7 @@ export default async function SchoolProfilePage({
                     <ExternalLink style={{ width: 14, height: 14, color: "var(--muted)", flexShrink: 0 }} />
                   </a>
                 ) : (
-                  <div className="sheen-wrap" style={{ minHeight: 60 }}>
+                  <div className="sheen-wrap">
                     <div className="sheen" style={{ height: 52, borderRadius: 12 }} />
                     <div className="sheen-overlay"><span className="sheen-badge">🔗 Links Coming Soon</span></div>
                   </div>
@@ -1137,9 +1181,9 @@ export default async function SchoolProfilePage({
           </div>
         )}
 
-        {/* Scroll spacer — 1000px of hard space so section-sources (last) can always
-            scroll to the 116px sticky offset, even when all sections are sheen skeletons. */}
-        <div aria-hidden="true" style={{ height: 1000 }} />
+        {/* Scroll spacer — last sections need space below them so they can scroll
+            to the 116px sticky offset even when all content is sheen skeletons. */}
+        <div aria-hidden="true" style={{ height: 2400 }} />
       </main>
       <Footer />
     </>

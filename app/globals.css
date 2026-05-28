@@ -264,7 +264,12 @@ input { font-family: inherit; }
 /* Wrapper that positions the "Coming Soon" badge over skeleton rows */
 .sheen-wrap {
   position: relative;
-  min-height: 100px;
+  min-height: 220px;
+}
+
+/* Profile page sections — ensures sticky tab bar clears the section title on scroll */
+.profile-section {
+  scroll-margin-top: 116px;
 }
 .sheen-overlay {
   position: absolute;

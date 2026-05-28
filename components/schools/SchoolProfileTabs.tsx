@@ -90,7 +90,7 @@ export function SchoolProfileTabs({ availableTabs }: Props) {
         }
       },
       // rootMargin top offset = SCROLL_OFFSET so sections activate when they clear the sticky bars
-      { rootMargin: `-${SCROLL_OFFSET}px 0px -50% 0px`, threshold: 0 }
+      { rootMargin: `-${SCROLL_OFFSET}px 0px -15% 0px`, threshold: 0 }
     );
 
     sections.forEach((s) => observer.observe(s));
@@ -113,8 +113,14 @@ export function SchoolProfileTabs({ availableTabs }: Props) {
 
   return (
     <div
-      className="sticky top-14 z-30"
-      style={{ background: "var(--beige-200)", borderBottom: "1px solid var(--beige-500)" }}
+      style={{
+        position: "sticky",
+        top: 56,
+        zIndex: 40,
+        background: "var(--beige-200)",
+        borderBottom: "1px solid var(--beige-500)",
+        boxShadow: "0 1px 0 var(--beige-400)",
+      }}
     >
       <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", alignItems: "center" }}>
         {/* Left arrow */}
