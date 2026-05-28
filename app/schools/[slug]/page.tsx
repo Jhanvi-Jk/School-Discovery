@@ -495,7 +495,7 @@ export default async function SchoolProfilePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
       <Header />
-      <main style={{ background: "var(--beige-300)", minHeight: "100vh", paddingBottom: 80 }}>
+      <main style={{ background: "var(--beige-300)", paddingBottom: 120 }}>
 
         {/* ── Hero ── */}
         <div style={{ position: "relative", height: 220, overflow: "hidden", background: "#1a1a1a" }}>
@@ -581,7 +581,7 @@ export default async function SchoolProfilePage({
 
         {/* ── Body ── */}
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 20px" }}>
-          <div className="grid grid-cols-1 lg:grid-cols-3" style={{ gap: 20 }}>
+          <div className="grid grid-cols-1 lg:grid-cols-3" style={{ gap: 20, alignItems: "start" }}>
 
             {/* Main */}
             <div className="lg:col-span-2" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1056,7 +1056,7 @@ export default async function SchoolProfilePage({
             </div>
 
             {/* ── Sidebar ── */}
-            <aside className="lg:col-span-1">
+            <aside className="lg:col-span-1" style={{ position: "sticky", top: 116 }}>
               <SchoolActionsSidebar school={school} />
             </aside>
           </div>
