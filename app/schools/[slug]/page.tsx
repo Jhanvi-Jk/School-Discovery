@@ -347,28 +347,33 @@ export default async function SchoolProfilePage({
 
   const supabase = await createClient();
 
-  const { data: school, error } = await supabase
-    .from("schools")
-    .select(`
-      *,
-      school_details(*),
-      school_curricula(curriculum),
-      school_grades(grade_from, grade_to),
-      school_languages(language, type),
-      school_sports(sports(id, name)),
-      school_extracurriculars(extracurriculars(id, name, category)),
-      admission_windows(*),
-      reviews(
-        id, rating_academics, rating_facilities,
-        rating_faculty, rating_value, rating_overall,
-        title, body, relation, is_verified, created_at,
-        users(full_name)
-      )
-    `)
-    .eq("slug", params.slug)
-    .single();
+  let school: any = null;
+  try {
+    const { data, error } = await supabase
+      .from("schools")
+      .select(`
+        *,
+        school_details(*),
+        school_curricula(curriculum),
+        school_grades(grade_from, grade_to),
+        school_languages(language, type),
+        school_sports(sports(id, name)),
+        school_extracurriculars(extracurriculars(id, name, category)),
+        admission_windows(*),
+        reviews(
+          id, rating_academics, rating_facilities,
+          rating_faculty, rating_value, rating_overall,
+          title, body, relation, is_verified, created_at
+        )
+      `)
+      .eq("slug", params.slug)
+      .single();
 
-  if (error || !school) notFound();
+    if (error || !data) notFound();
+    school = data;
+  } catch {
+    notFound();
+  }
 
   const details = Array.isArray(school.school_details)
     ? school.school_details[0] ?? null
@@ -941,10 +946,10 @@ export default async function SchoolProfilePage({
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
-                              {r.users?.full_name?.[0] || "?"}
+                              P
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-gray-800">{r.users?.full_name || "Anonymous"}</p>
+                              <p className="text-sm font-medium text-gray-800">Parent</p>
                               <p className="text-xs text-gray-400 capitalize">{(r.relation || "parent").replace(/_/g, " ")}</p>
                             </div>
                           </div>

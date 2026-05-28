@@ -52,11 +52,12 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-export function getVerificationBadge(verified: boolean): {
+export function getVerificationBadge(verified: boolean | null): {
   label: string;
   color: string;
+  verified: boolean;
 } {
   return verified
-    ? { label: "Verified", color: "bg-green-100 text-green-700" }
-    : { label: "Unverified", color: "bg-gray-100 text-gray-500" };
+    ? { label: "Verified", color: "bg-green-100 text-green-700", verified: true }
+    : { label: "Unverified", color: "bg-gray-100 text-gray-500", verified: false };
 }
