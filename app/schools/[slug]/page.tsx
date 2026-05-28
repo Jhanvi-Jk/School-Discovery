@@ -347,7 +347,9 @@ export default async function SchoolProfilePage({
 
   const supabase = await createClient();
 
+  // Fetch school — never call notFound() inside try, it throws and gets swallowed
   let school: any = null;
+  let fetchFailed = false;
   try {
     const { data, error } = await supabase
       .from("schools")
@@ -369,11 +371,13 @@ export default async function SchoolProfilePage({
       .eq("slug", params.slug)
       .single();
 
-    if (error || !data) notFound();
-    school = data;
+    if (error || !data) fetchFailed = true;
+    else school = data;
   } catch {
-    notFound();
+    fetchFailed = true;
   }
+
+  if (fetchFailed || !school) notFound();
 
   const details = Array.isArray(school.school_details)
     ? school.school_details[0] ?? null
