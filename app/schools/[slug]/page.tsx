@@ -366,7 +366,6 @@ export default async function SchoolProfilePage({
         school_sports(sports(id, name)),
         school_extracurriculars(extracurriculars(id, name, category)),
         admission_windows(*),
-        school_photos(url, sort_order, alt_text, is_cover),
         reviews(
           id, rating_academics, rating_facilities,
           rating_faculty, rating_value, rating_overall,
@@ -384,6 +383,20 @@ export default async function SchoolProfilePage({
 
   if (fetchFailed || !school) notFound();
 
+  // Fetch photos separately so a missing school_photos table never 404s the page.
+  // Once you run migration 024, this will start returning real data automatically.
+  let schoolPhotosRaw: any[] = [];
+  try {
+    const { data: photosData } = await supabase
+      .from("school_photos")
+      .select("url, sort_order, alt_text, is_cover")
+      .eq("school_id", school.id)
+      .order("sort_order");
+    if (photosData) schoolPhotosRaw = photosData;
+  } catch {
+    // Table doesn't exist yet — silently fall back to cover_image_url / sheen
+  }
+
   const details = Array.isArray(school.school_details)
     ? school.school_details[0] ?? null
     : school.school_details ?? null;
@@ -393,9 +406,8 @@ export default async function SchoolProfilePage({
   const languages  = school.school_languages || [];
   const admissions = school.admission_windows || [];
   const reviews    = school.reviews || [];
-  // Photos: sorted by sort_order; falls back to cover_image_url if table empty
-  const photos: { url: string; alt: string }[] = (school.school_photos || [])
-    .sort((a: any, b: any) => a.sort_order - b.sort_order)
+  // Photos: from separate safe query; empty array → sheen fallback in UI
+  const photos: { url: string; alt: string }[] = schoolPhotosRaw
     .map((p: any) => ({ url: p.url, alt: p.alt_text || school.name }));
 
   const avgRating = reviews.length
