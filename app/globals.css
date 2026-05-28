@@ -47,6 +47,28 @@ input { font-family: inherit; }
 .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 
+/* ── Footer ───────────────────────────────────────────────── */
+.footer-heading {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 14px;
+}
+.footer-link {
+  font-size: 13px;
+  color: rgba(255,255,255,0.45);
+  transition: color 0.15s;
+}
+.footer-link:hover { color: white; }
+.footer-link-sm {
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+  transition: color 0.15s;
+}
+.footer-link-sm:hover { color: rgba(255,255,255,0.65); }
+
 /* ── Header ───────────────────────────────────────────────── */
 .site-header {
   position: sticky;
