@@ -1181,9 +1181,9 @@ export default async function SchoolProfilePage({
           </div>
         )}
 
-        {/* Scroll spacer — last sections need space below them so they can scroll
-            to the 116px sticky offset even when all content is sheen skeletons. */}
-        <div aria-hidden="true" style={{ height: 2400 }} />
+        {/* Scroll spacer — gives the last section just enough room to scroll
+            past the 116px sticky header+tab offset. ~800px is sufficient. */}
+        <div aria-hidden="true" style={{ height: 800 }} />
       </main>
       <Footer />
     </>
