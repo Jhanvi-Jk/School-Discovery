@@ -162,151 +162,80 @@ export default function ShortlistPage() {
           <>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {schools.map((school) => (
-                <div key={school.id} style={{
-                  background: "white",
-                  border: "1px solid var(--beige-400)",
-                  borderRadius: 16,
-                  padding: "18px 20px",
-                  display: "flex",
-                  gap: 18,
-                  alignItems: "flex-start",
-                  position: "relative",
-                }}>
-                  {/* Remove button */}
-                  <button
-                    onClick={() => remove(school.id)}
-                    title="Remove from shortlist"
-                    style={{
-                      position: "absolute", top: 12, right: 12,
-                      background: "none", border: "none",
-                      color: "var(--muted)", cursor: "pointer",
-                      padding: 4, borderRadius: 6,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}
-                  >
-                    <X size={15} />
-                  </button>
-
-                  {/* Cover image / Coming Soon placeholder */}
-                  {school.cover_image_url ? (
-                    <img
-                      src={school.cover_image_url}
-                      alt={school.name}
-                      style={{
-                        width: 80, height: 80, borderRadius: 12,
-                        objectFit: "cover", flexShrink: 0,
-                        border: "1px solid var(--beige-400)",
-                      }}
-                    />
-                  ) : (
-                    <div style={{
-                      width: 80, height: 80, borderRadius: 12, flexShrink: 0,
-                      position: "relative", overflow: "hidden",
-                      border: "1px solid var(--beige-300)",
-                    }}>
-                      {/* Animated sheen base */}
-                      <div className="sheen" style={{ position: "absolute", inset: 0, borderRadius: 12 }} />
-                      {/* White overlay with label */}
-                      <div style={{
-                        position: "absolute", inset: 0,
-                        display: "flex", flexDirection: "column",
-                        alignItems: "center", justifyContent: "center", gap: 4,
-                        background: "rgba(255,255,255,0.62)",
-                        backdropFilter: "blur(2px)",
-                        WebkitBackdropFilter: "blur(2px)",
-                        borderRadius: 12,
-                      }}>
-                        <span style={{
-                          fontSize: 9, fontWeight: 700, color: "var(--muted)",
-                          textTransform: "uppercase", letterSpacing: "0.06em",
-                          textAlign: "center", lineHeight: 1.3,
-                        }}>Photo<br/>coming<br/>soon</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Info */}
+                <div key={school.id} className="school-card">
+                  {/* Card body — matches SchoolCard layout exactly */}
                   <div style={{ flex: 1, minWidth: 0 }}>
 
-                    {/* Curricula — always shown */}
-                    <div style={{ marginBottom: 5, display: "flex", flexWrap: "wrap", gap: 4 }}>
-                      {school.curricula && school.curricula.length > 0 ? (
-                        school.curricula.map((c) => (
-                          <span key={c} className="card-badge">{CURRICULUM_LABELS[c] ?? c}</span>
-                        ))
-                      ) : (
-                        <span style={{
-                          fontSize: 10, fontWeight: 600, color: "var(--muted)",
-                          background: "var(--beige-200)", border: "1px solid var(--beige-400)",
-                          borderRadius: 99, padding: "2px 8px",
-                        }}>Curriculum not listed</span>
-                      )}
-                    </div>
+                    {/* Curricula badges */}
+                    {school.curricula && school.curricula.length > 0 && (
+                      <div style={{ marginBottom: 10 }}>
+                        {school.curricula.map((c) => (
+                          <span key={c} className="card-badge" style={{ marginRight: 4 }}>
+                            {CURRICULUM_LABELS[c] ?? c}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Name */}
-                    <Link href={`/schools/${school.slug}`} style={{
-                      fontSize: 16, fontWeight: 700, color: "var(--dark)",
-                      textDecoration: "none", display: "block", marginBottom: 3,
-                      paddingRight: 24,
-                    }}>
+                    <Link href={`/schools/${school.slug}`} className="card-name" style={{ paddingRight: 28 }}>
                       {school.name}
                     </Link>
 
-                    {/* Location + type */}
-                    <div style={{
-                      display: "flex", alignItems: "center", gap: 4,
-                      fontSize: 12, color: "var(--muted)", marginBottom: 8, flexWrap: "wrap",
-                    }}>
-                      <MapPin size={11} />
+                    {/* Location · Type */}
+                    <div className="card-meta">
+                      <MapPin size={12} />
                       {[school.area, school.city].filter(Boolean).join(", ")}
-                      {school.type && (
-                        <>
-                          <span style={{ margin: "0 2px" }}>·</span>
-                          {SCHOOL_TYPE_LABELS[school.type] ?? school.type}
-                        </>
-                      )}
+                      <span style={{ margin: "0 4px" }}>·</span>
+                      {SCHOOL_TYPE_LABELS[school.type] ?? school.type}
                     </div>
 
-                    {/* Fees — always shown */}
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--dark)" }}>
-                        <IndianRupee size={11} style={{ color: "var(--muted)" }} />
+                    {/* Stats row */}
+                    <div className="card-stats">
+                      <div className="card-stat">
+                        <IndianRupee size={12} style={{ color: "#7a6a5a" }} />
                         {(school.total_fees_min || school.total_fees_max)
-                          ? formatFeesRange(school.total_fees_min, school.total_fees_max)
-                          : <span style={{ color: "var(--muted)" }}>Fee details coming</span>
+                          ? <span>{formatFeesRange(school.total_fees_min, school.total_fees_max)}</span>
+                          : <span style={{ color: "#b0a090", fontSize: 11 }}>Fee details coming</span>
                         }
                       </div>
                       {school.avg_rating && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--dark)" }}>
-                          <Star size={11} style={{ fill: "#f59e0b", color: "#f59e0b" }} />
-                          {formatRating(school.avg_rating)}
+                        <div className="card-stat">
+                          <Star size={12} style={{ fill: "#f59e0b", color: "#f59e0b" }} />
+                          <span>{formatRating(school.avg_rating)}</span>
                         </div>
                       )}
                     </div>
-                  </div>
 
-                  {/* Actions */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 7, flexShrink: 0 }} className="shortlist-actions">
-                    <Link href={`/schools/${school.slug}`} style={{
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      padding: "9px 16px", borderRadius: 10,
-                      background: "var(--brown-dark)", color: "white",
-                      fontSize: 12, fontWeight: 700, textDecoration: "none",
-                      whiteSpace: "nowrap",
-                    }}>
-                      View Profile
-                    </Link>
-                    {school.website && (
-                      <a href={school.website} target="_blank" rel="noopener noreferrer" style={{
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                        padding: "9px 16px", borderRadius: 10,
-                        border: "1px solid var(--beige-400)", color: "var(--muted)",
-                        fontSize: 12, fontWeight: 600, textDecoration: "none",
-                        whiteSpace: "nowrap",
-                      }}>
-                        Website <ExternalLink size={10} />
-                      </a>
-                    )}
+                    {/* Actions */}
+                    <div className="card-actions" style={{ flexWrap: "wrap", gap: 6 }}>
+                      <Link href={`/schools/${school.slug}`} className="btn-view" style={{ flex: 1, minWidth: 90 }}>
+                        Explore School →
+                      </Link>
+                      {school.website && (
+                        <a href={school.website} target="_blank" rel="noopener noreferrer" style={{
+                          display: "flex", alignItems: "center", gap: 5,
+                          padding: "10px 12px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+                          border: "1.5px solid var(--beige-500)", color: "var(--muted)",
+                          background: "transparent", textDecoration: "none",
+                          whiteSpace: "nowrap",
+                        }}>
+                          <ExternalLink size={13} /> Website
+                        </a>
+                      )}
+                      <button
+                        onClick={() => remove(school.id)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 5,
+                          padding: "10px 12px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+                          border: "1.5px solid var(--beige-500)", color: "var(--muted)",
+                          background: "transparent", cursor: "pointer",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <X size={13} /> Remove
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -329,11 +258,6 @@ export default function ShortlistPage() {
         )}
       </div>
 
-      <style>{`
-        @media (max-width: 600px) {
-          .shortlist-actions { flex-direction: row !important; }
-        }
-      `}</style>
     </main>
   );
 }
