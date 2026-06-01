@@ -1,16 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, GitCompare, Send, ExternalLink, Phone, Mail, MapPin } from "lucide-react";
+import { Heart, GitCompare, ExternalLink, Phone, Mail, MapPin, Globe } from "lucide-react";
 import { useCompareStore } from "@/store/compareStore";
-import { EnquiryForm } from "./EnquiryForm";
 
 interface Props {
   school: any;
 }
 
 export function SchoolActionsSidebar({ school }: Props) {
-  const [showEnquiry, setShowEnquiry] = useState(false);
   const [saved, setSaved] = useState(false);
   const { isInCompare, addSchool, removeSchool, canAdd } = useCompareStore();
   const inCompare = isInCompare(school.id);
@@ -20,6 +18,21 @@ export function SchoolActionsSidebar({ school }: Props) {
   );
 
   const hasContact = school.phone || school.email || school.address_line1 || school.area;
+
+  // Primary CTA — prefer apply URL, then website, then phone, then email
+  const primaryHref =
+    openAdmission?.application_url ||
+    school.website ||
+    (school.phone ? `tel:${school.phone}` : null) ||
+    (school.email ? `mailto:${school.email}` : null);
+
+  const primaryLabel = openAdmission?.application_url
+    ? "Apply Online"
+    : school.website
+    ? "Visit School Website"
+    : school.phone
+    ? "Call School"
+    : "Contact School";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 120 }}>
@@ -42,47 +55,43 @@ export function SchoolActionsSidebar({ school }: Props) {
             borderRadius: 99, display: "inline-flex", alignItems: "center",
             gap: 4, marginBottom: 14,
           }}>
-            ✓ Admissions Open {new Date().getFullYear()}-{(new Date().getFullYear() + 1).toString().slice(2)}
+            ✓ Admissions Open {new Date().getFullYear()}–{(new Date().getFullYear() + 1).toString().slice(2)}
           </div>
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: openAdmission ? 0 : 12 }}>
-          {/* Enquire Now — primary CTA */}
-          <button
-            onClick={() => setShowEnquiry(true)}
-            style={{
-              width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
-              gap: 8, padding: "11px 0", borderRadius: 12, border: "none",
-              background: "var(--brown-dark)", color: "white",
-              fontSize: 13, fontWeight: 700, cursor: "pointer",
-              transition: "opacity 0.15s",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.88")}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-          >
-            <Send style={{ width: 14, height: 14 }} />
-            Enquire Now
-          </button>
 
-          {/* Apply Online — only when there's an application URL */}
-          {openAdmission?.application_url && (
+          {/* Primary CTA — links directly to school */}
+          {primaryHref ? (
             <a
-              href={openAdmission.application_url}
-              target="_blank"
-              rel="noopener noreferrer"
+              href={primaryHref}
+              target={primaryHref.startsWith("http") ? "_blank" : undefined}
+              rel={primaryHref.startsWith("http") ? "noopener noreferrer" : undefined}
               style={{
                 width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
                 gap: 8, padding: "11px 0", borderRadius: 12,
-                border: "1px solid #16a34a", background: "rgba(22,163,74,0.08)",
-                color: "#15803d", fontSize: 13, fontWeight: 700,
-                textDecoration: "none", transition: "background 0.15s",
+                background: "var(--brown-dark)", color: "white",
+                fontSize: 13, fontWeight: 700, textDecoration: "none",
+                transition: "opacity 0.15s",
               }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.88")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
-              Apply Online <ExternalLink style={{ width: 13, height: 13 }} />
+              <Globe style={{ width: 14, height: 14 }} />
+              {primaryLabel}
+              <ExternalLink style={{ width: 12, height: 12, opacity: 0.7 }} />
             </a>
+          ) : (
+            <div style={{
+              width: "100%", padding: "11px 0", borderRadius: 12, textAlign: "center",
+              background: "var(--beige-300)", border: "1px solid var(--beige-500)",
+              fontSize: 13, color: "var(--muted)",
+            }}>
+              Contact details coming soon
+            </div>
           )}
 
-          {/* Save School */}
+          {/* Save to shortlist */}
           <button
             onClick={() => setSaved(!saved)}
             style={{
@@ -96,7 +105,7 @@ export function SchoolActionsSidebar({ school }: Props) {
             }}
           >
             <Heart style={{ width: 14, height: 14, fill: saved ? "var(--brown-dark)" : "none" }} />
-            {saved ? "Saved" : "Save School"}
+            {saved ? "Saved to shortlist" : "Save to shortlist"}
           </button>
 
           {/* Add to Compare */}
@@ -116,12 +125,12 @@ export function SchoolActionsSidebar({ school }: Props) {
             }}
           >
             <GitCompare style={{ width: 14, height: 14 }} />
-            {inCompare ? "In Compare List" : canAdd() ? "Add to Compare" : "Compare full (3/3)"}
+            {inCompare ? "In compare list" : canAdd() ? "Compare with others" : "Compare full (3/3)"}
           </button>
         </div>
       </div>
 
-      {/* ── Contact card — only when data exists ── */}
+      {/* ── Contact card ── */}
       {hasContact && (
         <div style={{
           background: "var(--beige-100)",
@@ -134,6 +143,16 @@ export function SchoolActionsSidebar({ school }: Props) {
             Contact
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {school.website && (
+              <a href={school.website} target="_blank" rel="noopener noreferrer" style={{
+                display: "flex", alignItems: "center", gap: 8,
+                fontSize: 13, fontWeight: 600, color: "var(--brown-dark)", textDecoration: "none",
+              }}>
+                <Globe style={{ width: 13, height: 13, color: "var(--muted)", flexShrink: 0 }} />
+                Official website
+                <ExternalLink style={{ width: 11, height: 11, opacity: 0.5 }} />
+              </a>
+            )}
             {school.phone && (
               <a href={`tel:${school.phone}`} style={{
                 display: "flex", alignItems: "center", gap: 8,
@@ -167,7 +186,6 @@ export function SchoolActionsSidebar({ school }: Props) {
         </div>
       )}
 
-      {/* ── Last updated ── */}
       {school.last_data_updated_at && (
         <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "center" }}>
           Last updated:{" "}
@@ -175,14 +193,6 @@ export function SchoolActionsSidebar({ school }: Props) {
             year: "numeric", month: "short", day: "numeric",
           })}
         </p>
-      )}
-
-      {showEnquiry && (
-        <EnquiryForm
-          schoolSlug={school.slug}
-          schoolName={school.name}
-          onClose={() => setShowEnquiry(false)}
-        />
       )}
     </div>
   );
