@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Star, IndianRupee, Check, Plus, MessageSquare } from "lucide-react";
+import { MapPin, Star, IndianRupee, Check, Plus, MessageSquare, Heart } from "lucide-react";
 import { formatFeesRange, formatRating } from "@/lib/utils";
 import { CURRICULUM_LABELS, SCHOOL_TYPE_LABELS, type SchoolSummary } from "@/lib/types";
 import { useCompareStore } from "@/store/compareStore";
+import { useShortlistStore } from "@/store/shortlistStore";
 
 interface SchoolCardProps {
   school: SchoolSummary;
@@ -18,9 +19,36 @@ export function SchoolCard({ school, highlighted }: SchoolCardProps) {
   const { isInCompare, addSchool, removeSchool, canAdd } = useCompareStore();
   const inCompare = isInCompare(school.id);
 
+  const { isSaved, add: addToShortlist, remove: removeFromShortlist } = useShortlistStore();
+  const saved = isSaved(school.id);
+
   const handleCompare = () => {
     if (inCompare) removeSchool(school.id);
     else if (canAdd()) addSchool(school);
+  };
+
+  const handleHeart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (saved) {
+      removeFromShortlist(school.id);
+    } else {
+      addToShortlist({
+        id: school.id,
+        slug: school.slug,
+        name: school.name,
+        area: school.area ?? undefined,
+        city: school.city,
+        type: school.type,
+        cover_image_url: school.cover_image_url ?? undefined,
+        website: undefined,
+        total_fees_min: school.total_fees_min ?? undefined,
+        total_fees_max: school.total_fees_max ?? undefined,
+        curricula: school.curricula,
+        avg_rating: school.avg_rating ?? undefined,
+        savedAt: Date.now(),
+      });
+    }
   };
 
   return (
@@ -35,24 +63,37 @@ export function SchoolCard({ school, highlighted }: SchoolCardProps) {
       }}
     >
 
-      {/* ── Rating badge — top right ── */}
-      {school.avg_rating && (
-        <div style={{
-          position: "absolute", top: 14, right: 14,
-          background: "#f59e0b", color: "white",
-          borderRadius: 99, padding: "3px 9px",
-          display: "flex", alignItems: "center", gap: 4,
-          fontSize: 12, fontWeight: 700,
-          boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
-        }}>
-          <Star size={11} style={{ fill: "white", color: "white" }} />
-          {formatRating(school.avg_rating)}
-        </div>
-      )}
+      {/* ── Heart / shortlist button — top right ── */}
+      <button
+        onClick={handleHeart}
+        title={saved ? "Remove from shortlist" : "Save to shortlist"}
+        style={{
+          position: "absolute", top: 12, right: 12,
+          background: saved ? "rgba(239,68,68,0.08)" : "rgba(0,0,0,0.04)",
+          border: "none",
+          borderRadius: "50%",
+          width: 32, height: 32,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer",
+          transition: "background 0.15s, transform 0.15s",
+          zIndex: 2,
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.15)")}
+        onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+      >
+        <Heart
+          size={16}
+          style={{
+            fill: saved ? "#ef4444" : "none",
+            color: saved ? "#ef4444" : "var(--muted)",
+            transition: "fill 0.15s, color 0.15s",
+          }}
+        />
+      </button>
 
       {/* Curriculum badges */}
       {school.curricula && school.curricula.length > 0 && (
-        <div style={{ marginBottom: 10, paddingRight: school.avg_rating ? 60 : 0 }}>
+        <div style={{ marginBottom: 10, paddingRight: 44 }}>
           {school.curricula.map((c) => (
             <span key={c} className="card-badge" style={{ marginRight: 4 }}>
               {CURRICULUM_LABELS[c]}
@@ -63,7 +104,7 @@ export function SchoolCard({ school, highlighted }: SchoolCardProps) {
 
       {/* School name */}
       <Link href={`/schools/${school.slug}`}>
-        <div className="card-name" style={{ paddingRight: school.avg_rating && !school.curricula?.length ? 60 : 0 }}>
+        <div className="card-name" style={{ paddingRight: 44 }}>
           {school.name}
         </div>
       </Link>
