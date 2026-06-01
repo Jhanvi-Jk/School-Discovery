@@ -227,14 +227,21 @@ export default function ShortlistPage() {
 
                   {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    {/* Curricula */}
-                    {school.curricula && school.curricula.length > 0 && (
-                      <div style={{ marginBottom: 4, display: "flex", flexWrap: "wrap", gap: 4 }}>
-                        {school.curricula.map((c) => (
+
+                    {/* Curricula — always shown */}
+                    <div style={{ marginBottom: 5, display: "flex", flexWrap: "wrap", gap: 4 }}>
+                      {school.curricula && school.curricula.length > 0 ? (
+                        school.curricula.map((c) => (
                           <span key={c} className="card-badge">{CURRICULUM_LABELS[c] ?? c}</span>
-                        ))}
-                      </div>
-                    )}
+                        ))
+                      ) : (
+                        <span style={{
+                          fontSize: 10, fontWeight: 600, color: "var(--muted)",
+                          background: "var(--beige-200)", border: "1px solid var(--beige-400)",
+                          borderRadius: 99, padding: "2px 8px",
+                        }}>Curriculum not listed</span>
+                      )}
+                    </div>
 
                     {/* Name */}
                     <Link href={`/schools/${school.slug}`} style={{
@@ -260,14 +267,15 @@ export default function ShortlistPage() {
                       )}
                     </div>
 
-                    {/* Fees + rating */}
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
-                      {(school.total_fees_min || school.total_fees_max) && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--dark)" }}>
-                          <IndianRupee size={11} style={{ color: "var(--muted)" }} />
-                          {formatFeesRange(school.total_fees_min, school.total_fees_max)}
-                        </div>
-                      )}
+                    {/* Fees — always shown */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--dark)" }}>
+                        <IndianRupee size={11} style={{ color: "var(--muted)" }} />
+                        {(school.total_fees_min || school.total_fees_max)
+                          ? formatFeesRange(school.total_fees_min, school.total_fees_max)
+                          : <span style={{ color: "var(--muted)" }}>Fee details coming</span>
+                        }
+                      </div>
                       {school.avg_rating && (
                         <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--dark)" }}>
                           <Star size={11} style={{ fill: "#f59e0b", color: "#f59e0b" }} />
