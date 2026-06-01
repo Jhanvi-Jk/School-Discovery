@@ -83,7 +83,7 @@ export function SchoolCard({ school, highlighted }: SchoolCardProps) {
           {school.total_fees_min || school.total_fees_max ? (
             <span>{formatFeesRange(school.total_fees_min, school.total_fees_max)}</span>
           ) : (
-            <span style={{ color: "#b0a090", fontStyle: "italic", fontSize: 11 }}>Fees on request</span>
+            <span style={{ color: "#b0a090", fontSize: 11 }}>Fee details coming</span>
           )}
         </div>
         {school.review_count != null && school.review_count > 0 && (
@@ -120,7 +120,7 @@ export function SchoolCard({ school, highlighted }: SchoolCardProps) {
       {/* Actions */}
       <div className="card-actions" style={{ flexWrap: "wrap", gap: 6 }}>
         <Link href={`/schools/${school.slug}`} className="btn-view" style={{ flex: 1, minWidth: 90 }}>
-          View Profile
+          Explore School →
         </Link>
         <Link
           href={`/schools/${school.slug}/reviews`}

@@ -339,9 +339,9 @@ export default function SchoolsPage() {
 
               {/* Welcome */}
               <div className="welcome-box">
-                <p className="label">Welcome</p>
-                <h1>Do you want to find the right school for your child?</h1>
-                <p>Use the filters on the left to narrow down by curriculum, fees, area, and more.</p>
+                <p className="label">School Discovery</p>
+                <h1>Finding the right school is one of the most important decisions you'll make.</h1>
+                <p>Start by choosing a city, or search by school name, area, or curriculum. Use the filters to narrow down what matters most to your family.</p>
               </div>
 
               {/* Search row */}
@@ -498,8 +498,10 @@ export default function SchoolsPage() {
                   <h2>Explore {cityLabel}</h2>
                   <p>
                     {loading
-                      ? "Loading schools…"
-                      : `${totalCount} school${totalCount !== 1 ? "s" : ""} found`}
+                      ? "Finding schools for you…"
+                      : totalCount === 0
+                        ? "No schools match — try adjusting your filters"
+                        : `${totalCount} school${totalCount !== 1 ? "s" : ""} listed · updated weekly`}
                   </p>
                 </div>
                 <div className="view-toggle">
@@ -531,17 +533,17 @@ export default function SchoolsPage() {
                 }}>
                   <div style={{ fontSize: 40, marginBottom: 10 }}>🔍</div>
                   <p style={{ fontWeight: 700, color: "var(--dark)", marginBottom: 6, fontSize: 16 }}>
-                    No exact matches found
+                    No schools matched those filters
                   </p>
                   <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: filters.query ? 20 : 0 }}>
                     {filters.query
-                      ? `We couldn't find schools matching "${filters.query}" with your current filters.`
-                      : "Try adjusting your filters to see more schools."}
+                      ? `We couldn't find "${filters.query}" with your current filters. Try a nearby area, or browse all schools.`
+                      : "Try removing a filter or broadening your search — we're adding schools every week."}
                   </p>
                   {softMatches.length > 0 && (
                     <div style={{ textAlign: "left", marginTop: 20 }}>
                       <p style={{ fontSize: 13, fontWeight: 700, color: "var(--dark)", marginBottom: 12 }}>
-                        Here are some schools you might like instead:
+                        Other schools families in this area explore:
                       </p>
                       <div className="school-grid" style={{ marginTop: 0 }}>
                         {softMatches.map((s) => (

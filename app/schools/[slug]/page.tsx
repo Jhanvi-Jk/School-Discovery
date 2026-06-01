@@ -659,7 +659,7 @@ export default async function SchoolProfilePage({
                         <div className="sheen" style={{ borderRadius: "0 10px 0 0" }} />
                         <div className="sheen" style={{ borderRadius: "0 0 10px 0" }} />
                       </div>
-                      <div className="sheen-overlay"><span className="sheen-badge">📷 Photos Coming Soon</span></div>
+                      <div className="sheen-overlay"><span className="sheen-badge">📷 Collecting campus photos</span></div>
                     </div>
                   </div>
                 )}
@@ -702,7 +702,7 @@ export default async function SchoolProfilePage({
                         <div key={i} className="sheen" style={{ height: 13, width: `${w}%` }} />
                       ))}
                     </div>
-                    <div className="sheen-overlay"><span className="sheen-badge">📝 Summary Coming Soon</span></div>
+                    <div className="sheen-overlay"><span className="sheen-badge">📝 Writing this school's profile</span></div>
                   </div>
                 )}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
@@ -787,7 +787,7 @@ export default async function SchoolProfilePage({
                         </div>
                       ))}
                     </div>
-                    <div className="sheen-overlay"><span className="sheen-badge">💰 Fee Details Coming Soon</span></div>
+                    <div className="sheen-overlay"><span className="sheen-badge">💰 Verifying fee details with this school</span></div>
                   </div>
                 )}
               </section>
@@ -909,7 +909,7 @@ export default async function SchoolProfilePage({
                         <div key={i} className="sheen" style={{ height: 28, width: w, borderRadius: 99 }} />
                       ))}
                     </div>
-                    <div className="sheen-overlay"><span className="sheen-badge">🏟️ Campus Details Coming Soon</span></div>
+                    <div className="sheen-overlay"><span className="sheen-badge">🏟️ Gathering sports & activity information</span></div>
                   </div>
                 )}
               </section>
@@ -924,7 +924,7 @@ export default async function SchoolProfilePage({
                       <div key={i} className="sheen" style={{ height: 90, borderRadius: 14 }} />
                     ))}
                   </div>
-                  <div className="sheen-overlay"><span className="sheen-badge">🏫 Peer Analysis Coming Soon</span></div>
+                  <div className="sheen-overlay"><span className="sheen-badge">🏫 Peer comparison coming soon</span></div>
                 </div>
               </section>
 
@@ -941,7 +941,7 @@ export default async function SchoolProfilePage({
                       </div>
                     ))}
                   </div>
-                  <div className="sheen-overlay"><span className="sheen-badge">✨ Unique Insights Coming Soon</span></div>
+                  <div className="sheen-overlay"><span className="sheen-badge">✨ Learning what makes this school special</span></div>
                 </div>
               </section>
 
@@ -989,7 +989,7 @@ export default async function SchoolProfilePage({
                         <div key={i} className="sheen" style={{ height: 56, borderRadius: 14 }} />
                       ))}
                     </div>
-                    <div className="sheen-overlay"><span className="sheen-badge">📅 Admissions Details Coming Soon</span></div>
+                    <div className="sheen-overlay"><span className="sheen-badge">📅 Admission details unconfirmed — enquire directly</span></div>
                   </div>
                 )}
               </section>
@@ -1044,7 +1044,7 @@ export default async function SchoolProfilePage({
                         ))}
                       </div>
                     </div>
-                    <div className="sheen-overlay"><span className="sheen-badge">📊 Analytics Coming Soon</span></div>
+                    <div className="sheen-overlay"><span className="sheen-badge">📊 More reviews needed for sentiment analysis</span></div>
                   </div>
                 )}
               </section>
@@ -1095,14 +1095,14 @@ export default async function SchoolProfilePage({
                       ))}
                     </div>
                     <div className="sheen-overlay">
-                      <span className="sheen-badge">✍️ Be the first to review {school.name}!</span>
+                      <span className="sheen-badge">✍️ Be the first parent to share your experience</span>
                     </div>
                   </div>
                 )}
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--beige-400)" }}>
                   <Link href={`/schools/${school.slug}/reviews`}
                     style={{ fontSize: 13, fontWeight: 600, color: "var(--brown-dark)" }}>
-                    View all reviews & leave a review →
+                    Read all reviews · Share your experience →
                   </Link>
                 </div>
               </section>
@@ -1128,11 +1128,11 @@ export default async function SchoolProfilePage({
                 ) : (
                   <div className="sheen-wrap">
                     <div className="sheen" style={{ height: 52, borderRadius: 12 }} />
-                    <div className="sheen-overlay"><span className="sheen-badge">🔗 Links Coming Soon</span></div>
+                    <div className="sheen-overlay"><span className="sheen-badge">🔗 Verifying school links</span></div>
                   </div>
                 )}
                 <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 10 }}>
-                  Data sourced from school websites, Ezyschooling, and parent surveys. Last updated {YEAR}.
+                  Information sourced from school websites, Ezyschooling, and parent surveys. We verify and update profiles regularly — last reviewed {YEAR}.
                 </p>
               </section>
             </div>
@@ -1148,7 +1148,7 @@ export default async function SchoolProfilePage({
         {relatedSchools && relatedSchools.length > 0 && (
           <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 20px 32px" }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase",
-              letterSpacing: "0.08em", marginBottom: 14 }}>More Schools in {school.city}</p>
+              letterSpacing: "0.08em", marginBottom: 14 }}>Families also explored in {school.city}</p>
             <div className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: 12 }}>
               {relatedSchools.map((s: any) => (
                 <Link key={s.slug} href={`/schools/${s.slug}`}
