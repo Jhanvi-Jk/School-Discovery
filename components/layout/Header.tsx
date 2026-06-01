@@ -5,11 +5,13 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { useCompareStore } from "@/store/compareStore";
+import { useShortlistStore } from "@/store/shortlistStore";
 
 export function Header() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const compareCount = useCompareStore((s) => s.schools.length);
+  const shortlistCount = useShortlistStore((s) => s.schools.length);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -39,6 +41,21 @@ export function Header() {
               background: isActive("/schools") ? "rgba(255,255,255,0.12)" : "none",
               textDecoration: "none",
             }}>Explore</Link>
+            <Link href="/shortlist" style={{
+              padding: "7px 14px", borderRadius: 10, fontSize: 13, fontWeight: 500,
+              color: isActive("/shortlist") ? "white" : "rgba(255,255,255,0.65)",
+              background: isActive("/shortlist") ? "rgba(255,255,255,0.12)" : "none",
+              textDecoration: "none", display: "flex", alignItems: "center", gap: 6,
+            }}>
+              Shortlist
+              {shortlistCount > 0 && (
+                <span style={{
+                  width: 18, height: 18, background: "#f59e0b", color: "white",
+                  borderRadius: "50%", fontSize: 10, fontWeight: 700,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>{shortlistCount}</span>
+              )}
+            </Link>
             <Link href="/compare" style={{
               padding: "7px 14px", borderRadius: 10, fontSize: 13, fontWeight: 500,
               color: isActive("/compare") ? "white" : "rgba(255,255,255,0.65)",
@@ -84,6 +101,12 @@ export function Header() {
               display: "block", padding: "10px 12px", borderRadius: 8,
               color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: 500, textDecoration: "none",
             }}>Explore</Link>
+            <Link href="/shortlist" onClick={() => setOpen(false)} style={{
+              display: "block", padding: "10px 12px", borderRadius: 8,
+              color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: 500, textDecoration: "none",
+            }}>
+              Shortlist {shortlistCount > 0 ? `(${shortlistCount})` : ""}
+            </Link>
             <Link href="/compare" onClick={() => setOpen(false)} style={{
               display: "block", padding: "10px 12px", borderRadius: 8,
               color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: 500, textDecoration: "none",

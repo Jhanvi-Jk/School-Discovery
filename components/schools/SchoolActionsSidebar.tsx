@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import { Heart, GitCompare, ExternalLink, Phone, Mail, MapPin, Globe } from "lucide-react";
 import { useCompareStore } from "@/store/compareStore";
+import { useShortlistStore } from "@/store/shortlistStore";
 
 interface Props {
   school: any;
 }
 
 export function SchoolActionsSidebar({ school }: Props) {
-  const [saved, setSaved] = useState(false);
+  const { isSaved, add, remove } = useShortlistStore();
+  const saved = isSaved(school.id);
   const { isInCompare, addSchool, removeSchool, canAdd } = useCompareStore();
   const inCompare = isInCompare(school.id);
 
@@ -93,7 +94,27 @@ export function SchoolActionsSidebar({ school }: Props) {
 
           {/* Save to shortlist */}
           <button
-            onClick={() => setSaved(!saved)}
+            onClick={() => {
+              if (saved) {
+                remove(school.id);
+              } else {
+                add({
+                  id: school.id,
+                  slug: school.slug,
+                  name: school.name,
+                  area: school.area,
+                  city: school.city,
+                  type: school.type,
+                  cover_image_url: school.cover_image_url,
+                  website: school.website,
+                  total_fees_min: school.total_fees_min,
+                  total_fees_max: school.total_fees_max,
+                  curricula: school.curricula,
+                  avg_rating: school.avg_rating,
+                  savedAt: Date.now(),
+                });
+              }
+            }}
             style={{
               width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
               gap: 8, padding: "10px 0", borderRadius: 12,
