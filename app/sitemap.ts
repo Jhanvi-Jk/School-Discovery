@@ -3,13 +3,22 @@ import { createClient } from "@/lib/supabase/server";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.schoolfind360.com";
 
+const CITIES = [
+  { key: "bangalore", slug: "bengaluru",  label: "Bengaluru" },
+  { key: "delhi",     slug: "delhi",      label: "Delhi"     },
+  { key: "chennai",   slug: "chennai",    label: "Chennai"   },
+  { key: "mumbai",    slug: "mumbai",     label: "Mumbai"    },
+];
+
+const BOARDS = ["cbse", "icse", "ib", "igcse", "state_board"];
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createClient();
 
-  // Only include schools with fee data (non-thin profiles)
+  // Individual school profile pages (non-thin only)
   const { data: schools } = await supabase
     .from("schools_with_details")
-    .select("slug, city, updated_at")
+    .select("slug, updated_at")
     .not("total_fees_min", "is", null)
     .order("updated_at", { ascending: false });
 
@@ -20,28 +29,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  // City landing pages (highest priority after home)
-  const cityUrls: MetadataRoute.Sitemap = [
-    { city: "bangalore", slug: "bengaluru" },
-    { city: "delhi",     slug: "delhi" },
-    { city: "chennai",   slug: "chennai" },
-    { city: "mumbai",    slug: "mumbai" },
-  ].flatMap(({ city, slug }) => ([
-    {
-      url: `${APP_URL}/schools/${slug}`,
+  // City landing pages — /schools/bengaluru etc. (server-rendered, high priority)
+  const cityLandingUrls: MetadataRoute.Sitemap = CITIES.map(({ slug }) => ({
+    url: `${APP_URL}/schools/${slug}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly",
+    priority: 0.92,
+  }));
+
+  // Board landing pages — /schools?curriculum=cbse (JS-filtered, medium priority)
+  const boardUrls: MetadataRoute.Sitemap = BOARDS.map((board) => ({
+    url: `${APP_URL}/schools?curriculum=${board}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly",
+    priority: 0.8,
+  }));
+
+  // City × Board combinations — high-intent keyword pages
+  // e.g. /schools/bengaluru?curriculum=cbse
+  const cityBoardUrls: MetadataRoute.Sitemap = CITIES.flatMap(({ slug }) =>
+    BOARDS.map((board) => ({
+      url: `${APP_URL}/schools/${slug}?curriculum=${board}`,
       lastModified: new Date(),
-      changeFrequency: "weekly" as const,
-      priority: 0.9,
-    },
-    {
-      url: `${APP_URL}/schools?city=${city}`,
-      lastModified: new Date(),
-      changeFrequency: "weekly" as const,
-      priority: 0.85,
-    },
-  ]));
+      changeFrequency: "monthly",
+      priority: 0.75,
+    }))
+  );
 
   return [
+    // Core pages
     {
       url: APP_URL,
       lastModified: new Date(),
@@ -52,9 +68,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${APP_URL}/schools`,
       lastModified: new Date(),
       changeFrequency: "daily",
-      priority: 0.9,
+      priority: 0.95,
     },
-    ...cityUrls,
+    // City hubs (static, SEO-rich landing pages)
+    ...cityLandingUrls,
+    // Board category pages
+    ...boardUrls,
+    // City × Board combos
+    ...cityBoardUrls,
+    // Individual school profiles
     ...schoolUrls,
   ];
 }

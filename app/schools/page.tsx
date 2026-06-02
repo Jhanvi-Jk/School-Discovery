@@ -337,12 +337,38 @@ export default function SchoolsPage() {
             {/* ── Right Content ── */}
             <div className="content-area">
 
-              {/* Welcome */}
-              <div className="welcome-box">
-                <p className="label">School Discovery</p>
-                <h1>Finding the right school is one of the most important decisions you'll make.</h1>
-                <p>Start by choosing a city, or search by school name, area, or curriculum. Use the filters to narrow down what matters most to your family.</p>
-              </div>
+              {/* Welcome / Dynamic SEO intro */}
+              {(() => {
+                const activeCurricula = filters.curricula;
+                const boardLabel =
+                  activeCurricula.length === 1
+                    ? { cbse: "CBSE", icse: "ICSE", ib: "IB", igcse: "IGCSE", state_board: "State Board", cambridge: "Cambridge" }[activeCurricula[0]] ?? activeCurricula[0].toUpperCase()
+                    : activeCurricula.length > 1
+                    ? activeCurricula.map(c => c.toUpperCase()).join(", ")
+                    : null;
+
+                const h1 = selectedCity
+                  ? boardLabel
+                    ? `Best ${boardLabel} Schools in ${cityLabel}`
+                    : `Schools in ${cityLabel}`
+                  : boardLabel
+                  ? `Best ${boardLabel} Schools in India`
+                  : "Finding the right school is one of the most important decisions you'll make.";
+
+                const intro = selectedCity
+                  ? boardLabel
+                    ? `Explore verified ${boardLabel} schools in ${cityLabel} — compare ${new Date().getFullYear()} fees, admissions status, and real parent reviews. Updated weekly.`
+                    : `There are ${totalCount > 0 ? `${totalCount}+` : "hundreds of"} schools across ${cityLabel} spanning CBSE, ICSE, IB, and more. Use the filters to narrow by area, fees, gender, and curriculum to find the right fit for your child.`
+                  : "Start by choosing a city, or search by school name, area, or curriculum. Use the filters to narrow down what matters most to your family.";
+
+                return (
+                  <div className="welcome-box">
+                    <p className="label">School Discovery</p>
+                    <h1>{h1}</h1>
+                    <p>{intro}</p>
+                  </div>
+                );
+              })()}
 
               {/* Search row */}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
@@ -495,7 +521,13 @@ export default function SchoolsPage() {
               {/* Explore header */}
               <div className="explore-header">
                 <div>
-                  <h2>Explore {cityLabel}</h2>
+                  <h2>
+                    {filters.curricula.length === 1
+                      ? `${({ cbse: "CBSE", icse: "ICSE", ib: "IB", igcse: "IGCSE", state_board: "State Board", cambridge: "Cambridge" } as Record<string,string>)[filters.curricula[0]] ?? filters.curricula[0].toUpperCase()} Schools`
+                      : selectedCity
+                      ? `Schools in ${cityLabel}`
+                      : "All Schools"}
+                  </h2>
                   <p>
                     {loading
                       ? "Finding schools for you…"
