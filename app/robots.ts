@@ -17,9 +17,10 @@ export default function robots(): MetadataRoute.Robots {
           "/schools/mumbai",
         ],
         disallow: [
-          // Internal API and build routes — never crawl
+          // Internal API and Next.js build routes — never crawl
           "/api/",
           "/_next/",
+          "/_next/data/",     // RSC payload endpoints — no SEO value
           "/dashboard/",
           "/login",
           "/register",
@@ -44,6 +45,10 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/"],
       },
     ],
-    sitemap: `${APP_URL}/sitemap.xml`,
+    sitemap: [
+      `${APP_URL}/sitemap.xml`,
+      `${APP_URL}/sitemap-hubs.xml`,
+      `${APP_URL}/sitemap-schools.xml`,
+    ],
   };
 }

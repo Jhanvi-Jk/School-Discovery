@@ -494,6 +494,27 @@ export default async function SchoolProfilePage({
         bestRating: "5",
       },
     }),
+    // Individual review items — enables review stars in SERPs and Bing rich results
+    ...(reviews.length > 0 && {
+      review: reviews.slice(0, 5).map((r: any) => ({
+        "@type": "Review",
+        reviewRating: {
+          "@type": "Rating",
+          ratingValue: String(r.rating_overall ?? 4),
+          bestRating: "5",
+        },
+        ...(r.body && { reviewBody: r.body }),
+        author: {
+          "@type": "Person",
+          name: r.relation
+            ? `${r.relation.charAt(0).toUpperCase()}${r.relation.slice(1)} of student`
+            : "Parent",
+        },
+        ...(r.created_at && {
+          datePublished: new Date(r.created_at).toISOString().split("T")[0],
+        }),
+      })),
+    }),
   };
 
   // BreadcrumbList JSON-LD
@@ -1141,6 +1162,60 @@ export default async function SchoolProfilePage({
             <aside className="lg:col-span-1">
               <SchoolActionsSidebar school={school} />
             </aside>
+          </div>
+        </div>
+
+        {/* ── Hub-and-Spoke cross-links (PageRank distribution) ── */}
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 20px 8px" }}>
+          <div style={{
+            display: "flex", flexWrap: "wrap", gap: 8,
+            borderTop: "1px solid var(--beige-400)", paddingTop: 20,
+          }}>
+            {/* Board-specific links for this school's curricula */}
+            {curricula.map((c: string) => {
+              const boardName = CURRICULUM_LABELS[c as keyof typeof CURRICULUM_LABELS] || c;
+              return (
+                <Link key={`board-${c}`}
+                  href={`/schools/${citySlug}?curriculum=${c}`}
+                  style={{
+                    fontSize: 12, fontWeight: 600, color: "var(--muted)",
+                    background: "var(--beige-200)", border: "1px solid var(--beige-400)",
+                    borderRadius: 99, padding: "5px 12px", textDecoration: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  More {boardName} schools in {school.city}
+                </Link>
+              );
+            })}
+
+            {/* Area-specific link */}
+            {school.area && (
+              <Link
+                href={`/schools/${citySlug}?area=${encodeURIComponent(school.area)}`}
+                style={{
+                  fontSize: 12, fontWeight: 600, color: "var(--muted)",
+                  background: "var(--beige-200)", border: "1px solid var(--beige-400)",
+                  borderRadius: 99, padding: "5px 12px", textDecoration: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                All schools in {school.area}
+              </Link>
+            )}
+
+            {/* City hub link */}
+            <Link
+              href={`/schools/${citySlug}`}
+              style={{
+                fontSize: 12, fontWeight: 600, color: "var(--brown-dark)",
+                background: "rgba(44,24,16,0.06)", border: "1px solid rgba(44,24,16,0.12)",
+                borderRadius: 99, padding: "5px 12px", textDecoration: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Top-rated schools in {school.city} →
+            </Link>
           </div>
         </div>
 
