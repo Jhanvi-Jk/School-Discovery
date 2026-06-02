@@ -81,7 +81,12 @@ export function Footer() {
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px" }}>
             {[
-              { href: "/schools/bengaluru?curriculum=cbse",   label: "CBSE Schools in Bengaluru" },
+              { href: "/schools/bengaluru/whitefield",         label: "Schools in Whitefield" },
+            { href: "/schools/bengaluru/koramangala",        label: "Schools in Koramangala" },
+            { href: "/schools/bengaluru/hsr-layout",         label: "Schools in HSR Layout" },
+            { href: "/schools/delhi/south-delhi",            label: "Schools in South Delhi" },
+            { href: "/schools/mumbai/andheri",               label: "Schools in Andheri" },
+            { href: "/schools/bengaluru?curriculum=cbse",   label: "CBSE Schools in Bengaluru" },
               { href: "/schools/bengaluru?curriculum=icse",   label: "ICSE Schools in Bengaluru" },
               { href: "/schools/bengaluru?curriculum=ib",     label: "IB Schools in Bengaluru"   },
               { href: "/schools/bengaluru?curriculum=igcse",  label: "IGCSE Schools in Bengaluru"},

@@ -280,7 +280,7 @@ async function CityHubPage({ cityKey, citySlug }: { cityKey: string; citySlug: s
                   >
                     <div className="w-24 h-24 flex-shrink-0 bg-gradient-to-br from-blue-100 to-indigo-100 relative self-stretch">
                       {s.cover_image_url && (
-                        <Image src={s.cover_image_url} alt={s.name} fill className="object-cover" />
+                        <Image src={s.cover_image_url} alt={`${s.name} campus in ${s.area || s.city}`} fill className="object-cover" />
                       )}
                     </div>
                     <div className="p-3 flex-1 min-w-0">
@@ -535,6 +535,71 @@ export default async function SchoolProfilePage({
     ],
   };
 
+  // ── FAQPage schema — drops-down answers directly in Google SERPs ────────────
+  const faqItems: { q: string; a: string }[] = [];
+
+  // Fees FAQ
+  if (sd?.total_fees_min) {
+    faqItems.push({
+      q: `What is the fee structure at ${school.name}?`,
+      a: `Annual fees at ${school.name} range from ₹${(sd.total_fees_min / 100000).toFixed(1)}L to ₹${((sd.total_fees_max || sd.total_fees_min) / 100000).toFixed(1)}L. Exact fees may vary by grade — contact the school directly for the latest fee schedule.`,
+    });
+  }
+
+  // Curriculum FAQ
+  if (curricula.length > 0) {
+    const boardList = curricula.map((c: string) => CURRICULUM_LABELS[c as keyof typeof CURRICULUM_LABELS] || c).join(", ");
+    faqItems.push({
+      q: `Which curriculum or board does ${school.name} follow?`,
+      a: `${school.name} follows the ${boardList} curriculum. It is a ${SCHOOL_TYPE_LABELS[school.type as keyof typeof SCHOOL_TYPE_LABELS] || "private"} school located in ${school.area || school.city}.`,
+    });
+  }
+
+  // Transport FAQ
+  if (sd?.has_transport !== undefined && sd.has_transport !== null) {
+    faqItems.push({
+      q: `Does ${school.name} provide school bus or transport facility?`,
+      a: sd.has_transport
+        ? `Yes, ${school.name} provides a school bus / transport facility for students.`
+        : `${school.name} does not currently list a school bus service. Parents may need to arrange private transport.`,
+    });
+  }
+
+  // Admissions FAQ
+  const admissionStatus = openAdmissions.length > 0 ? "open" : "closed";
+  faqItems.push({
+    q: `Are admissions currently open at ${school.name} for ${YEAR}–${YEAR + 1}?`,
+    a: openAdmissions.length > 0
+      ? `Yes, ${school.name} has open admissions for ${YEAR}–${YEAR + 1}. Visit the school's official website or contact them directly to apply.`
+      : `Admissions at ${school.name} are currently closed or details are not listed for ${YEAR}–${YEAR + 1}. Check back closer to the academic year or contact the school directly.`,
+  });
+
+  // Student-teacher ratio FAQ
+  if (sd?.student_teacher_ratio) {
+    faqItems.push({
+      q: `What is the student-teacher ratio at ${school.name}?`,
+      a: `${school.name} has a student-teacher ratio of ${sd.student_teacher_ratio}:1, which provides ${sd.student_teacher_ratio <= 20 ? "a relatively personalised classroom experience" : "a standard classroom environment"}.`,
+    });
+  }
+
+  // Location FAQ
+  if (school.area) {
+    faqItems.push({
+      q: `Where is ${school.name} located?`,
+      a: `${school.name} is located in ${school.area}, ${school.city}${school.address_line1 ? ` — ${school.address_line1}` : ""}. It is a ${SCHOOL_TYPE_LABELS[school.type as keyof typeof SCHOOL_TYPE_LABELS] || "private"} school offering ${curricula.map((c: string) => CURRICULUM_LABELS[c as keyof typeof CURRICULUM_LABELS] || c).join(", ") || "a standard"} curriculum.`,
+    });
+  }
+
+  const faqSchema = faqItems.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqItems.map(({ q, a }) => ({
+      "@type": "Question",
+      name: q,
+      acceptedAnswer: { "@type": "Answer", text: a },
+    })),
+  } : null;
+
   // Related schools (same area/city, excluding current)
   const { data: relatedSchools } = await supabase
     .from("schools_with_details")
@@ -555,14 +620,23 @@ export default async function SchoolProfilePage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
       <Header />
       <main style={{ background: "var(--beige-300)" }}>
 
         {/* ── Hero ── */}
         <div style={{ position: "relative", height: 220, overflow: "hidden", background: "#1a1a1a" }}>
           {school.cover_image_url ? (
-            <Image src={school.cover_image_url} alt={school.name} fill className="object-cover" priority
-              style={{ opacity: 0.45 }} />
+            <Image
+              src={school.cover_image_url}
+              alt={`${school.name} campus in ${school.area || school.city} — ${curricula.map((c: string) => CURRICULUM_LABELS[c as keyof typeof CURRICULUM_LABELS] || c).join(", ") || "private"} school`}
+              fill className="object-cover" priority style={{ opacity: 0.45 }}
+            />
           ) : (
             <div style={{ position: "absolute", inset: 0,
               background: "linear-gradient(135deg, #2C1810 0%, #1a1a1a 60%, #0f0f0f 100%)" }} />
@@ -574,7 +648,7 @@ export default async function SchoolProfilePage({
               {school.logo_url && (
                 <div style={{ width: 56, height: 56, borderRadius: 12, overflow: "hidden",
                   border: "2px solid rgba(255,255,255,0.2)", background: "var(--beige-100)", flexShrink: 0 }}>
-                  <Image src={school.logo_url} alt="" width={56} height={56} className="object-cover" />
+                  <Image src={school.logo_url} alt={`${school.name} logo`} width={56} height={56} className="object-cover" />
                 </div>
               )}
               <div>
@@ -1232,7 +1306,7 @@ export default async function SchoolProfilePage({
                     transition: "box-shadow 0.2s, border-color 0.2s" }}>
                   <div style={{ height: 90, background: "var(--beige-300)", position: "relative" }}>
                     {s.cover_image_url && (
-                      <Image src={s.cover_image_url} alt={s.name} fill className="object-cover" />
+                      <Image src={s.cover_image_url} alt={`${s.name} campus in ${s.area || s.city}`} fill className="object-cover" />
                     )}
                   </div>
                   <div style={{ padding: "10px 12px" }}>

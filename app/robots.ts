@@ -48,6 +48,7 @@ export default function robots(): MetadataRoute.Robots {
     sitemap: [
       `${APP_URL}/sitemap.xml`,
       `${APP_URL}/sitemap-hubs.xml`,
+      `${APP_URL}/sitemap-areas.xml`,
       `${APP_URL}/sitemap-schools.xml`,
     ],
   };
