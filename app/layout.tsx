@@ -22,7 +22,10 @@ export const metadata: Metadata = {
     "IB schools Bengaluru", "school admissions 2026", "school comparison India",
     "schools in Delhi", "schools in Chennai", "IGCSE schools India",
   ],
-  alternates: { canonical: appUrl },
+  alternates: {
+    canonical: appUrl,
+    languages: { "en-IN": appUrl },
+  },
   openGraph: {
     type: "website",
     locale: "en_IN",
@@ -58,7 +61,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en-IN" suppressHydrationWarning>
       <body className={inter.className}>
         <Providers>
           {children}

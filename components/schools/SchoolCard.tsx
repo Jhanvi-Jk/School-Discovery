@@ -55,6 +55,8 @@ export function SchoolCard({ school, highlighted }: SchoolCardProps) {
     <div
       id={`card-${school.slug}`}
       className="school-card"
+      itemScope
+      itemType="https://schema.org/EducationalOrganization"
       style={{
         position: "relative",
         transition: "box-shadow 0.4s, outline 0.4s",
@@ -103,11 +105,23 @@ export function SchoolCard({ school, highlighted }: SchoolCardProps) {
       )}
 
       {/* School name */}
-      <Link href={`/schools/${school.slug}`}>
-        <div className="card-name" style={{ paddingRight: 44 }}>
+      <Link href={`/schools/${school.slug}`} itemProp="url">
+        <div className="card-name" style={{ paddingRight: 44 }} itemProp="name">
           {school.name}
         </div>
       </Link>
+
+      {/* Location — hidden microdata for address */}
+      <span
+        itemProp="address"
+        itemScope
+        itemType="https://schema.org/PostalAddress"
+        style={{ display: "none" }}
+      >
+        {school.area && <span itemProp="addressLocality">{school.area}</span>}
+        {school.city && <span itemProp="addressRegion">{school.city}</span>}
+        <span itemProp="addressCountry">IN</span>
+      </span>
 
       {/* Location */}
       <div className="card-meta">
@@ -122,11 +136,23 @@ export function SchoolCard({ school, highlighted }: SchoolCardProps) {
         <div className="card-stat">
           <IndianRupee size={12} style={{ color: "#7a6a5a" }} />
           {school.total_fees_min || school.total_fees_max ? (
-            <span>{formatFeesRange(school.total_fees_min, school.total_fees_max)}</span>
+            <span itemProp="priceRange">{formatFeesRange(school.total_fees_min, school.total_fees_max)}</span>
           ) : (
             <span style={{ color: "#b0a090", fontSize: 11 }}>Fee details coming</span>
           )}
         </div>
+        {school.avg_rating != null && school.review_count != null && school.review_count > 0 && (
+          <span
+            itemProp="aggregateRating"
+            itemScope
+            itemType="https://schema.org/AggregateRating"
+            style={{ display: "none" }}
+          >
+            <span itemProp="ratingValue">{school.avg_rating}</span>
+            <span itemProp="reviewCount">{school.review_count}</span>
+            <span itemProp="bestRating">5</span>
+          </span>
+        )}
         {school.review_count != null && school.review_count > 0 && (
           <div className="card-stat">
             <MessageSquare size={12} style={{ color: "#7a6a5a" }} />

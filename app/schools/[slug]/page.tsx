@@ -66,7 +66,7 @@ export async function generateMetadata({
   // Query schools table directly — schools_with_details view may lag newly-added schools
   const { data } = await supabase
     .from("schools")
-    .select("name, description, area, city, cover_image_url, type, verified")
+    .select("name, description, area, city, cover_image_url, type, verified, admissions_open")
     .eq("slug", slug)
     .single();
 
@@ -78,9 +78,13 @@ export async function generateMetadata({
   const canonicalUrl = `${APP_URL}/schools/${slug}`;
   const location  = data.area || data.city || "India";
   const city      = data.city || "Bengaluru";
+  const nextYear  = String(YEAR + 1).slice(2);          // e.g. "27"
 
-  // absolute bypasses the layout template so the tab reads exactly "SchoolFind360 — Name"
-  const titleAbsolute = `SchoolFind360 — ${data.name}`;
+  // If admissions are open, surface it in the title — high CTR signal for families
+  // searching "school admissions open 2026-27". Otherwise keep the clean base title.
+  const titleAbsolute = data.admissions_open
+    ? `${data.name} — Admissions Open ${YEAR}–${nextYear} | SchoolFind360`
+    : `SchoolFind360 — ${data.name}`;
 
   const description = data.description
     ? `${data.description} View full fees, admissions ${YEAR}, and parent reviews on SchoolFind360.`
@@ -220,9 +224,9 @@ async function CityHubPage({ cityKey, citySlug }: { cityKey: string; citySlug: s
             <nav className="text-xs text-white/60 mb-4 flex items-center gap-1">
               <Link href="/" className="hover:text-white">Home</Link>
               <ChevronRight className="w-3 h-3" />
-              <Link href="/schools" className="hover:text-white">Schools</Link>
+              <Link href="/schools" className="hover:text-white">Schools in India</Link>
               <ChevronRight className="w-3 h-3" />
-              <span className="text-white">{meta.label}</span>
+              <span className="text-white">Schools in {meta.label}</span>
             </nav>
             <h1 className="text-3xl sm:text-4xl font-bold mb-2">
               Schools in {meta.label}
@@ -483,8 +487,46 @@ export default async function SchoolProfilePage({
         longitude: school.longitude,
       },
     }),
+    // Human-readable priceRange (broad string for quick scanning in SERPs)
     ...(sd?.total_fees_min && {
-      priceRange: `₹${(sd.total_fees_min / 100000).toFixed(1)}L – ₹${(sd.total_fees_max / 100000).toFixed(1)}L`,
+      priceRange: `₹${(sd.total_fees_min / 100000).toFixed(1)}L – ₹${((sd.total_fees_max || sd.total_fees_min) / 100000).toFixed(1)}L`,
+    }),
+    // Machine-readable fee breakdown — enables rich pricing snippets in SERPs.
+    // PriceSpecification lets Google extract exact numeric fee values per category.
+    ...(sd?.total_fees_min && {
+      makesOffer: {
+        "@type": "Offer",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "priceSpecification": [
+          {
+            "@type": "UnitPriceSpecification",
+            "name": "Annual Tuition Fees",
+            "minPrice": sd.total_fees_min,
+            ...(sd.total_fees_max && sd.total_fees_max !== sd.total_fees_min && { "maxPrice": sd.total_fees_max }),
+            "priceCurrency": "INR",
+            "unitCode": "ANN",
+            "unitText": "per year",
+          },
+          ...(sd.admission_fee ? [{
+            "@type": "UnitPriceSpecification",
+            "name": "One-Time Admission Fee",
+            "price": sd.admission_fee,
+            "priceCurrency": "INR",
+            "unitCode": "C62",
+            "unitText": "one-time",
+          }] : []),
+          ...(sd.transport_fee_min ? [{
+            "@type": "UnitPriceSpecification",
+            "name": "Annual Transport / Bus Fee",
+            "minPrice": sd.transport_fee_min,
+            ...(sd.transport_fee_max ? { "maxPrice": sd.transport_fee_max } : {}),
+            "priceCurrency": "INR",
+            "unitCode": "ANN",
+            "unitText": "per year",
+          }] : []),
+        ],
+      },
     }),
     ...(avgRating && reviews.length && {
       aggregateRating: {
@@ -517,19 +559,23 @@ export default async function SchoolProfilePage({
     }),
   };
 
-  // BreadcrumbList JSON-LD
+  // BreadcrumbList JSON-LD — keyword-rich anchor text boosts internal PageRank flow.
+  // Use "Schools in Bengaluru" not "Bengaluru" so the anchor carries the keyword.
+  // Link to canonical city hub URL (/schools/bengaluru) not the explore-page filter.
   const citySlug = school.city?.toLowerCase().replace(/\s+/g, "-") || "bengaluru";
+  const areaSlug = school.area ? school.area.toLowerCase().replace(/\s+/g, "-") : null;
+
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: appUrl },
-      { "@type": "ListItem", position: 2, name: "Schools", item: `${appUrl}/schools` },
+      { "@type": "ListItem", position: 2, name: "Schools in India", item: `${appUrl}/schools` },
       ...(school.city
-        ? [{ "@type": "ListItem", position: 3, name: `${school.city} Schools`, item: `${appUrl}/schools?city=${citySlug}` }]
+        ? [{ "@type": "ListItem", position: 3, name: `Schools in ${school.city}`, item: `${appUrl}/schools/${citySlug}` }]
         : []),
-      ...(school.area
-        ? [{ "@type": "ListItem", position: school.city ? 4 : 3, name: school.area, item: `${appUrl}/schools?city=${citySlug}&area=${encodeURIComponent(school.area)}` }]
+      ...(school.area && areaSlug
+        ? [{ "@type": "ListItem", position: school.city ? 4 : 3, name: `Schools in ${school.area}`, item: `${appUrl}/schools/${citySlug}/${areaSlug}` }]
         : []),
       { "@type": "ListItem", position: school.city && school.area ? 5 : school.city || school.area ? 4 : 3, name: school.name, item: `${appUrl}/schools/${school.slug}` },
     ],
@@ -686,24 +732,25 @@ export default async function SchoolProfilePage({
           </div>
         </div>
 
-        {/* ── Breadcrumb ── */}
+        {/* ── Breadcrumb ── keyword-rich anchors so every crumb passes a target phrase ── */}
         <div style={{ background: "var(--beige-200)", borderBottom: "1px solid var(--beige-500)" }}>
           <div style={{ maxWidth: 1280, margin: "0 auto", padding: "8px 20px",
             display: "flex", alignItems: "center", gap: 4, fontSize: 12,
             color: "var(--muted)", overflowX: "auto", whiteSpace: "nowrap" }}>
             <Link href="/" style={{ color: "var(--muted)", flexShrink: 0 }}>Home</Link>
             <ChevronRight style={{ width: 11, height: 11, flexShrink: 0 }} />
-            <Link href="/schools" style={{ color: "var(--muted)", flexShrink: 0 }}>Schools</Link>
+            <Link href="/schools" style={{ color: "var(--muted)", flexShrink: 0 }}>Schools in India</Link>
             {school.city && (<>
               <ChevronRight style={{ width: 11, height: 11, flexShrink: 0 }} />
-              <Link href={`/schools?city=${citySlug}`} style={{ color: "var(--muted)", flexShrink: 0 }}>
-                {school.city}
+              {/* Link to canonical city hub, not the explore-filter URL */}
+              <Link href={`/schools/${citySlug}`} style={{ color: "var(--muted)", flexShrink: 0 }}>
+                Schools in {school.city}
               </Link>
             </>)}
-            {school.area && (<>
+            {school.area && areaSlug && (<>
               <ChevronRight style={{ width: 11, height: 11, flexShrink: 0 }} />
-              <Link href={`/schools?city=${citySlug}&area=${encodeURIComponent(school.area)}`}
-                style={{ color: "var(--muted)", flexShrink: 0 }}>{school.area}</Link>
+              <Link href={`/schools/${citySlug}/${areaSlug}`}
+                style={{ color: "var(--muted)", flexShrink: 0 }}>Schools in {school.area}</Link>
             </>)}
             <ChevronRight style={{ width: 11, height: 11, flexShrink: 0 }} />
             <span style={{ color: "var(--dark)", fontWeight: 600, flexShrink: 0,
@@ -892,6 +939,26 @@ export default async function SchoolProfilePage({
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>School Details</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14 }}>
+
+                  {/* Year Founded — shown whenever established_year is set */}
+                  {school.established_year && (
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <Calendar style={{ width: 16, height: 16, color: "var(--muted)", marginTop: 2, flexShrink: 0 }} />
+                      <div>
+                        <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: 2 }}>Year Founded</p>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--dark)" }}>
+                          {school.established_year}
+                          {school.established_year <= 1900 && (
+                            <span style={{ marginLeft: 6, fontSize: 11, color: "var(--brown-dark)", fontWeight: 700,
+                              background: "rgba(44,24,16,0.08)", padding: "2px 8px", borderRadius: 99 }}>
+                              {new Date().getFullYear() - school.established_year}+ yrs legacy
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {details?.school_hours_start && (
                     <div style={{ display: "flex", gap: 10 }}>
                       <Clock style={{ width: 16, height: 16, color: "var(--muted)", marginTop: 2, flexShrink: 0 }} />

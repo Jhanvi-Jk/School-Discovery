@@ -16,6 +16,10 @@ interface SchoolsClientProps {
   /** Server-rendered initial list — shown immediately to bots & first paint */
   initialSchools?: SchoolSummary[];
   initialTotal?: number;
+  /** When true (set by middleware for bot UAs), never initialize the map.
+   *  Saves the coordinate JSON payload being sent to crawlers that can't
+   *  execute JS anyway — conserves crawl budget and response size. */
+  disableMap?: boolean;
 }
 
 const CITY_DESCRIPTIONS: Record<CityKey, string> = {
@@ -159,7 +163,7 @@ function CityPanel({
 }
 
 // ── Main Client Component ─────────────────────────────────────────────────────
-export function SchoolsClient({ initialSchools = [], initialTotal = 0 }: SchoolsClientProps) {
+export function SchoolsClient({ initialSchools = [], initialTotal = 0, disableMap = false }: SchoolsClientProps) {
   const { filters, sort, setFilter } = useFilterStore();
   const { selectedCity, setCity, clearCity } = useCityStore();
   const { isSaved, savedCity, savedFilters } = useSavedPrefsStore();
@@ -168,6 +172,7 @@ export function SchoolsClient({ initialSchools = [], initialTotal = 0 }: Schools
   const [totalCount, setTotalCount]       = useState(initialTotal);
   // If SSR gave us data, don't show skeleton on first paint
   const [loading, setLoading]             = useState(initialSchools.length === 0);
+  // Never show map to bots — they can't execute JS and the payload is wasted bytes
   const [showMap, setShowMap]             = useState(false);
   const [mobileView, setMobileView]       = useState<"list" | "map">("list");
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
@@ -194,10 +199,10 @@ export function SchoolsClient({ initialSchools = [], initialTotal = 0 }: Schools
     }
   }, []); // eslint-disable-line
 
-  // Show map by default on desktop
+  // Show map by default on desktop — but never for bots (disableMap flag from middleware)
   useEffect(() => {
-    if (window.innerWidth >= 1024) setShowMap(true);
-  }, []);
+    if (!disableMap && window.innerWidth >= 1024) setShowMap(true);
+  }, []); // eslint-disable-line
 
   const handleSchoolClick = useCallback((slug: string) => {
     setHighlightedSlug(slug);
