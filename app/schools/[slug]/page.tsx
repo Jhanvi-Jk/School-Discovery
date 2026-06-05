@@ -172,14 +172,19 @@ async function CityHubPage({ cityKey, citySlug }: { cityKey: string; citySlug: s
   const meta = CITY_META[cityKey];
   const cityDbName = meta.label;
 
-  // Fetch top schools in this city (server-side, no JS needed)
+  // Fetch top schools — no fee filter so we always get results
   const { data: schools } = await supabase
     .from("schools_with_details")
     .select("slug, name, area, type, total_fees_min, total_fees_max, avg_rating, cover_image_url")
     .eq("city", cityDbName)
-    .not("total_fees_min", "is", null)
     .order("avg_rating", { ascending: false, nullsFirst: false })
     .limit(24);
+
+  // Total school count for this city (for desc text)
+  const { count: totalCount } = await supabase
+    .from("schools")
+    .select("id", { count: "exact", head: true })
+    .eq("city", cityDbName);
 
   // Unique areas with school counts
   const { data: areaRows } = await supabase
@@ -194,16 +199,15 @@ async function CityHubPage({ cityKey, citySlug }: { cityKey: string; citySlug: s
   });
   const areas = Object.entries(areaCounts).sort((a, b) => b[1] - a[1]);
 
-  const canonicalUrl = `${APP_URL}/schools/${citySlug}`;
-  const title = `Top Schools in ${meta.label} ${YEAR} | CBSE, ICSE, IB Schools — SchoolFind360`;
-  const desc  = `Browse ${(schools || []).length}+ verified schools in ${meta.label}. Compare ${YEAR} fees, CBSE, ICSE, IB boards, area-wise listings, and real parent reviews.`;
+  const schoolCount = totalCount || (schools || []).length;
+  const desc = `Browse ${schoolCount}+ verified schools in ${meta.label}. Compare ${YEAR} fees, CBSE, ICSE, IB boards, area-wise listings, and real parent reviews.`;
 
   const itemListSchema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: `Top Schools in ${meta.label}`,
     description: desc,
-    numberOfItems: (schools || []).length,
+    numberOfItems: schoolCount,
     itemListElement: (schools || []).map((s: any, i: number) => ({
       "@type": "ListItem",
       position: i + 1,
@@ -215,29 +219,34 @@ async function CityHubPage({ cityKey, citySlug }: { cityKey: string; citySlug: s
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
-      {/* Inline metadata via Next.js Head is handled by generateMetadata above; here we just render the page */}
       <Header />
-      <main className="bg-gray-50 min-h-screen pb-16">
+      <main style={{ background: "#f9fafb", minHeight: "100vh", paddingBottom: 64 }}>
         {/* Hero */}
-        <div className="bg-gradient-to-br from-[#2C1810] to-[#5C3820] text-white py-12 px-4">
-          <div className="max-w-4xl mx-auto">
-            <nav className="text-xs text-white/60 mb-4 flex items-center gap-1">
-              <Link href="/" className="hover:text-white">Home</Link>
-              <ChevronRight className="w-3 h-3" />
-              <Link href="/schools" className="hover:text-white">Schools in India</Link>
-              <ChevronRight className="w-3 h-3" />
-              <span className="text-white">Schools in {meta.label}</span>
+        <div style={{ background: "linear-gradient(135deg, #2C1810 0%, #5C3820 100%)", color: "#fff", padding: "48px 16px" }}>
+          <div style={{ maxWidth: 896, margin: "0 auto" }}>
+            <nav style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginBottom: 16, display: "flex", alignItems: "center", gap: 4 }}>
+              <Link href="/" style={{ color: "inherit", textDecoration: "none" }}>Home</Link>
+              <ChevronRight style={{ width: 12, height: 12 }} />
+              <Link href="/schools" style={{ color: "inherit", textDecoration: "none" }}>Schools in India</Link>
+              <ChevronRight style={{ width: 12, height: 12 }} />
+              <span style={{ color: "#fff" }}>Schools in {meta.label}</span>
             </nav>
-            <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+            <h1 style={{ fontSize: "clamp(24px,5vw,36px)", fontWeight: 700, marginBottom: 8 }}>
               Schools in {meta.label}
             </h1>
-            <p className="text-white/70 text-base mb-6">{meta.description} · {(schools || []).length}+ verified schools</p>
-            <div className="flex flex-wrap gap-2">
+            <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 15, marginBottom: 24 }}>
+              {meta.description} · {schoolCount}+ verified schools
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {meta.boards.map((b) => (
                 <Link
                   key={b}
-                  href={`/schools?city=${cityKey}&curriculum=${b.toLowerCase().replace(/\s/g,"-")}`}
-                  className="text-xs px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-medium transition-colors"
+                  href={`/schools/${citySlug}?curriculum=${b.toLowerCase().replace(/\s/g, "-")}`}
+                  style={{
+                    fontSize: 12, padding: "6px 14px", borderRadius: 99,
+                    background: "rgba(255,255,255,0.15)", color: "#fff",
+                    fontWeight: 500, textDecoration: "none", display: "inline-block",
+                  }}
                 >
                   {b} Schools
                 </Link>
@@ -246,22 +255,33 @@ async function CityHubPage({ cityKey, citySlug }: { cityKey: string; citySlug: s
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 py-8 space-y-10">
+        <div style={{ maxWidth: 896, margin: "0 auto", padding: "32px 16px" }}>
           {/* Neighbourhoods */}
           {areas.length > 0 && (
-            <section>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Browse by Neighbourhood</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {areas.map(([area, count]) => (
-                  <Link
-                    key={area}
-                    href={`/schools?city=${cityKey}&area=${encodeURIComponent(area)}`}
-                    className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow border border-gray-100 group"
-                  >
-                    <p className="font-semibold text-gray-900 text-sm group-hover:text-blue-600 transition-colors">{area}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{count} school{count !== 1 ? "s" : ""}</p>
-                  </Link>
-                ))}
+            <section style={{ marginBottom: 40 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: "#111827", marginBottom: 16 }}>
+                Browse by Neighbourhood
+              </h2>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
+                {areas.map(([area, count]) => {
+                  const areaSlug = area.toLowerCase().replace(/\s+/g, "-");
+                  return (
+                    <Link
+                      key={area}
+                      href={`/schools/${citySlug}/${areaSlug}`}
+                      style={{
+                        background: "#fff", borderRadius: 12, padding: "14px 16px",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.08)", border: "1px solid #f3f4f6",
+                        textDecoration: "none", display: "block",
+                      }}
+                    >
+                      <p style={{ fontWeight: 600, color: "#111827", fontSize: 14 }}>{area}</p>
+                      <p style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
+                        {count} school{count !== 1 ? "s" : ""}
+                      </p>
+                    </Link>
+                  );
+                })}
               </div>
             </section>
           )}
@@ -269,33 +289,42 @@ async function CityHubPage({ cityKey, citySlug }: { cityKey: string; citySlug: s
           {/* School list */}
           {(schools || []).length > 0 && (
             <section>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900">Top Schools in {meta.label}</h2>
-                <Link href={`/schools?city=${cityKey}`} className="text-sm text-blue-600 hover:underline">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>
+                  Top Schools in {meta.label}
+                </h2>
+                <Link
+                  href={`/schools?city=${cityKey}`}
+                  style={{ fontSize: 14, color: "#2C1810", textDecoration: "none", fontWeight: 500 }}
+                >
                   View all →
                 </Link>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
                 {(schools || []).map((s: any) => (
                   <Link
                     key={s.slug}
                     href={`/schools/${s.slug}`}
-                    className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex gap-0"
+                    style={{
+                      background: "#fff", borderRadius: 16, overflow: "hidden",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.08)", border: "1px solid #f3f4f6",
+                      display: "flex", textDecoration: "none",
+                    }}
                   >
-                    <div className="w-24 h-24 flex-shrink-0 bg-gradient-to-br from-blue-100 to-indigo-100 relative self-stretch">
+                    <div style={{ width: 96, height: 96, flexShrink: 0, background: "linear-gradient(135deg,#dbeafe,#e0e7ff)", position: "relative", alignSelf: "stretch" }}>
                       {s.cover_image_url && (
-                        <Image src={s.cover_image_url} alt={`${s.name} campus in ${s.area || s.city}`} fill className="object-cover" />
+                        <Image src={s.cover_image_url} alt={`${s.name} campus`} fill style={{ objectFit: "cover" }} />
                       )}
                     </div>
-                    <div className="p-3 flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">{s.name}</p>
+                    <div style={{ padding: "12px 14px", flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: 600, color: "#111827", fontSize: 14, lineHeight: 1.3 }}>{s.name}</p>
                       {s.area && (
-                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                          <MapPin className="w-3 h-3 flex-shrink-0" />{s.area}
+                        <p style={{ fontSize: 12, color: "#6b7280", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                          <MapPin style={{ width: 12, height: 12, flexShrink: 0 }} />{s.area}
                         </p>
                       )}
                       {s.total_fees_min && (
-                        <p className="text-xs font-medium text-blue-700 mt-1">
+                        <p style={{ fontSize: 12, fontWeight: 500, color: "#1d4ed8", marginTop: 4 }}>
                           {formatFeesRange(s.total_fees_min, s.total_fees_max)}
                         </p>
                       )}
@@ -303,10 +332,14 @@ async function CityHubPage({ cityKey, citySlug }: { cityKey: string; citySlug: s
                   </Link>
                 ))}
               </div>
-              <div className="text-center mt-6">
+              <div style={{ textAlign: "center", marginTop: 24 }}>
                 <Link
                   href={`/schools?city=${cityKey}`}
-                  className="inline-block px-6 py-3 bg-[#2C1810] text-white rounded-xl font-semibold text-sm hover:bg-[#5C3820] transition-colors"
+                  style={{
+                    display: "inline-block", padding: "12px 24px",
+                    background: "#2C1810", color: "#fff", borderRadius: 12,
+                    fontWeight: 600, fontSize: 14, textDecoration: "none",
+                  }}
                 >
                   Explore all {meta.label} schools →
                 </Link>
