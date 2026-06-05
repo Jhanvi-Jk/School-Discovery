@@ -6,10 +6,13 @@
 -- This broke the area landing pages, cluster pages, and comparison pages which
 -- all query: .from("schools_with_details").select("..., curricula, ...")
 --
--- Fix: rebuild the view with a LEFT JOIN to school_curricula and ARRAY_AGG.
+-- Fix: DROP and recreate the view (CREATE OR REPLACE cannot reorder columns).
 -- ─────────────────────────────────────────────────────────────────────────────
 
-CREATE OR REPLACE VIEW schools_with_details AS
+-- Drop existing view so we can recreate with updated column list + curricula
+DROP VIEW IF EXISTS schools_with_details;
+
+CREATE VIEW schools_with_details AS
 SELECT
   s.id,
   s.slug,
