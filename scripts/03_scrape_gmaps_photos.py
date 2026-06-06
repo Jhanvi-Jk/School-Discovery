@@ -246,14 +246,9 @@ async def main():
                 await asyncio.sleep(random.uniform(1, 3))
                 continue
 
-            public_url = upload_to_supabase(sid, local_file)
-            if public_url:
-                update_school_photo(sid, public_url)
-                print(f"    ✓ Saved\n")
-                ok += 1
-            else:
-                print(f"    ✗ Upload failed\n")
-                fail += 1
+            # Local only — no Supabase upload
+            print(f"    ✓ Saved locally: {local_file.name}\n")
+            ok += 1
 
             # Polite delay between searches
             await asyncio.sleep(random.uniform(3, 6))
