@@ -1,180 +1,231 @@
 """
 03_scrape_gmaps_photos.py
 ─────────────────────────────────────────────────────────────────────────────
-Scrapes cover photos for schools from Google Maps using Playwright (free,
-no API key needed), then uploads them to Supabase Storage and updates the
-cover_image_url column in the schools table.
+Scrapes cover photos for schools from multiple free sources (in priority order):
+  1. School's own website  → og:image / twitter:image meta tag
+  2. EzySchooling          → ezyschooling.com school listings
+  3. The Curious Parent    → thecuriousparent.com school listings
+
+Then uploads to Supabase Storage and updates cover_image_url in the DB.
 
 Usage:
-    pip install playwright supabase python-dotenv
-    playwright install firefox
-    python scripts/03_scrape_gmaps_photos.py
+    python3 scripts/03_scrape_gmaps_photos.py
 
-Env vars needed in .env.local:
+Env vars (in .env.local):
     NEXT_PUBLIC_SUPABASE_URL
-    SUPABASE_SERVICE_ROLE_KEY   ← needs service role (not anon) to write storage
-
-Optional:
-    CITY_FILTER=Bengaluru       ← only process schools in this city
-    LIMIT=50                    ← max schools to process in one run
-    SKIP_EXISTING=true          ← skip schools that already have cover_image_url
+    SUPABASE_SERVICE_ROLE_KEY
+    CITY_FILTER=Bengaluru     (optional, default = all cities)
+    LIMIT=50                  (optional, default = 50)
+    SKIP_EXISTING=true        (optional, default = true)
 """
+
+from __future__ import annotations
 
 import asyncio
 import os
 import random
 import re
-import time
+import urllib.parse
 import urllib.request
 from pathlib import Path
+from typing import Optional
 
 from dotenv import load_dotenv
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, Page
 from supabase import create_client
 
-# ── Config ────────────────────────────────────────────────────────────────────
+# ── Config ─────────────────────────────────────────────────────────────────
 load_dotenv(".env.local")
 
-SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-CITY_FILTER  = os.getenv("CITY_FILTER", "")          # e.g. "Bengaluru"
-LIMIT        = int(os.getenv("LIMIT", "50"))
-SKIP_EXISTING = os.getenv("SKIP_EXISTING", "true").lower() == "true"
-BUCKET       = "school-photos"                        # Supabase storage bucket name
-PHOTO_DIR    = Path("scripts/downloaded_photos")
+SUPABASE_URL   = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "")
+SUPABASE_KEY   = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+CITY_FILTER    = os.getenv("CITY_FILTER", "")
+LIMIT          = int(os.getenv("LIMIT", "50"))
+SKIP_EXISTING  = os.getenv("SKIP_EXISTING", "true").lower() == "true"
+BUCKET         = "school-photos"
+PHOTO_DIR      = Path("scripts/downloaded_photos")
 PHOTO_DIR.mkdir(parents=True, exist_ok=True)
 
-# ── Supabase client ───────────────────────────────────────────────────────────
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# ── Supabase helpers ────────────────────────────────────────────────────────
 
 def fetch_schools() -> list[dict]:
-    """Pull schools that need a cover photo from Supabase."""
-    q = supabase.table("schools").select("id, name, city, area, slug, cover_image_url")
-
+    q = supabase.table("schools").select(
+        "id, name, city, area, slug, website, cover_image_url"
+    )
     if CITY_FILTER:
         q = q.eq("city", CITY_FILTER)
     if SKIP_EXISTING:
         q = q.is_("cover_image_url", "null")
-
-    q = q.limit(LIMIT)
-    result = q.execute()
-    return result.data or []
+    return (q.limit(LIMIT).execute().data) or []
 
 
-def upload_to_supabase(school_id: str, local_path: Path) -> str | None:
-    """Upload image file to Supabase Storage, return public URL."""
-    ext = local_path.suffix.lower() or ".jpg"
+def upload_to_supabase(school_id: str, local_path: Path) -> Optional[str]:
+    ext          = local_path.suffix.lower() or ".jpg"
     storage_path = f"{school_id}{ext}"
-
+    mime         = {"jpg": "image/jpeg", "jpeg": "image/jpeg",
+                    "png": "image/png",  "webp": "image/webp"}.get(ext.lstrip("."), "image/jpeg")
     with open(local_path, "rb") as f:
         data = f.read()
-
-    mime = "image/jpeg" if ext in (".jpg", ".jpeg") else "image/png" if ext == ".png" else "image/webp"
-
     try:
-        # Remove existing file if present (upsert workaround)
         supabase.storage.from_(BUCKET).remove([storage_path])
     except Exception:
         pass
-
     res = supabase.storage.from_(BUCKET).upload(
-        path=storage_path,
-        file=data,
-        file_options={"content-type": mime},
+        path=storage_path, file=data, file_options={"content-type": mime}
     )
-
     if hasattr(res, "error") and res.error:
         print(f"    ✗ Upload error: {res.error}")
         return None
-
-    public_url = supabase.storage.from_(BUCKET).get_public_url(storage_path)
-    return public_url
+    return supabase.storage.from_(BUCKET).get_public_url(storage_path)
 
 
 def update_school_photo(school_id: str, url: str) -> None:
-    """Write the public URL back to schools.cover_image_url."""
     supabase.table("schools").update({"cover_image_url": url}).eq("id", school_id).execute()
 
 
-async def scrape_photo(page, school_name: str, city: str) -> str | None:
-    """
-    Search Google Maps for a school and return the cover photo URL.
-    Returns None if no photo found.
-    """
-    query = f"{school_name} {city} school"
-    search_url = f"https://www.google.com/maps/search/{urllib.parse.quote(query)}"
+# ── Image download ──────────────────────────────────────────────────────────
 
+def download_image(url: str, dest: Path) -> bool:
     try:
-        await page.goto(search_url, wait_until="domcontentloaded", timeout=30_000)
-        await page.wait_for_timeout(random.randint(2000, 4000))
-
-        # If multiple results appear, click the first one
-        first_result = page.locator('[data-result-index="1"] a, .hfpxzc').first
-        if await first_result.count() > 0:
-            await first_result.click()
-            await page.wait_for_timeout(random.randint(2000, 3500))
-
-        # Try several CSS selectors Google Maps uses for the hero/cover image
-        selectors = [
-            'button[jsaction*="pane.heroHeaderImage"] img',
-            'img.gallery-cell-container',
-            '.section-hero-header-image img',
-            'img[src*="googleusercontent.com"][width]',
-            'img[data-photo-index="0"]',
-            '.x3AX1-LfntMc-header-title-ij8cu img',
-        ]
-
-        for sel in selectors:
-            el = page.locator(sel).first
-            if await el.count() > 0:
-                src = await el.get_attribute("src")
-                if src and "googleusercontent.com" in src:
-                    # Request a larger version by bumping the size param
-                    src = re.sub(r"=w\d+-h\d+", "=w1200-h800", src)
-                    return src
-
-        # Fallback: grab any large googleusercontent image on the page
-        imgs = await page.locator('img[src*="googleusercontent.com"]').all()
-        for img in imgs:
-            src = await img.get_attribute("src")
-            w   = await img.get_attribute("width")
-            if src and w and int(w) >= 200:
-                src = re.sub(r"=w\d+-h\d+", "=w1200-h800", src)
-                return src
-
-    except Exception as e:
-        print(f"    ✗ Playwright error: {e}")
-
-    return None
-
-
-async def download_image(url: str, dest: Path) -> bool:
-    """Download image from URL to local file."""
-    try:
-        headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
-        req = urllib.request.Request(url, headers=headers)
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+        })
         with urllib.request.urlopen(req, timeout=15) as resp:
-            dest.write_bytes(resp.read())
+            data = resp.read()
+        if len(data) < 5000:          # skip tiny placeholder images
+            return False
+        dest.write_bytes(data)
         return True
     except Exception as e:
         print(f"    ✗ Download error: {e}")
         return False
 
 
-async def main():
-    import urllib.parse  # noqa: needed inside async context too
+# ── Source 1: School's own website (og:image) ───────────────────────────────
 
+async def try_school_website(page: Page, website: Optional[str]) -> Optional[str]:
+    if not website:
+        return None
+    if not website.startswith("http"):
+        website = "https://" + website
+    try:
+        await page.goto(website, wait_until="domcontentloaded", timeout=20_000)
+        await page.wait_for_timeout(1500)
+        for prop in ["og:image", "twitter:image", "og:image:url"]:
+            el = page.locator(f'meta[property="{prop}"], meta[name="{prop}"]').first
+            if await el.count() > 0:
+                src = await el.get_attribute("content")
+                if src and src.startswith("http") and not src.endswith(".svg"):
+                    print(f"    → Found og:image on school website")
+                    return src
+    except Exception:
+        pass
+    return None
+
+
+# ── Source 2: EzySchooling ──────────────────────────────────────────────────
+
+async def try_ezyschooling(page: Page, name: str, city: str) -> Optional[str]:
+    try:
+        query = urllib.parse.quote(f"{name} {city}")
+        await page.goto(
+            f"https://www.ezyschooling.com/schools/search?q={query}",
+            wait_until="domcontentloaded", timeout=20_000
+        )
+        await page.wait_for_timeout(2000)
+
+        # Click first school result
+        first = page.locator("a[href*='/school/']").first
+        if await first.count() == 0:
+            return None
+        href = await first.get_attribute("href")
+        if not href:
+            return None
+        if not href.startswith("http"):
+            href = "https://www.ezyschooling.com" + href
+
+        await page.goto(href, wait_until="domcontentloaded", timeout=20_000)
+        await page.wait_for_timeout(2000)
+
+        # Try cover/banner image
+        for sel in [
+            'img[class*="cover"]',
+            'img[class*="banner"]',
+            'img[class*="hero"]',
+            '.school-cover img',
+            'meta[property="og:image"]',
+        ]:
+            el = page.locator(sel).first
+            if await el.count() > 0:
+                src = await el.get_attribute("src") or await el.get_attribute("content")
+                if src and src.startswith("http") and "placeholder" not in src:
+                    print(f"    → Found image on EzySchooling")
+                    return src
+    except Exception as e:
+        print(f"    EzySchooling error: {e}")
+    return None
+
+
+# ── Source 3: The Curious Parent ────────────────────────────────────────────
+
+async def try_curious_parent(page: Page, name: str, city: str) -> Optional[str]:
+    try:
+        query = urllib.parse.quote(f"{name} {city}")
+        await page.goto(
+            f"https://www.thecuriousparent.com/schools?q={query}",
+            wait_until="domcontentloaded", timeout=20_000
+        )
+        await page.wait_for_timeout(2000)
+
+        # Click first result
+        first = page.locator("a[href*='/schools/']").first
+        if await first.count() == 0:
+            return None
+        href = await first.get_attribute("href")
+        if not href:
+            return None
+        if not href.startswith("http"):
+            href = "https://www.thecuriousparent.com" + href
+
+        await page.goto(href, wait_until="domcontentloaded", timeout=20_000)
+        await page.wait_for_timeout(2000)
+
+        # Try og:image first (most reliable)
+        el = page.locator('meta[property="og:image"]').first
+        if await el.count() > 0:
+            src = await el.get_attribute("content")
+            if src and src.startswith("http"):
+                print(f"    → Found image on The Curious Parent")
+                return src
+
+        # Try hero/cover image
+        for sel in ['img[class*="cover"]', 'img[class*="hero"]', 'img[class*="school"]']:
+            el = page.locator(sel).first
+            if await el.count() > 0:
+                src = await el.get_attribute("src")
+                if src and src.startswith("http"):
+                    print(f"    → Found image on The Curious Parent")
+                    return src
+    except Exception as e:
+        print(f"    Curious Parent error: {e}")
+    return None
+
+
+# ── Main ────────────────────────────────────────────────────────────────────
+
+async def main():
     if not SUPABASE_URL or not SUPABASE_KEY:
         print("❌  Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local")
         return
 
     schools = fetch_schools()
     if not schools:
-        print("✓ No schools to process (all already have photos, or none found).")
+        print("✓ No schools to process.")
         return
 
-    print(f"📋 Processing {len(schools)} school(s)...\n")
+    print(f"📋 Processing {len(schools)} school(s) — trying website → EzySchooling → The Curious Parent\n")
 
     async with async_playwright() as pw:
         browser = await pw.firefox.launch(headless=True)
@@ -189,55 +240,57 @@ async def main():
         fail = 0
 
         for i, school in enumerate(schools, 1):
-            name = school["name"]
-            city = school.get("city", "India")
-            sid  = school["id"]
-            slug = school.get("slug", sid)
+            name    = school["name"]
+            city    = school.get("city", "India")
+            sid     = school["id"]
+            slug    = school.get("slug", sid)
+            website = school.get("website")
 
             print(f"[{i}/{len(schools)}] {name} ({city})")
 
-            photo_url = await scrape_photo(page, name, city)
+            # Try each source in order
+            photo_url = None
+            for source_fn, label in [
+                (lambda: try_school_website(page, website), "own website"),
+                (lambda: try_ezyschooling(page, name, city), "EzySchooling"),
+                (lambda: try_curious_parent(page, name, city), "Curious Parent"),
+            ]:
+                photo_url = await source_fn()
+                if photo_url:
+                    break
+                await asyncio.sleep(random.uniform(1, 2))
 
             if not photo_url:
-                print("    ✗ No photo found — skipping\n")
+                print(f"    ✗ No photo found in any source — skipping\n")
                 fail += 1
                 await asyncio.sleep(random.uniform(2, 4))
                 continue
 
             # Download locally
-            ext = ".jpg"
-            local_file = PHOTO_DIR / f"{slug}{ext}"
-            downloaded = await download_image(photo_url, local_file)
-
-            if not downloaded:
+            local_file = PHOTO_DIR / f"{slug}.jpg"
+            if not download_image(photo_url, local_file):
+                print(f"    ✗ Download failed\n")
                 fail += 1
-                await asyncio.sleep(random.uniform(2, 4))
                 continue
 
             # Upload to Supabase Storage
-            print(f"    ↑ Uploading to Supabase storage...")
             public_url = upload_to_supabase(sid, local_file)
-
             if public_url:
                 update_school_photo(sid, public_url)
-                print(f"    ✓ Done → {public_url[:80]}...\n")
+                print(f"    ✓ Saved → {public_url[:80]}...\n")
                 ok += 1
             else:
-                print("    ✗ Upload failed\n")
+                print(f"    ✗ Upload failed\n")
                 fail += 1
 
-            # Random delay to avoid Google blocks
-            delay = random.uniform(3, 7)
-            print(f"    ⏱  Waiting {delay:.1f}s...")
-            await asyncio.sleep(delay)
+            await asyncio.sleep(random.uniform(2, 5))
 
         await browser.close()
 
     print(f"\n{'─'*50}")
     print(f"✓ Done: {ok} uploaded, {fail} failed out of {len(schools)} schools")
-    print(f"Photos saved locally in: {PHOTO_DIR.resolve()}")
+    print(f"Local copies in: {PHOTO_DIR.resolve()}")
 
 
 if __name__ == "__main__":
-    import urllib.parse
     asyncio.run(main())
