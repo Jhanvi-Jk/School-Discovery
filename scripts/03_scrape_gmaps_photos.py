@@ -100,45 +100,93 @@ def download_image(url: str, dest: Path) -> bool:
 
 # ── Bing Image Search ───────────────────────────────────────────────────────
 
+def score_url(url: str, school_name: str) -> int:
+    """
+    Score a candidate image URL for relevance. Higher = better.
+    Penalise clearly wrong sources; reward Indian domains and name matches.
+    """
+    score = 0
+    url_lower = url.lower()
+    name_words = [w.lower() for w in school_name.split() if len(w) > 3]
+
+    # Strong positive: Indian domain
+    if ".in/" in url_lower or url_lower.endswith(".in"):
+        score += 10
+    # Positive: school/education-related domain keywords
+    for kw in ["school", "edu", "academy", "vidya", "public", "international"]:
+        if kw in url_lower:
+            score += 3
+    # Positive: school name words appear in URL
+    for word in name_words:
+        if word in url_lower:
+            score += 5
+    # Negative: clearly unrelated sources
+    for bad in ["ytimg", "youtube", "wikipedia", "ameba.jp", "tohoku", "madrax",
+                "visitcalifornia", "elsevierhealth", "hubspot", "shutterstock",
+                "getty", "alamy", "istockphoto", "dreamstime", "chinese", "japan",
+                "korea", "stat.ameba", "kikin."]:
+        if bad in url_lower:
+            score -= 20
+    return score
+
+
 async def bing_image_search(page: Page, school_name: str, city: str) -> Optional[str]:
-    """Search Bing Images and return the URL of the first good result."""
-    query = urllib.parse.quote(f"{school_name} {city} school building campus")
-    url   = f"https://www.bing.com/images/search?q={query}&qft=+filterui:photo-photo&FORM=IRFLTR"
+    """
+    Search Bing Images with quoted school name for exact match,
+    score results by relevance, try full-res then thumbnail fallback.
+    """
+    # Strip apostrophes so they don't break Bing's quoted search parser
+    clean_name = re.sub(r"[\"'`]", "", school_name)
+    query = urllib.parse.quote(f'"{clean_name}" {city} school')
+    url   = f"https://www.bing.com/images/search?q={query}&FORM=IRFLTR"
 
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=25_000)
-        await page.wait_for_timeout(random.randint(2000, 3500))
+        await page.wait_for_timeout(random.randint(2000, 3000))
 
-        # Bing puts image metadata in <a class="iusc"> data-m attribute as JSON
-        # which contains the full-resolution "murl" (media URL)
         cards = await page.locator("a.iusc").all()
         print(f"    Found {len(cards)} Bing image cards")
 
-        for card in cards[:5]:   # check first 5 results
+        # If quoted search returns 0-1 results, retry without quotes
+        if len(cards) <= 1:
+            query2 = urllib.parse.quote(f"{school_name} {city} school India")
+            await page.goto(
+                f"https://www.bing.com/images/search?q={query2}&FORM=IRFLTR",
+                wait_until="domcontentloaded", timeout=25_000
+            )
+            await page.wait_for_timeout(random.randint(1500, 2500))
+            cards = await page.locator("a.iusc").all()
+            print(f"    Retried without quotes — {len(cards)} cards")
+
+        # Build scored candidate list
+        candidates = []
+        for card in cards[:15]:
             data_m = await card.get_attribute("m")
             if not data_m:
                 continue
             try:
                 meta = json.loads(data_m)
-                img_url = meta.get("murl") or meta.get("turl")
-                if not img_url:
-                    continue
-                # Skip SVGs, tiny icons, and non-http
-                if not img_url.startswith("http"):
-                    continue
-                if img_url.endswith(".svg") or img_url.endswith(".gif"):
-                    continue
-                print(f"    → Bing result: {img_url[:80]}")
-                return img_url
+                murl = meta.get("murl", "")
+                turl = meta.get("turl", "")
+                if murl and murl.startswith("http") and not murl.endswith((".svg", ".gif")):
+                    candidates.append((score_url(murl, school_name), murl, turl))
             except Exception:
                 continue
 
-        # Fallback: grab any large img src on the page
-        imgs = await page.locator("img.mimg").all()
-        for img in imgs[:3]:
-            src = await img.get_attribute("src")
-            if src and src.startswith("http") and "bing" not in src:
-                return src
+        # Sort best-scoring first
+        candidates.sort(key=lambda x: x[0], reverse=True)
+
+        test_path = PHOTO_DIR / "_test_img.jpg"
+        for score, murl, turl in candidates:
+            if score < 0:
+                print(f"    ✗ Best candidate score {score} too low — skipping to avoid wrong image")
+                break
+            print(f"    → [{score:+d}] {murl[:80]}")
+            if download_image(murl, test_path):
+                return murl
+            if turl and turl.startswith("http"):
+                if download_image(turl, test_path):
+                    return turl
 
     except Exception as e:
         print(f"    ✗ Bing search error: {e}")
@@ -188,9 +236,12 @@ async def main():
                 await asyncio.sleep(random.uniform(2, 4))
                 continue
 
+            # The search fn already downloaded a test file — just rename it
+            test_file  = PHOTO_DIR / "_test_img.jpg"
             local_file = PHOTO_DIR / f"{slug}.jpg"
-            if not download_image(photo_url, local_file):
-                # Try next — sometimes the direct URL is blocked; fall back to thumbnail
+            if test_file.exists():
+                test_file.rename(local_file)
+            elif not download_image(photo_url, local_file):
                 fail += 1
                 await asyncio.sleep(random.uniform(1, 3))
                 continue
