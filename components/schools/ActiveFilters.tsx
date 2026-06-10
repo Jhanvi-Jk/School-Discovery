@@ -38,14 +38,14 @@ export function ActiveFilters() {
   filters.grades.forEach((g) =>
     chips.push({ label: g, onRemove: () => toggleArrayFilter("grades", g) })
   );
-  if (filters.fees_min > 0 || filters.fees_max < 1000000) {
+  if (filters.fees_min > 0 || filters.fees_max < 5000000) {
     chips.push({
       label: `${formatFees(filters.fees_min)} – ${
-        filters.fees_max >= 1000000 ? "No limit" : formatFees(filters.fees_max)
+        filters.fees_max >= 5000000 ? "No limit" : formatFees(filters.fees_max)
       }`,
       onRemove: () => {
         setFilter("fees_min", 0);
-        setFilter("fees_max", 1000000);
+        setFilter("fees_max", 5000000);
       },
     });
   }

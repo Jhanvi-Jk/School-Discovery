@@ -65,7 +65,7 @@ export const DEFAULT_FILTERS: SchoolFilters = {
   gender: [],
   types: [],
   fees_min: 0,
-  fees_max: 1000000,
+  fees_max: 5000000,
   has_transport: null,
   sports: [],
   extracurriculars: [],

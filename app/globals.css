@@ -1015,7 +1015,19 @@ body.map-expanded .map-box {
 .fp-switch.on::after { transform: translateX(16px); }
 
 /* Fee slider */
-.fp-fee-labels { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--dark); margin-bottom: 8px; }
+.fp-fee-labels { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; color: var(--dark); margin-bottom: 8px; }
+.fp-fee-max-box {
+  display: flex; align-items: center; gap: 2px;
+  border: 1.5px solid var(--beige-500); border-radius: 8px;
+  padding: 3px 8px; background: var(--card-bg, #fff);
+}
+.fp-fee-max-prefix, .fp-fee-max-suffix { font-size: 12px; font-weight: 600; color: var(--muted); }
+.fp-fee-max-input {
+  width: 38px; border: none; outline: none; background: transparent;
+  font-size: 12px; font-weight: 600; color: var(--dark); text-align: right;
+  padding: 0;
+}
+.fp-fee-max-input::placeholder { color: var(--dark); font-weight: 600; }
 .fp-slider { width: 100%; accent-color: var(--brown-dark); margin-bottom: 4px; }
 .fp-presets { display: flex; gap: 4px; margin-top: 8px; }
 .fp-preset {

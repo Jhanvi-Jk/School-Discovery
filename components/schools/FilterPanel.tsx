@@ -164,17 +164,24 @@ function Toggle({ label, sub, value, onChange }: {
 
 function FeeSlider() {
   const { filters, setFilter } = useFilterStore();
-  const MAX = 1000000;
+  const MAX = 5000000; // ₹50L — covers high-fee international schools (Stonehill, Harrow, etc.)
   const fmt = (v: number) => v >= 100000 ? `₹${(v / 100000).toFixed(1)}L` : `₹${(v / 1000).toFixed(0)}K`;
 
   // Local state gives instant visual feedback; store update is debounced 300 ms
   const [localMin, setLocalMin] = useState(filters.fees_min);
   const [localMax, setLocalMax] = useState(filters.fees_max);
+  // Raw text in the editable "max" box, in ₹ Lakhs (e.g. "30" = ₹30L)
+  const [maxInput, setMaxInput] = useState(
+    filters.fees_max >= MAX ? "" : String(filters.fees_max / 100000)
+  );
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Keep local in sync when store changes externally (e.g. reset / load saved prefs)
   useEffect(() => { setLocalMin(filters.fees_min); }, [filters.fees_min]);
-  useEffect(() => { setLocalMax(filters.fees_max); }, [filters.fees_max]);
+  useEffect(() => {
+    setLocalMax(filters.fees_max);
+    setMaxInput(filters.fees_max >= MAX ? "" : String(filters.fees_max / 100000));
+  }, [filters.fees_max]);
 
   const commitMin = (v: number) => {
     setLocalMin(v);
@@ -187,11 +194,34 @@ function FeeSlider() {
     timerRef.current = setTimeout(() => setFilter("fees_max", v), 300);
   };
 
+  const handleMaxInputChange = (raw: string) => {
+    // Allow only digits and a single decimal point
+    if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
+    setMaxInput(raw);
+    const lakhs = parseFloat(raw);
+    if (raw === "" || isNaN(lakhs)) return;
+    let v = Math.round(lakhs * 100000);
+    if (v >= MAX) { v = MAX; setMaxInput(""); }
+    if (v <= localMin) v = localMin + 10000;
+    commitMax(v);
+  };
+
   return (
     <>
       <div className="fp-fee-labels">
         <span>{fmt(localMin)}</span>
-        <span>{localMax >= MAX ? "No limit" : fmt(localMax)}</span>
+        <span className="fp-fee-max-box">
+          <span className="fp-fee-max-prefix">₹</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            className="fp-fee-max-input"
+            placeholder="No limit"
+            value={maxInput}
+            onChange={(e) => handleMaxInputChange(e.target.value)}
+          />
+          {maxInput !== "" && <span className="fp-fee-max-suffix">L</span>}
+        </span>
       </div>
       <input type="range" className="fp-slider" min={0} max={MAX} step={10000}
         value={localMin}
@@ -199,12 +229,18 @@ function FeeSlider() {
       />
       <input type="range" className="fp-slider" min={0} max={MAX} step={10000}
         value={localMax}
-        onChange={(e) => { const v = +e.target.value; if (v > localMin) commitMax(v); }}
+        onChange={(e) => {
+          const v = +e.target.value;
+          if (v > localMin) {
+            commitMax(v);
+            setMaxInput(v >= MAX ? "" : String(v / 100000));
+          }
+        }}
       />
       <div className="fp-presets">
         {[100000, 200000, 500000].map((p) => (
           <button key={p} className={`fp-preset${localMax === p ? " on" : ""}`}
-            onClick={() => { setLocalMax(p); setFilter("fees_max", p); }}>
+            onClick={() => { setLocalMax(p); setFilter("fees_max", p); setMaxInput(String(p / 100000)); }}>
             Under {fmt(p)}
           </button>
         ))}

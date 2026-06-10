@@ -60,7 +60,7 @@ export const useFilterStore = create<FilterState>()(
     if (filters.grades.length) count++;
     if (filters.gender.length) count++;
     if (filters.types.length) count++;
-    if (filters.fees_min > 0 || filters.fees_max < 1000000) count++;
+    if (filters.fees_min > 0 || filters.fees_max < 5000000) count++;
     if (filters.has_transport !== null) count++;
     if (filters.sports.length) count++;
     if (filters.extracurriculars.length) count++;
