@@ -1,15 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- School building body -->
-  <rect x="3" y="15" width="18" height="13" rx="1" fill="#2C1810"/>
-  <!-- Roof / triangle -->
-  <polygon points="2,15 12,5 22,15" fill="#1a1a1a"/>
-  <!-- Door -->
-  <rect x="9" y="22" width="6" height="6" rx="1" fill="#E2D5C3"/>
-  <!-- Windows -->
-  <rect x="4"  y="17" width="4" height="4" rx="0.5" fill="#E2D5C3" opacity="0.85"/>
-  <rect x="14" y="17" width="4" height="4" rx="0.5" fill="#E2D5C3" opacity="0.85"/>
-  <!-- Magnifying glass circle -->
-  <circle cx="24" cy="13" r="6" fill="none" stroke="#f59e0b" stroke-width="3"/>
-  <!-- Magnifying glass handle -->
-  <line x1="28.2" y1="17.2" x2="31" y2="20" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- Blue rounded square background -->
+  <rect width="48" height="48" rx="10" fill="#2563EB"/>
+  <!-- 300° arc donut ring (gap at top, 240°→300°) — center (24,29) r_outer=15 r_inner=9 -->
+  <path d="M31.5 16 A15 15 0 1 1 16.5 16 L19.5 21.21 A9 9 0 1 0 28.5 21.21 Z" fill="white"/>
+  <!-- Mortarboard board — bottom edge (y=16) aligns with ring gap endpoints -->
+  <rect x="10" y="10" width="28" height="6" rx="2" fill="white"/>
+  <!-- Mortarboard cap top -->
+  <rect x="18" y="3" width="12" height="7" rx="2" fill="white"/>
+  <!-- Teal focal dot — discovery / search element -->
+  <circle cx="24" cy="29" r="4" fill="#14B8A6"/>
 </svg>
