@@ -22,12 +22,15 @@ WHERE id = '999a6105-38a2-4df1-9bab-4dbd6b86bea7';
 
 -- Curriculum — ICSE (override any existing entry)
 DELETE FROM school_curricula WHERE school_id = '999a6105-38a2-4df1-9bab-4dbd6b86bea7';
-INSERT INTO school_curricula (school_id, curriculum) VALUES
-  ('999a6105-38a2-4df1-9bab-4dbd6b86bea7', 'icse');
+INSERT INTO school_curricula (school_id, curriculum)
+SELECT '999a6105-38a2-4df1-9bab-4dbd6b86bea7', 'icse'
+WHERE EXISTS (SELECT 1 FROM schools WHERE id = '999a6105-38a2-4df1-9bab-4dbd6b86bea7')
+ON CONFLICT DO NOTHING;
 
 -- Grades: Nursery to Class 10
-INSERT INTO school_grades (school_id, grade_from, grade_to)
-VALUES ('999a6105-38a2-4df1-9bab-4dbd6b86bea7', 'Nursery', 'Class 10')
+INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
+SELECT '999a6105-38a2-4df1-9bab-4dbd6b86bea7', 'Nursery', 'Class 10', 'icse'
+WHERE EXISTS (SELECT 1 FROM schools WHERE id = '999a6105-38a2-4df1-9bab-4dbd6b86bea7')
 ON CONFLICT DO NOTHING;
 
 -- Boarding facility
@@ -55,12 +58,15 @@ WHERE id = '6be968e2-18e3-430a-9314-20a950f1ac5b';
 
 -- Curriculum — ICSE (override any existing entry)
 DELETE FROM school_curricula WHERE school_id = '6be968e2-18e3-430a-9314-20a950f1ac5b';
-INSERT INTO school_curricula (school_id, curriculum) VALUES
-  ('6be968e2-18e3-430a-9314-20a950f1ac5b', 'icse');
+INSERT INTO school_curricula (school_id, curriculum)
+SELECT '6be968e2-18e3-430a-9314-20a950f1ac5b', 'icse'
+WHERE EXISTS (SELECT 1 FROM schools WHERE id = '6be968e2-18e3-430a-9314-20a950f1ac5b')
+ON CONFLICT DO NOTHING;
 
 -- Grades: Pre-Nursery to Class 10
-INSERT INTO school_grades (school_id, grade_from, grade_to)
-VALUES ('6be968e2-18e3-430a-9314-20a950f1ac5b', 'Pre-Nursery', 'Class 10')
+INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
+SELECT '6be968e2-18e3-430a-9314-20a950f1ac5b', 'Pre-Nursery', 'Class 10', 'icse'
+WHERE EXISTS (SELECT 1 FROM schools WHERE id = '6be968e2-18e3-430a-9314-20a950f1ac5b')
 ON CONFLICT DO NOTHING;
 
 -- Fees: ~Rs. 6,000 (Nursery) to Rs. 10,000/month (Class 10)
@@ -124,14 +130,31 @@ WHERE id = '3176530b-097c-4923-87f4-7b81f9a07eaf';
 
 -- Curricula: IB + IGCSE + ICSE (override any existing entry)
 DELETE FROM school_curricula WHERE school_id = '3176530b-097c-4923-87f4-7b81f9a07eaf';
-INSERT INTO school_curricula (school_id, curriculum) VALUES
-  ('3176530b-097c-4923-87f4-7b81f9a07eaf', 'ib'),
-  ('3176530b-097c-4923-87f4-7b81f9a07eaf', 'igcse'),
-  ('3176530b-097c-4923-87f4-7b81f9a07eaf', 'icse');
+INSERT INTO school_curricula (school_id, curriculum)
+SELECT '3176530b-097c-4923-87f4-7b81f9a07eaf', 'ib'
+WHERE EXISTS (SELECT 1 FROM schools WHERE id = '3176530b-097c-4923-87f4-7b81f9a07eaf')
+ON CONFLICT DO NOTHING;
+INSERT INTO school_curricula (school_id, curriculum)
+SELECT '3176530b-097c-4923-87f4-7b81f9a07eaf', 'igcse'
+WHERE EXISTS (SELECT 1 FROM schools WHERE id = '3176530b-097c-4923-87f4-7b81f9a07eaf')
+ON CONFLICT DO NOTHING;
+INSERT INTO school_curricula (school_id, curriculum)
+SELECT '3176530b-097c-4923-87f4-7b81f9a07eaf', 'icse'
+WHERE EXISTS (SELECT 1 FROM schools WHERE id = '3176530b-097c-4923-87f4-7b81f9a07eaf')
+ON CONFLICT DO NOTHING;
 
--- Grades: Nursery to Class 12 (ages 3-18)
-INSERT INTO school_grades (school_id, grade_from, grade_to)
-VALUES ('3176530b-097c-4923-87f4-7b81f9a07eaf', 'Nursery', 'Class 12')
+-- Grades: Nursery to Class 12 (ages 3-18) — one row per curriculum stream
+INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
+SELECT '3176530b-097c-4923-87f4-7b81f9a07eaf', 'Nursery', 'Class 12', 'ib'
+WHERE EXISTS (SELECT 1 FROM schools WHERE id = '3176530b-097c-4923-87f4-7b81f9a07eaf')
+ON CONFLICT DO NOTHING;
+INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
+SELECT '3176530b-097c-4923-87f4-7b81f9a07eaf', 'Nursery', 'Class 12', 'igcse'
+WHERE EXISTS (SELECT 1 FROM schools WHERE id = '3176530b-097c-4923-87f4-7b81f9a07eaf')
+ON CONFLICT DO NOTHING;
+INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
+SELECT '3176530b-097c-4923-87f4-7b81f9a07eaf', 'Nursery', 'Class 12', 'icse'
+WHERE EXISTS (SELECT 1 FROM schools WHERE id = '3176530b-097c-4923-87f4-7b81f9a07eaf')
 ON CONFLICT DO NOTHING;
 
 -- Fees: annual tuition Rs. 1,78,200 (PreK-K2) to Rs. 2,66,000 (IGCSE Gr 9-10);
@@ -144,10 +167,14 @@ WHERE school_id = '3176530b-097c-4923-87f4-7b81f9a07eaf';
 
 -- Sports: Cricket, Football, Basketball, Swimming, Athletics
 INSERT INTO school_sports (school_id, sport_id)
-SELECT '3176530b-097c-4923-87f4-7b81f9a07eaf', id FROM sports WHERE name IN ('Cricket', 'Football', 'Basketball', 'Swimming', 'Athletics')
+SELECT '3176530b-097c-4923-87f4-7b81f9a07eaf', id FROM sports
+WHERE name IN ('Cricket', 'Football', 'Basketball', 'Swimming', 'Athletics')
+AND EXISTS (SELECT 1 FROM schools WHERE id = '3176530b-097c-4923-87f4-7b81f9a07eaf')
 ON CONFLICT DO NOTHING;
 
 -- Extracurriculars: Music, Dance, Drama, Art
 INSERT INTO school_extracurriculars (school_id, extracurricular_id)
-SELECT '3176530b-097c-4923-87f4-7b81f9a07eaf', id FROM extracurriculars WHERE name IN ('Music', 'Dance', 'Drama', 'Painting')
+SELECT '3176530b-097c-4923-87f4-7b81f9a07eaf', id FROM extracurriculars
+WHERE name IN ('Music', 'Dance', 'Drama', 'Painting')
+AND EXISTS (SELECT 1 FROM schools WHERE id = '3176530b-097c-4923-87f4-7b81f9a07eaf')
 ON CONFLICT DO NOTHING;
