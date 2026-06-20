@@ -42,7 +42,7 @@ CREATE TABLE users (
 -- SCHOOLS
 -- ============================================================
 CREATE TABLE schools (
-  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id                    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   slug                  VARCHAR UNIQUE NOT NULL,
   name                  VARCHAR NOT NULL,
   description           TEXT,
@@ -152,7 +152,7 @@ CREATE TABLE school_extracurriculars (
 -- ADMISSION WINDOWS
 -- ============================================================
 CREATE TABLE admission_windows (
-  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   school_id      UUID REFERENCES schools(id) ON DELETE CASCADE,
   academic_year  VARCHAR NOT NULL,
   grade_from     VARCHAR,
@@ -169,7 +169,7 @@ CREATE TABLE admission_windows (
 -- REVIEWS
 -- ============================================================
 CREATE TABLE reviews (
-  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   school_id         UUID REFERENCES schools(id) ON DELETE CASCADE,
   user_id           UUID REFERENCES users(id) ON DELETE CASCADE,
   rating_academics  INT NOT NULL CHECK (rating_academics BETWEEN 1 AND 5),
@@ -189,7 +189,7 @@ CREATE TABLE reviews (
 -- Q&A
 -- ============================================================
 CREATE TABLE questions (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   school_id  UUID REFERENCES schools(id) ON DELETE CASCADE,
   asked_by   UUID REFERENCES users(id) ON DELETE CASCADE,
   body       TEXT NOT NULL,
@@ -197,7 +197,7 @@ CREATE TABLE questions (
 );
 
 CREATE TABLE answers (
-  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   question_id       UUID REFERENCES questions(id) ON DELETE CASCADE,
   answered_by       UUID REFERENCES users(id) ON DELETE CASCADE,
   is_school_response BOOLEAN NOT NULL DEFAULT FALSE,
@@ -219,7 +219,7 @@ CREATE TABLE saved_schools (
 -- APPLICATION TRACKER
 -- ============================================================
 CREATE TABLE applications (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id       UUID REFERENCES users(id) ON DELETE CASCADE,
   school_id     UUID REFERENCES schools(id) ON DELETE CASCADE,
   grade         VARCHAR,
@@ -235,7 +235,7 @@ CREATE TABLE applications (
 -- ENQUIRIES
 -- ============================================================
 CREATE TABLE enquiries (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   school_id     UUID REFERENCES schools(id) ON DELETE CASCADE,
   user_id       UUID REFERENCES users(id) ON DELETE SET NULL,
   name          VARCHAR NOT NULL,

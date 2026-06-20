@@ -11,52 +11,38 @@
 --           School, Christ Academy, Chrysalis High x3 + Chrysalis Kids,
 --           Clarence High School) with address, contact, sports and
 --           extracurriculars, including area corrections where confirmed.
--- All FK-constrained INSERTs use WHERE EXISTS so they skip gracefully on
--- databases where the referenced school UUID does not exist.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- PART A — Re-insert school_grades rows that failed in migrations 028 & 029
--- (These are now handled in 028/029 directly; kept here as safety no-ops)
 -- ══════════════════════════════════════════════════════════════════════════════
 
 -- Aadya Academy — ICSE, Nursery to Class 10
 INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
-SELECT '398b335d-4700-4425-9ae2-9ac9c71348bc', 'Nursery', 'Class 10', 'icse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '398b335d-4700-4425-9ae2-9ac9c71348bc')
+VALUES ('398b335d-4700-4425-9ae2-9ac9c71348bc', 'Nursery', 'Class 10', 'icse')
 ON CONFLICT DO NOTHING;
 
 -- Air Force School Hebbal — CBSE, LKG to Class 12
 INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
-SELECT '097b4049-5d36-4796-9575-deba03ea4787', 'LKG', 'Class 12', 'cbse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '097b4049-5d36-4796-9575-deba03ea4787')
+VALUES ('097b4049-5d36-4796-9575-deba03ea4787', 'LKG', 'Class 12', 'cbse')
 ON CONFLICT DO NOTHING;
 
 -- Baldwin Boys' High School — ICSE, Nursery to Class 10
 INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
-SELECT '999a6105-38a2-4df1-9bab-4dbd6b86bea7', 'Nursery', 'Class 10', 'icse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '999a6105-38a2-4df1-9bab-4dbd6b86bea7')
+VALUES ('999a6105-38a2-4df1-9bab-4dbd6b86bea7', 'Nursery', 'Class 10', 'icse')
 ON CONFLICT DO NOTHING;
 
 -- Baldwin Girls' High School — ICSE, Pre-Nursery to Class 10
 INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
-SELECT '6be968e2-18e3-430a-9314-20a950f1ac5b', 'Pre-Nursery', 'Class 10', 'icse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '6be968e2-18e3-430a-9314-20a950f1ac5b')
+VALUES ('6be968e2-18e3-430a-9314-20a950f1ac5b', 'Pre-Nursery', 'Class 10', 'icse')
 ON CONFLICT DO NOTHING;
 
 -- Bangalore International School — IB, IGCSE and ICSE streams, Nursery to Class 12
-INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
-SELECT '3176530b-097c-4923-87f4-7b81f9a07eaf', 'Nursery', 'Class 12', 'ib'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '3176530b-097c-4923-87f4-7b81f9a07eaf')
-ON CONFLICT DO NOTHING;
-INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
-SELECT '3176530b-097c-4923-87f4-7b81f9a07eaf', 'Nursery', 'Class 12', 'igcse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '3176530b-097c-4923-87f4-7b81f9a07eaf')
-ON CONFLICT DO NOTHING;
-INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
-SELECT '3176530b-097c-4923-87f4-7b81f9a07eaf', 'Nursery', 'Class 12', 'icse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '3176530b-097c-4923-87f4-7b81f9a07eaf')
+INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum) VALUES
+  ('3176530b-097c-4923-87f4-7b81f9a07eaf', 'Nursery', 'Class 12', 'ib'),
+  ('3176530b-097c-4923-87f4-7b81f9a07eaf', 'Nursery', 'Class 12', 'igcse'),
+  ('3176530b-097c-4923-87f4-7b81f9a07eaf', 'Nursery', 'Class 12', 'icse')
 ON CONFLICT DO NOTHING;
 
 
@@ -80,15 +66,11 @@ UPDATE schools SET
 WHERE id = 'a1b2c3d4-0002-0002-0002-000000000002';
 
 DELETE FROM school_curricula WHERE school_id = 'a1b2c3d4-0002-0002-0002-000000000002';
-INSERT INTO school_curricula (school_id, curriculum)
-SELECT 'a1b2c3d4-0002-0002-0002-000000000002', 'icse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = 'a1b2c3d4-0002-0002-0002-000000000002')
-ON CONFLICT DO NOTHING;
+INSERT INTO school_curricula (school_id, curriculum) VALUES
+  ('a1b2c3d4-0002-0002-0002-000000000002', 'icse');
 
 INSERT INTO school_extracurriculars (school_id, extracurricular_id)
-SELECT 'a1b2c3d4-0002-0002-0002-000000000002', id FROM extracurriculars
-WHERE name IN ('Music', 'Dance', 'Drama', 'Debate', 'MUN')
-AND EXISTS (SELECT 1 FROM schools WHERE id = 'a1b2c3d4-0002-0002-0002-000000000002')
+SELECT 'a1b2c3d4-0002-0002-0002-000000000002', id FROM extracurriculars WHERE name IN ('Music', 'Dance', 'Drama', 'Debate', 'MUN')
 ON CONFLICT DO NOTHING;
 
 
@@ -106,14 +88,14 @@ UPDATE schools SET
 WHERE id = '9fe6a920-f438-4b4e-b529-d8703680877d';
 
 DELETE FROM school_curricula WHERE school_id = '9fe6a920-f438-4b4e-b529-d8703680877d';
-INSERT INTO school_curricula (school_id, curriculum)
-SELECT '9fe6a920-f438-4b4e-b529-d8703680877d', 'cbse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '9fe6a920-f438-4b4e-b529-d8703680877d')
-ON CONFLICT DO NOTHING;
+INSERT INTO school_curricula (school_id, curriculum) VALUES
+  ('9fe6a920-f438-4b4e-b529-d8703680877d', 'cbse');
 
 
 -- ────────────────────────────────────────────────────────────────────────────
 -- BRIGADE SCHOOL MAHADEVAPURA
+-- DB area "Marathahalli" — Mahadevapura is the immediate neighbouring locality;
+-- left as-is but address corrected to the precise Mahadevapura campus.
 -- Source: sulekha.com, brigadeschools.edu.in
 -- ────────────────────────────────────────────────────────────────────────────
 UPDATE schools SET
@@ -127,14 +109,11 @@ UPDATE schools SET
 WHERE id = '98989adf-29f0-4201-bbd5-34c0ae810804';
 
 DELETE FROM school_curricula WHERE school_id = '98989adf-29f0-4201-bbd5-34c0ae810804';
-INSERT INTO school_curricula (school_id, curriculum)
-SELECT '98989adf-29f0-4201-bbd5-34c0ae810804', 'cbse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '98989adf-29f0-4201-bbd5-34c0ae810804')
-ON CONFLICT DO NOTHING;
+INSERT INTO school_curricula (school_id, curriculum) VALUES
+  ('98989adf-29f0-4201-bbd5-34c0ae810804', 'cbse');
 
 INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
-SELECT '98989adf-29f0-4201-bbd5-34c0ae810804', 'Nursery', 'Standard 8', 'cbse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '98989adf-29f0-4201-bbd5-34c0ae810804')
+VALUES ('98989adf-29f0-4201-bbd5-34c0ae810804', 'Nursery', 'Standard 8', 'cbse')
 ON CONFLICT DO NOTHING;
 
 
@@ -155,10 +134,8 @@ UPDATE schools SET
 WHERE id = 'd916d35c-2b64-41d3-9ea5-764e6643ea9b';
 
 DELETE FROM school_curricula WHERE school_id = 'd916d35c-2b64-41d3-9ea5-764e6643ea9b';
-INSERT INTO school_curricula (school_id, curriculum)
-SELECT 'd916d35c-2b64-41d3-9ea5-764e6643ea9b', 'cbse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = 'd916d35c-2b64-41d3-9ea5-764e6643ea9b')
-ON CONFLICT DO NOTHING;
+INSERT INTO school_curricula (school_id, curriculum) VALUES
+  ('d916d35c-2b64-41d3-9ea5-764e6643ea9b', 'cbse');
 
 
 -- ────────────────────────────────────────────────────────────────────────────
@@ -179,14 +156,11 @@ UPDATE schools SET
 WHERE id = '113d1036-ead0-4f5d-aad6-8ac9b8de322f';
 
 DELETE FROM school_curricula WHERE school_id = '113d1036-ead0-4f5d-aad6-8ac9b8de322f';
-INSERT INTO school_curricula (school_id, curriculum)
-SELECT '113d1036-ead0-4f5d-aad6-8ac9b8de322f', 'cbse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '113d1036-ead0-4f5d-aad6-8ac9b8de322f')
-ON CONFLICT DO NOTHING;
+INSERT INTO school_curricula (school_id, curriculum) VALUES
+  ('113d1036-ead0-4f5d-aad6-8ac9b8de322f', 'cbse');
 
 INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
-SELECT '113d1036-ead0-4f5d-aad6-8ac9b8de322f', 'KG1', 'Class 12', 'cbse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '113d1036-ead0-4f5d-aad6-8ac9b8de322f')
+VALUES ('113d1036-ead0-4f5d-aad6-8ac9b8de322f', 'KG1', 'Class 12', 'cbse')
 ON CONFLICT DO NOTHING;
 
 
@@ -203,14 +177,9 @@ UPDATE schools SET
 WHERE id = 'a1b2c3d4-0005-0005-0005-000000000005';
 
 DELETE FROM school_curricula WHERE school_id = 'a1b2c3d4-0005-0005-0005-000000000005';
-INSERT INTO school_curricula (school_id, curriculum)
-SELECT 'a1b2c3d4-0005-0005-0005-000000000005', 'ib'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = 'a1b2c3d4-0005-0005-0005-000000000005')
-ON CONFLICT DO NOTHING;
-INSERT INTO school_curricula (school_id, curriculum)
-SELECT 'a1b2c3d4-0005-0005-0005-000000000005', 'igcse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = 'a1b2c3d4-0005-0005-0005-000000000005')
-ON CONFLICT DO NOTHING;
+INSERT INTO school_curricula (school_id, curriculum) VALUES
+  ('a1b2c3d4-0005-0005-0005-000000000005', 'ib'),
+  ('a1b2c3d4-0005-0005-0005-000000000005', 'igcse');
 
 
 -- ────────────────────────────────────────────────────────────────────────────
@@ -227,10 +196,8 @@ UPDATE schools SET
 WHERE id = '768d4c52-5a56-4061-a34e-9f4f086ace46';
 
 DELETE FROM school_curricula WHERE school_id = '768d4c52-5a56-4061-a34e-9f4f086ace46';
-INSERT INTO school_curricula (school_id, curriculum)
-SELECT '768d4c52-5a56-4061-a34e-9f4f086ace46', 'cbse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '768d4c52-5a56-4061-a34e-9f4f086ace46')
-ON CONFLICT DO NOTHING;
+INSERT INTO school_curricula (school_id, curriculum) VALUES
+  ('768d4c52-5a56-4061-a34e-9f4f086ace46', 'cbse');
 
 
 -- ────────────────────────────────────────────────────────────────────────────
@@ -253,10 +220,8 @@ UPDATE school_details SET
 WHERE school_id = '815da18b-0f58-4d57-bca4-d9daa5485e65';
 
 DELETE FROM school_curricula WHERE school_id = '815da18b-0f58-4d57-bca4-d9daa5485e65';
-INSERT INTO school_curricula (school_id, curriculum)
-SELECT '815da18b-0f58-4d57-bca4-d9daa5485e65', 'cbse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '815da18b-0f58-4d57-bca4-d9daa5485e65')
-ON CONFLICT DO NOTHING;
+INSERT INTO school_curricula (school_id, curriculum) VALUES
+  ('815da18b-0f58-4d57-bca4-d9daa5485e65', 'cbse');
 
 
 -- ────────────────────────────────────────────────────────────────────────────
@@ -275,14 +240,11 @@ UPDATE schools SET
 WHERE id = '640b137f-9cd9-4007-a888-4d88e6b3adec';
 
 DELETE FROM school_curricula WHERE school_id = '640b137f-9cd9-4007-a888-4d88e6b3adec';
-INSERT INTO school_curricula (school_id, curriculum)
-SELECT '640b137f-9cd9-4007-a888-4d88e6b3adec', 'icse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '640b137f-9cd9-4007-a888-4d88e6b3adec')
-ON CONFLICT DO NOTHING;
+INSERT INTO school_curricula (school_id, curriculum) VALUES
+  ('640b137f-9cd9-4007-a888-4d88e6b3adec', 'icse');
 
 INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
-SELECT '640b137f-9cd9-4007-a888-4d88e6b3adec', 'Nursery', 'Class 12', 'icse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '640b137f-9cd9-4007-a888-4d88e6b3adec')
+VALUES ('640b137f-9cd9-4007-a888-4d88e6b3adec', 'Nursery', 'Class 12', 'icse')
 ON CONFLICT DO NOTHING;
 
 
@@ -302,27 +264,23 @@ UPDATE schools SET
 WHERE id = 'a0ea665a-8753-49c3-975d-129e7a51c728';
 
 DELETE FROM school_curricula WHERE school_id = 'a0ea665a-8753-49c3-975d-129e7a51c728';
-INSERT INTO school_curricula (school_id, curriculum)
-SELECT 'a0ea665a-8753-49c3-975d-129e7a51c728', 'cbse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = 'a0ea665a-8753-49c3-975d-129e7a51c728')
-ON CONFLICT DO NOTHING;
+INSERT INTO school_curricula (school_id, curriculum) VALUES
+  ('a0ea665a-8753-49c3-975d-129e7a51c728', 'cbse');
 
 INSERT INTO school_sports (school_id, sport_id)
-SELECT 'a0ea665a-8753-49c3-975d-129e7a51c728', id FROM sports
-WHERE name IN ('Cricket', 'Basketball', 'Swimming', 'Gymnastics', 'Chess')
-AND EXISTS (SELECT 1 FROM schools WHERE id = 'a0ea665a-8753-49c3-975d-129e7a51c728')
+SELECT 'a0ea665a-8753-49c3-975d-129e7a51c728', id FROM sports WHERE name IN ('Cricket', 'Basketball', 'Swimming', 'Gymnastics', 'Chess')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO school_extracurriculars (school_id, extracurricular_id)
-SELECT 'a0ea665a-8753-49c3-975d-129e7a51c728', id FROM extracurriculars
-WHERE name IN ('Music', 'Dance', 'Drama', 'Karate', 'Yoga')
-AND EXISTS (SELECT 1 FROM schools WHERE id = 'a0ea665a-8753-49c3-975d-129e7a51c728')
+SELECT 'a0ea665a-8753-49c3-975d-129e7a51c728', id FROM extracurriculars WHERE name IN ('Music', 'Dance', 'Drama', 'Karate', 'Yoga')
 ON CONFLICT DO NOTHING;
 
 
 -- ────────────────────────────────────────────────────────────────────────────
 -- CHRYSALIS HIGH MARATHAHALLI
--- DB area "Marathahalli" — address corrected to Gunjur, Marathahalli-Sarjapur Road.
+-- DB area "Marathahalli" — actual campus is on Marathahalli-Sarjapur Road,
+-- Gunjur (Varthur side). Left area as Marathahalli (corridor match) but
+-- address corrected.
 -- Source: schoolmykids.com, chrysalishigh.com
 -- ────────────────────────────────────────────────────────────────────────────
 UPDATE schools SET
@@ -336,26 +294,19 @@ UPDATE schools SET
 WHERE id = '2c6e87af-9273-444c-9a73-1dfc139b4ff0';
 
 DELETE FROM school_curricula WHERE school_id = '2c6e87af-9273-444c-9a73-1dfc139b4ff0';
-INSERT INTO school_curricula (school_id, curriculum)
-SELECT '2c6e87af-9273-444c-9a73-1dfc139b4ff0', 'icse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '2c6e87af-9273-444c-9a73-1dfc139b4ff0')
-ON CONFLICT DO NOTHING;
+INSERT INTO school_curricula (school_id, curriculum) VALUES
+  ('2c6e87af-9273-444c-9a73-1dfc139b4ff0', 'icse');
 
 INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
-SELECT '2c6e87af-9273-444c-9a73-1dfc139b4ff0', 'Nursery', 'Class 12', 'icse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '2c6e87af-9273-444c-9a73-1dfc139b4ff0')
+VALUES ('2c6e87af-9273-444c-9a73-1dfc139b4ff0', 'Nursery', 'Class 12', 'icse')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO school_sports (school_id, sport_id)
-SELECT '2c6e87af-9273-444c-9a73-1dfc139b4ff0', id FROM sports
-WHERE name IN ('Cricket', 'Basketball', 'Swimming', 'Gymnastics', 'Chess')
-AND EXISTS (SELECT 1 FROM schools WHERE id = '2c6e87af-9273-444c-9a73-1dfc139b4ff0')
+SELECT '2c6e87af-9273-444c-9a73-1dfc139b4ff0', id FROM sports WHERE name IN ('Cricket', 'Basketball', 'Swimming', 'Gymnastics', 'Chess')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO school_extracurriculars (school_id, extracurricular_id)
-SELECT '2c6e87af-9273-444c-9a73-1dfc139b4ff0', id FROM extracurriculars
-WHERE name IN ('Music', 'Dance', 'Drama', 'Karate', 'Yoga')
-AND EXISTS (SELECT 1 FROM schools WHERE id = '2c6e87af-9273-444c-9a73-1dfc139b4ff0')
+SELECT '2c6e87af-9273-444c-9a73-1dfc139b4ff0', id FROM extracurriculars WHERE name IN ('Music', 'Dance', 'Drama', 'Karate', 'Yoga')
 ON CONFLICT DO NOTHING;
 
 
@@ -411,20 +362,15 @@ UPDATE schools SET
 WHERE id = '2e83a6fc-085a-4f2f-bed3-77061f947f61';
 
 DELETE FROM school_curricula WHERE school_id = '2e83a6fc-085a-4f2f-bed3-77061f947f61';
-INSERT INTO school_curricula (school_id, curriculum)
-SELECT '2e83a6fc-085a-4f2f-bed3-77061f947f61', 'icse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '2e83a6fc-085a-4f2f-bed3-77061f947f61')
-ON CONFLICT DO NOTHING;
+INSERT INTO school_curricula (school_id, curriculum) VALUES
+  ('2e83a6fc-085a-4f2f-bed3-77061f947f61', 'icse');
 
 INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
-SELECT '2e83a6fc-085a-4f2f-bed3-77061f947f61', 'Prep', 'Class 12', 'icse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '2e83a6fc-085a-4f2f-bed3-77061f947f61')
+VALUES ('2e83a6fc-085a-4f2f-bed3-77061f947f61', 'Prep', 'Class 12', 'icse')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO school_sports (school_id, sport_id)
-SELECT '2e83a6fc-085a-4f2f-bed3-77061f947f61', id FROM sports
-WHERE name IN ('Basketball', 'Cricket', 'Football')
-AND EXISTS (SELECT 1 FROM schools WHERE id = '2e83a6fc-085a-4f2f-bed3-77061f947f61')
+SELECT '2e83a6fc-085a-4f2f-bed3-77061f947f61', id FROM sports WHERE name IN ('Basketball', 'Cricket', 'Football')
 ON CONFLICT DO NOTHING;
 
 

@@ -25,22 +25,17 @@ WHERE school_id = '398b335d-4700-4425-9ae2-9ac9c71348bc';
 
 -- Curriculum — site states ICSE (override existing 'cbse' if present)
 DELETE FROM school_curricula WHERE school_id = '398b335d-4700-4425-9ae2-9ac9c71348bc';
-INSERT INTO school_curricula (school_id, curriculum)
-SELECT '398b335d-4700-4425-9ae2-9ac9c71348bc', 'icse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '398b335d-4700-4425-9ae2-9ac9c71348bc')
-ON CONFLICT DO NOTHING;
+INSERT INTO school_curricula (school_id, curriculum) VALUES
+  ('398b335d-4700-4425-9ae2-9ac9c71348bc', 'icse');
 
 -- Grades: KG to Grade 10
-INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
-SELECT '398b335d-4700-4425-9ae2-9ac9c71348bc', 'Nursery', 'Class 10', 'icse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '398b335d-4700-4425-9ae2-9ac9c71348bc')
+INSERT INTO school_grades (school_id, grade_from, grade_to)
+VALUES ('398b335d-4700-4425-9ae2-9ac9c71348bc', 'Nursery', 'Class 10')
 ON CONFLICT DO NOTHING;
 
 -- Extracurriculars: MUN, Debate, Nature Club (field trips/excursions)
 INSERT INTO school_extracurriculars (school_id, extracurricular_id)
-SELECT '398b335d-4700-4425-9ae2-9ac9c71348bc', id FROM extracurriculars
-WHERE name IN ('MUN', 'Debate', 'Nature Club')
-AND EXISTS (SELECT 1 FROM schools WHERE id = '398b335d-4700-4425-9ae2-9ac9c71348bc')
+SELECT '398b335d-4700-4425-9ae2-9ac9c71348bc', id FROM extracurriculars WHERE name IN ('MUN', 'Debate', 'Nature Club')
 ON CONFLICT DO NOTHING;
 
 
@@ -62,21 +57,16 @@ WHERE id = '097b4049-5d36-4796-9575-deba03ea4787';
 -- School hours: Shift 1 (morning) — keep existing 07:45–14:15 (already correct)
 
 -- Grades: LKG to Class 12
-INSERT INTO school_grades (school_id, grade_from, grade_to, curriculum)
-SELECT '097b4049-5d36-4796-9575-deba03ea4787', 'LKG', 'Class 12', 'cbse'
-WHERE EXISTS (SELECT 1 FROM schools WHERE id = '097b4049-5d36-4796-9575-deba03ea4787')
+INSERT INTO school_grades (school_id, grade_from, grade_to)
+VALUES ('097b4049-5d36-4796-9575-deba03ea4787', 'LKG', 'Class 12')
 ON CONFLICT DO NOTHING;
 
 -- Sports: Cricket, Football, Table Tennis, Swimming
 INSERT INTO school_sports (school_id, sport_id)
-SELECT '097b4049-5d36-4796-9575-deba03ea4787', id FROM sports
-WHERE name IN ('Cricket', 'Football', 'Table Tennis', 'Swimming')
-AND EXISTS (SELECT 1 FROM schools WHERE id = '097b4049-5d36-4796-9575-deba03ea4787')
+SELECT '097b4049-5d36-4796-9575-deba03ea4787', id FROM sports WHERE name IN ('Cricket', 'Football', 'Table Tennis', 'Swimming')
 ON CONFLICT DO NOTHING;
 
 -- Extracurriculars: Drama, Debate, NCC, Scout
 INSERT INTO school_extracurriculars (school_id, extracurricular_id)
-SELECT '097b4049-5d36-4796-9575-deba03ea4787', id FROM extracurriculars
-WHERE name IN ('Drama', 'Debate', 'NCC', 'Scout')
-AND EXISTS (SELECT 1 FROM schools WHERE id = '097b4049-5d36-4796-9575-deba03ea4787')
+SELECT '097b4049-5d36-4796-9575-deba03ea4787', id FROM extracurriculars WHERE name IN ('Drama', 'Debate', 'NCC', 'Scout')
 ON CONFLICT DO NOTHING;
