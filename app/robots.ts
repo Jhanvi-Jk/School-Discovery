@@ -7,15 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: [
-          "/",
-          "/schools",
-          "/schools/",
-          "/schools/bengaluru",
-          "/schools/delhi",
-          "/schools/chennai",
-          "/schools/mumbai",
-        ],
+        allow: "/",
         disallow: [
           // Internal API and Next.js build routes — never crawl
           "/api/",
@@ -33,6 +25,9 @@ export default function robots(): MetadataRoute.Robots {
           "/schools?*has_transport=",
           "/schools?*mid_year=",
           "/schools?*admissions_open=",
+          "/manage/",
+          "/report",
+          "/admin/",
 
           // Shortlist / compare are client-side JS state — no bot value
           "/shortlist",
@@ -45,11 +40,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/"],
       },
     ],
-    sitemap: [
-      `${APP_URL}/sitemap.xml`,
-      `${APP_URL}/sitemap-hubs.xml`,
-      `${APP_URL}/sitemap-areas.xml`,
-      `${APP_URL}/sitemap-schools.xml`,
-    ],
+    sitemap: `${APP_URL}/sitemap.xml`,
   };
 }

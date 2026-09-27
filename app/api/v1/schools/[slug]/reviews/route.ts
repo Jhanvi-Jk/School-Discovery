@@ -44,22 +44,11 @@ export async function GET(
     return NextResponse.json({ success: false, error: "School not found" }, { status: 404 });
   }
 
+  // select("*") so this keeps working before the moderation column exists; RLS already hides
+  // unapproved rows, and the filter below covers rows that predate moderation (no status = approved)
   const { data: reviews, error } = await supabase
     .from("reviews")
-    .select(`
-      id,
-      source,
-      rating_overall,
-      rating_academics,
-      rating_facilities,
-      rating_faculty,
-      rating_value,
-      title,
-      body,
-      relation,
-      is_verified,
-      created_at
-    `)
+    .select("*")
     .eq("school_id", school.id)
     .order("created_at", { ascending: false });
 
@@ -67,7 +56,10 @@ export async function GET(
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 
-  const allReviews = reviews || [];
+  const allReviews = (reviews || [])
+    .filter((r: any) => (r.status ?? "approved") === "approved")
+    // Never expose who wrote a review
+    .map(({ user_id, moderation_note, moderated_at, ...rest }: any) => rest);
   const count = allReviews.length;
 
   // Combined averages (equal weight per review regardless of source)
@@ -144,16 +136,18 @@ export async function POST(
     rating_faculty,
     rating_value,
     title:             title || null,
-    body:              review_body || null,
+    body:              review_body ? String(review_body).slice(0, 4000) : null,
     relation,
-  }).select().single();
+    status:            "pending",         // a moderator approves it before it is shown
+  }).select("id").single();
 
   if (error) {
     if (error.code === "23505") {
       return NextResponse.json({ success: false, error: "You have already reviewed this school" }, { status: 409 });
     }
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("[reviews] insert failed:", error.message);
+    return NextResponse.json({ success: false, error: "We couldn't save your review. Please try again shortly." }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, data });
+  return NextResponse.json({ success: true, data, message: "Thanks — your review will appear once a moderator has read it." });
 }

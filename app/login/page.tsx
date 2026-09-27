@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { safeNextPath } from "@/lib/safeNext";
 import { useRouter } from "next/navigation";
 import { GraduationCap, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -37,14 +38,18 @@ export default function LoginPage() {
       setAuthError(error.message);
       setLoading(false);
     } else {
-      router.push("/dashboard");
+      router.push(safeNextPath(new URLSearchParams(window.location.search).get("next")));
     }
   };
 
   const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+          safeNextPath(new URLSearchParams(window.location.search).get("next"))
+        )}`,
+      },
     });
   };
 
@@ -55,7 +60,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 text-blue-700 font-bold text-xl">
             <GraduationCap className="w-8 h-8" />
-            SchoolFinder
+            SchoolFind360
           </Link>
           <h1 className="text-2xl font-bold text-gray-900 mt-6 mb-1">Welcome back</h1>
           <p className="text-gray-500 text-sm">Sign in to your account</p>

@@ -14,8 +14,11 @@ export function formatFees(amount: number | null): string {
 
 export function formatFeesRange(min: number | null, max: number | null): string {
   if (!min && !max) return "Fees N/A";
-  if (!max || min === max) return formatFees(min);
-  return `${formatFees(min)} – ${formatFees(max)}`;
+  if (!max) return formatFees(min);
+  if (!min) return formatFees(max);
+  const lo = formatFees(min), hi = formatFees(max);
+  // "₹1.1L – ₹1.1L" reads like a bug: collapse when both ends round to the same figure
+  return lo === hi ? lo : `${lo} – ${hi}`;
 }
 
 export function formatRating(rating: number | null): string {

@@ -1,129 +1,111 @@
-// Server component — fetches initial school list for SSR so bots receive
-// real school cards in the HTML, not an empty skeleton waiting for JS.
-import { createClient } from "@/lib/supabase/server";
-import { SchoolsClient } from "@/components/schools/SchoolsClient";
-import Link from "next/link";
+// Server component — renders the first page of results into the HTML, so crawlers and
+// slow connections get real school cards instead of a "Finding schools…" placeholder.
 import { headers } from "next/headers";
+import { SchoolsClient } from "@/components/schools/SchoolsClient";
+import { Footer } from "@/components/layout/Footer";
+import { createPublicClient } from "@/lib/supabase/public";
+import { parseSearchParams, searchSchools } from "@/lib/schools/search";
+import { getSiteStats, liveCityNames } from "@/lib/siteStats";
+import { SITE_URL } from "@/lib/site";
 import type { SchoolSummary } from "@/lib/types";
+import type { Metadata } from "next";
+import { formatCount } from "@/lib/siteStats";
+import type { CityStat } from "@/lib/siteStats";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.schoolfind360.com";
+// Canonical always points to the clean URL — filter state lives in the browser, not the URL,
+// so there are no duplicate-content variants to consolidate.
+export async function generateMetadata(): Promise<Metadata> {
+  const stats = await getSiteStats();
+  const cities = liveCityNames(stats);
+  // The same figure the listing page shows — never a hard-coded "500+"
+  const scope = stats.total > 0 ? `${formatCount(stats.total)} schools in ${cities}` : "schools across India";
 
-export default async function SchoolsPage() {
+  return {
+    title: "Explore Schools Across India — Filter by City, Board, Area & Fees",
+    description: `Compare ${scope}. Filter by CBSE, ICSE, IB, IGCSE, area, fees and more, see admission status, and shortlist the right school for your child.`,
+    alternates: { canonical: `${SITE_URL}/schools` },
+    openGraph: {
+      title: "Explore Schools Across India | SchoolFind360",
+      description: `Browse ${scope}. Compare fees, curriculum, admissions and more.`,
+      url: `${SITE_URL}/schools`,
+      type: "website",
+      siteName: "SchoolFind360",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "Explore Schools Across India | SchoolFind360",
+      description: `Browse ${scope}.`,
+    },
+  };
+}
+
+
+// Vercel adds the visitor's city (URL-encoded) to every request
+function detectCity(rawCity: string | null, cities: CityStat[]): CityStat | undefined {
+  if (!rawCity) return undefined;
+  let name = rawCity;
+  try { name = decodeURIComponent(rawCity); } catch { /* keep raw */ }
+  const n = name.toLowerCase();
+  const key = /bengaluru|bangalore/.test(n) ? "bangalore"
+    : /delhi|noida|gurgaon|gurugram|faridabad|ghaziabad/.test(n) ? "delhi"
+    : /chennai|madras/.test(n) ? "chennai"
+    : /mumbai|bombay|thane|navi mumbai/.test(n) ? "mumbai"
+    : null;
+  return cities.find((c) => c.key === key);
+}
+
+export default async function SchoolsPage({ searchParams }: { searchParams: Promise<{ city?: string }> }) {
+  const { city: cityParam } = await searchParams;
   const headersList = await headers();
   const isBot = headersList.get("x-is-bot") === "1";
+  const stats = await getSiteStats();
 
-  const supabase = await createClient();
+  // Start in the visitor's own city when we cover it, otherwise the first live city
+  const live = stats.liveCities.length ? stats.liveCities : stats.cities;
+  const linked = cityParam ? live.find((c) => c.slug === cityParam.toLowerCase() || c.key === cityParam.toLowerCase()) : undefined;
+  const initialCity = linked ?? detectCity(headersList.get("x-vercel-ip-city"), live) ?? live[0];
 
-  // Fetch the default view: Bengaluru, best-rated first, non-thin profiles only.
-  // These are the schools rendered in HTML on first load — visible to bots immediately.
-  const { data: raw, count } = await supabase
-    .from("schools_with_details")
-    .select(
-      "id, slug, name, description, type, gender, verified, area, city, " +
-      "cover_image_url, logo_url, total_fees_min, total_fees_max, " +
-      "has_transport, student_teacher_ratio, student_count, " +
-      "avg_rating, review_count, admissions_open, mid_year_available",
-      { count: "exact" }
-    )
-    .eq("city", "Bengaluru")
-    .not("total_fees_min", "is", null)
-    .order("avg_rating", { ascending: false, nullsFirst: false })
-    .limit(12);
+  let initialSchools: SchoolSummary[] = [];
+  let initialTotal = 0;
+  try {
+    const result = await searchSchools(
+      createPublicClient(),
+      parseSearchParams(new URLSearchParams({ city: initialCity.dbName, page: "1", limit: "24" }))
+    );
+    initialSchools = result.schools as SchoolSummary[];
+    initialTotal = result.total;
+  } catch (e) {
+    // The client fetches again on mount, so a failed server render degrades to a skeleton, not an error page
+    console.error("INITIAL_LOAD_FAILED " + String((e as any)?.message) + " " + String((e as any)?.code) + " " + String((e as any)?.stack).slice(0, 500));
+  }
 
-  const initialSchools = (raw || []) as SchoolSummary[];
-  const initialTotal   = count ?? 0;
-
-  // JSON-LD ItemList — bots read this from the HTML without executing JS
+  // JSON-LD ItemList — read from the HTML without executing JS
   const itemListSchema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "Top Schools in Bengaluru",
-    description: `Browse ${initialTotal}+ verified schools in Bengaluru — CBSE, ICSE, IB, IGCSE and more.`,
+    name: `Schools in ${initialCity.label}`,
     numberOfItems: initialTotal,
     itemListElement: initialSchools.map((s, i) => ({
       "@type": "ListItem",
       position: i + 1,
       name: s.name,
-      url: `${APP_URL}/schools/${s.slug}`,
+      url: `${SITE_URL}/schools/${s.slug}`,
     })),
   };
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
       <SchoolsClient
         initialSchools={initialSchools}
         initialTotal={initialTotal}
+        initialCity={initialCity.key}
+        cityStats={stats.cities.map((c) => ({ key: c.key, count: c.count, live: c.live }))}
+        totalSchools={stats.total}
+        liveCityNames={liveCityNames(stats)}
         disableMap={isBot}
       />
-
-      {/*
-        ── Static HTML directory — visible to crawlers in the raw HTML payload.
-        Googlebot and other bots land here when no city is selected and need
-        anchor tags to discover deeper pages. This section is visually hidden
-        but fully present in the DOM (not display:none — that blocks crawling).
-        It renders below the interactive UI so users never see it.
-      ──────────────────────────────────────────────────────────────────────── */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          width: 1,
-          height: 1,
-          overflow: "hidden",
-          clip: "rect(0 0 0 0)",
-          whiteSpace: "nowrap",
-        }}
-      >
-        <nav>
-          {/* City hubs */}
-          <Link href="/schools/bengaluru">Schools in Bengaluru</Link>
-          <Link href="/schools/delhi">Schools in Delhi</Link>
-          <Link href="/schools/chennai">Schools in Chennai</Link>
-          <Link href="/schools/mumbai">Schools in Mumbai</Link>
-
-          {/* Board filters */}
-          <Link href="/schools/bengaluru?curriculum=cbse">CBSE Schools in Bengaluru</Link>
-          <Link href="/schools/bengaluru?curriculum=icse">ICSE Schools in Bengaluru</Link>
-          <Link href="/schools/bengaluru?curriculum=ib">IB Schools in Bengaluru</Link>
-          <Link href="/schools/bengaluru?curriculum=igcse">IGCSE Schools in Bengaluru</Link>
-          <Link href="/schools/delhi?curriculum=cbse">CBSE Schools in Delhi</Link>
-          <Link href="/schools/delhi?curriculum=ib">IB Schools in Delhi</Link>
-          <Link href="/schools/chennai?curriculum=cbse">CBSE Schools in Chennai</Link>
-          <Link href="/schools/mumbai?curriculum=cbse">CBSE Schools in Mumbai</Link>
-          <Link href="/schools/mumbai?curriculum=icse">ICSE Schools in Mumbai</Link>
-
-          {/* Neighbourhood landing pages */}
-          <Link href="/schools/bengaluru/whitefield">Schools in Whitefield, Bengaluru</Link>
-          <Link href="/schools/bengaluru/koramangala">Schools in Koramangala, Bengaluru</Link>
-          <Link href="/schools/bengaluru/hsr-layout">Schools in HSR Layout, Bengaluru</Link>
-          <Link href="/schools/bengaluru/indiranagar">Schools in Indiranagar, Bengaluru</Link>
-          <Link href="/schools/bengaluru/jp-nagar">Schools in JP Nagar, Bengaluru</Link>
-          <Link href="/schools/delhi/south-delhi">Schools in South Delhi</Link>
-          <Link href="/schools/mumbai/andheri">Schools in Andheri, Mumbai</Link>
-          <Link href="/schools/mumbai/bandra">Schools in Bandra, Mumbai</Link>
-
-          {/* Board comparison cross-over pages */}
-          <Link href="/schools/bengaluru/cbse-vs-icse">CBSE vs ICSE Schools in Bengaluru</Link>
-          <Link href="/schools/bengaluru/cbse-vs-ib">CBSE vs IB Schools in Bengaluru</Link>
-          <Link href="/schools/delhi/cbse-vs-icse">CBSE vs ICSE Schools in Delhi</Link>
-
-          {/* Intent-based cluster pages */}
-          <Link href="/schools/bengaluru/coed-cbse">Co-ed CBSE Schools in Bengaluru</Link>
-          <Link href="/schools/bengaluru/girls-cbse">Girls CBSE Schools in Bengaluru</Link>
-          <Link href="/schools/bengaluru/boys-cbse">Boys CBSE Schools in Bengaluru</Link>
-          <Link href="/schools/bengaluru/coed-ib">Co-ed IB Schools in Bengaluru</Link>
-          <Link href="/schools/bengaluru/girls-ib">Girls IB Schools in Bengaluru</Link>
-          <Link href="/schools/bengaluru/coed-cbse-boarding">Co-ed CBSE Boarding Schools in Bengaluru</Link>
-          <Link href="/schools/delhi/coed-cbse">Co-ed CBSE Schools in Delhi</Link>
-          <Link href="/schools/delhi/girls-cbse">Girls CBSE Schools in Delhi</Link>
-          <Link href="/schools/mumbai/coed-icse">Co-ed ICSE Schools in Mumbai</Link>
-          <Link href="/schools/chennai/coed-cbse">Co-ed CBSE Schools in Chennai</Link>
-        </nav>
-      </div>
+      <Footer />
     </>
   );
 }

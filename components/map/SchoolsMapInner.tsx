@@ -319,9 +319,11 @@ function getPinDims(zoom: number): [number, number] {
 interface Props {
   schools: SchoolSummary[];
   onSchoolClick?: (slug: string) => void;
+  /** Slugs whose cards are on the current results page; others have no card to scroll to */
+  listedSlugs?: string[];
 }
 
-export default function SchoolsMapInner({ schools, onSchoolClick }: Props) {
+export default function SchoolsMapInner({ schools, onSchoolClick, listedSlugs }: Props) {
   const [MC, setMC] = useState<any>(null);
   const [L, setL]   = useState<any>(null);
   const [zoom, setZoom] = useState(11);
@@ -423,11 +425,13 @@ export default function SchoolsMapInner({ schools, onSchoolClick }: Props) {
         zoomControl={true}
       >
         <ZoomTracker />
-        {/* Original light grey/white/green base tile */}
+        {/* Base tile — CartoDB's basemaps.cartocdn.com now requires an API key
+            (returns an "API KEY REQUIRED" watermark tile for anonymous requests),
+            so we use OpenStreetMap's free standard tiles, same as BangaloreMap.tsx. */}
         <TileLayer
-          attribution='&copy; <a href="https://carto.com">CartoDB</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
-          subdomains="abcd"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          subdomains="abc"
           maxZoom={19}
         />
 
@@ -447,14 +451,6 @@ export default function SchoolsMapInner({ schools, onSchoolClick }: Props) {
             }}
           />
         ))}
-
-        {/* Label tile on top */}
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png"
-          subdomains="abcd"
-          maxZoom={19}
-          attribution=""
-        />
 
         {/* School markers — golden-angle phyllotaxis spread per area */}
         {schools.map((school) => {
@@ -478,15 +474,15 @@ export default function SchoolsMapInner({ schools, onSchoolClick }: Props) {
             pos = [base[0] + radius * Math.sin(angle), base[1] + radius * Math.cos(angle)];
           }
           return (
-            <Marker key={school.id} position={pos} icon={schoolIcon}
-              eventHandlers={{
-                click: () => onSchoolClick?.(school.slug),
-              }}>
+            <Marker key={school.id} position={pos} icon={schoolIcon}>
+              {/* Clicking a pin just opens this popup — it's the user's choice
+                  whether to scroll to the card or jump to the full profile. */}
               <Popup>
                 <div style={{ minWidth:160 }}>
                   <p style={{ fontWeight:700, fontSize:13, marginBottom:4 }}>{school.name}</p>
                   <p style={{ color:"#7a6a5a", fontSize:12, marginBottom:8 }}>{school.area}</p>
                   <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                    {(!listedSlugs || listedSlugs.includes(school.slug)) && (
                     <button
                       onClick={() => onSchoolClick?.(school.slug)}
                       style={{
@@ -496,6 +492,7 @@ export default function SchoolsMapInner({ schools, onSchoolClick }: Props) {
                       }}>
                       Scroll to Card
                     </button>
+                    )}
                     <a href={`/schools/${school.slug}`} style={{
                       display:"block", background:"transparent", color:"#2C1810",
                       borderRadius:8, padding:"5px 10px", fontSize:12,
@@ -522,7 +519,7 @@ export default function SchoolsMapInner({ schools, onSchoolClick }: Props) {
           borderRadius: "inherit", padding: "24px 16px",
         }}>
           <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: "#a89880", textTransform: "uppercase", marginBottom: 8 }}>
-            Welcome to SchoolFinder
+            Welcome to SchoolFind360
           </p>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: "#2C1810", marginBottom: 20, textAlign: "center" }}>
             Which city do you reside in?

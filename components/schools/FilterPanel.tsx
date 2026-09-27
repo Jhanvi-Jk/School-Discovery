@@ -12,7 +12,7 @@ import { useFilterStore } from "@/store/filterStore";
 import { useCityStore, CITY_DB_NAMES } from "@/store/cityStore";
 import { useSavedPrefsStore } from "@/store/savedPrefsStore";
 import {
-  BENGALURU_AREAS, AREAS_BY_CITY, ALL_SPORTS, ALL_EXTRACURRICULARS,
+  ALL_SPORTS, ALL_EXTRACURRICULARS,
   ALL_LANGUAGES, GRADE_OPTIONS,
   Curriculum, SchoolType, SchoolGender,
   CURRICULUM_LABELS, SCHOOL_TYPE_LABELS, GENDER_LABELS,
@@ -482,19 +482,29 @@ export function FilterPanel({ className }: { className?: string }) {
   const { isSaved, savedAt, savePrefs, clearPrefs } = useSavedPrefsStore();
 
   useEffect(() => {
-    const supabase = createClient();
-    // When city changes, clear selected areas that don't belong to new city
+    // When city changes, clear selected areas that don't belong to the new city
     setFilter("areas", []);
-    const q = supabase.from("schools").select("area");
-    const cityName = selectedCity ? CITY_DB_NAMES[selectedCity] : null;
-    (cityName ? q.eq("city", cityName) : q).then(({ data }) => {
-      if (!data) return;
-      const counts: Record<string, number> = {};
-      data.forEach((s) => { if (s.area) counts[s.area] = (counts[s.area] || 0) + 1; });
-      setAreaCounts(counts);
-    });
+    setAreaCounts({});
+    if (!selectedCity) return;
+    let cancelled = false;
+    // Counted from the listing view so hidden/duplicate entries never add a neighbourhood
+    createClient()
+      .from("schools_with_details")
+      .select("area")
+      .eq("city", CITY_DB_NAMES[selectedCity])
+      .limit(2000)
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        const counts: Record<string, number> = {};
+        (data as { area: string | null }[]).forEach((s) => { if (s.area) counts[s.area] = (counts[s.area] || 0) + 1; });
+        setAreaCounts(counts);
+      });
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCity]);
+
+  // Neighbourhoods that actually have schools, busiest first
+  const areaItems = Object.keys(areaCounts).sort((a, b) => areaCounts[b] - areaCounts[a] || a.localeCompare(b));
 
   return (
     <div className="fp-wrap">
@@ -513,9 +523,8 @@ export function FilterPanel({ className }: { className?: string }) {
         </div>
       )}
 
-      {/* 1. Area — always-open, keyed on city so it remounts on city change */}
-      <div style={{ position: "relative" }}>
-        {/* Always-open area section — no collapsing, so city switch is always visible */}
+      {/* 1. Area — only meaningful once a city is chosen, so it stays hidden until then */}
+      {selectedCity && areaItems.length > 0 && (
         <div className="fp-section">
           <div className="fp-trigger" style={{ cursor: "default" }}>
             <div className="fp-trigger-left">
@@ -526,8 +535,8 @@ export function FilterPanel({ className }: { className?: string }) {
           </div>
           <div className="fp-body">
             <SearchableList
-              key={selectedCity || "all"}
-              items={selectedCity ? (AREAS_BY_CITY[selectedCity] ?? BENGALURU_AREAS) : BENGALURU_AREAS}
+              key={selectedCity}
+              items={areaItems}
               selected={filters.areas}
               onToggle={(v) => toggleArrayFilter("areas", v)}
               placeholder="Search areas…"
@@ -535,22 +544,7 @@ export function FilterPanel({ className }: { className?: string }) {
             />
           </div>
         </div>
-        {!selectedCity && (
-          <div style={{
-            position: "absolute", inset: 0, zIndex: 10,
-            background: "rgba(255,255,255,0.78)",
-            backdropFilter: "blur(2px)",
-            display: "flex", flexDirection: "column",
-            alignItems: "center", justifyContent: "center", gap: 4,
-            borderRadius: 4,
-          }}>
-            <MapPin size={16} color="#a89880" />
-            <span style={{ fontSize: 11, color: "#a89880", fontWeight: 600, textAlign: "center", padding: "0 12px" }}>
-              Select a city first
-            </span>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* 2. Curriculum */}
       <Section icon={BookOpen} title="Curriculum / Board" count={filters.curricula.length} defaultOpen>

@@ -61,22 +61,17 @@ export function BugReportModal() {
 
   return (
     <>
-      {/* Floating trigger button */}
+      {/* Floating trigger button — labelled so the warning icon isn't a mystery */}
       <button
         onClick={() => setOpen(true)}
-        title="Report an issue"
-        style={{
-          position: "fixed", bottom: 80, right: 20, zIndex: 999,
-          width: 44, height: 44, borderRadius: "50%",
-          background: "var(--beige-500)", border: "none",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
-          cursor: "pointer", transition: "transform 0.15s, background 0.15s",
-        }}
-        onMouseEnter={e => (e.currentTarget.style.background = "var(--beige-600)")}
-        onMouseLeave={e => (e.currentTarget.style.background = "var(--beige-500)")}
+        title="Report an issue or wrong data"
+        aria-label="Report an issue or wrong data"
+        className="report-fab"
+        onMouseEnter={e => (e.currentTarget.style.background = "var(--brown-dark)")}
+        onMouseLeave={e => (e.currentTarget.style.background = "var(--dark)")}
       >
-        <AlertTriangle size={18} color="white" />
+        <AlertTriangle size={16} color="white" />
+        <span className="report-fab-label">Report an issue</span>
       </button>
 
       {/* Backdrop */}

@@ -12,6 +12,11 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { formatFeesRange, formatRating } from "@/lib/utils";
 import { CURRICULUM_LABELS, SCHOOL_TYPE_LABELS } from "@/lib/types";
+import { BoardLandingPage, boardMeta, loadBoardPageData } from "@/components/seo/BoardLandingPage";
+import { BOARD_SLUGS, boardFromSlug, boardPageHref, cityFromSlug } from "@/lib/cities";
+
+// Board landing pages link with the canonical city slug, whichever spelling the visitor used
+const boardHref = (citySlug: string, board: string) => boardPageHref(cityFromSlug(citySlug)?.slug ?? citySlug.toLowerCase(), board);
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.schoolfind360.com";
 const YEAR = new Date().getFullYear();
@@ -54,7 +59,8 @@ const CLUSTER_FACILITY: Record<string, string> = {
 };
 // DB values for gender column
 const CLUSTER_GENDER_DB: Record<string, string> = {
-  coed: "co-ed", girls: "girls", boys: "boys",
+  // The database enum is "coed" (no hyphen) — "co-ed" matched nothing and emptied the page
+  coed: "coed", girls: "girls", boys: "boys",
 };
 
 interface ClusterParams {
@@ -106,11 +112,27 @@ export async function generateMetadata({
 
   const canonicalUrl = `${APP_URL}/schools/${slug.toLowerCase()}/${area.toLowerCase()}`;
 
+  // Board landing page — /schools/bengaluru/cbse
+  const boardSlug = boardFromSlug(area) ? area.toLowerCase() : null;
+  if (boardSlug) {
+    const cityCfg = cityFromSlug(slug)!;
+    const data = await loadBoardPageData(cityCfg, BOARD_SLUGS[boardSlug].db);
+    const { title, description } = boardMeta(cityCfg, BOARD_SLUGS[boardSlug].db, data);
+    const url = `${APP_URL}/schools/${cityCfg.slug}/${boardSlug}`;
+    return {
+      title: { absolute: title }, description,
+      alternates: { canonical: url },
+      robots: data.count > 0 ? { index: true, follow: true } : { index: false, follow: true },
+      openGraph: { title, description, url, type: "website", siteName: "SchoolFind360" },
+      twitter: { card: "summary_large_image", title, description },
+    };
+  }
+
   // Cluster page — /schools/bengaluru/coed-cbse, /schools/delhi/girls-ib-boarding
   const cluster = parseCluster(area.toLowerCase());
   if (cluster) {
     const title = `${cluster.label} in ${cityName} ${YEAR} | Fees & Reviews — SchoolFind360`;
-    const description = `Find the best ${cluster.label.toLowerCase()} in ${cityName}. Compare ${YEAR} fees, admission status, and real parent reviews on SchoolFind360.`;
+    const description = `Find the best ${cluster.label.toLowerCase()} in ${cityName}. Compare ${YEAR} fees, admission status, and parent reviews on SchoolFind360.`;
     return {
       title, description,
       alternates: { canonical: canonicalUrl },
@@ -137,7 +159,7 @@ export async function generateMetadata({
 
   const areaLabel = toTitleCase(decodeURIComponent(area));
   const title = `Schools in ${areaLabel}, ${cityName} ${YEAR} | Fees, Curriculum & Reviews — SchoolFind360`;
-  const description = `Find and compare verified schools in ${areaLabel}, ${cityName}. Browse ${YEAR} fees, CBSE, ICSE, IB curriculum options, admission status, and real parent reviews.`;
+  const description = `Find and compare verified schools in ${areaLabel}, ${cityName}. Browse ${YEAR} fees, CBSE, ICSE, IB curriculum options, admission status, and parent reviews.`;
 
   return {
     title,
@@ -159,6 +181,11 @@ export default async function AreaPage({
 
   // Only serve area pages for known cities
   if (!cityName) notFound();
+
+  // ── Board landing page — /schools/bengaluru/cbse (replaces ?curriculum= URLs) ──
+  if (boardFromSlug(area)) {
+    return <BoardLandingPage city={cityFromSlug(slug)!} boardSlug={area.toLowerCase()} />;
+  }
 
   // ── Cluster page — /schools/bengaluru/coed-cbse, /schools/delhi/girls-ib-boarding ──
   const cluster = parseCluster(area.toLowerCase());
@@ -229,7 +256,7 @@ export default async function AreaPage({
               </h1>
               <p style={{ fontSize: 14, color: "rgba(255,255,255,0.6)" }}>
                 {hasResults
-                  ? `${clusterCount} verified ${cluster.label.toLowerCase()} — compare ${YEAR} fees and real parent reviews.`
+                  ? `${clusterCount} verified ${cluster.label.toLowerCase()} — compare ${YEAR} fees and parent reviews.`
                   : `No ${cluster.label.toLowerCase()} found in ${cityName} yet — browse all schools below.`}
               </p>
             </div>
@@ -257,7 +284,7 @@ export default async function AreaPage({
                           {school.type && <><span style={{ margin: "0 3px" }}>·</span>{SCHOOL_TYPE_LABELS[school.type as keyof typeof SCHOOL_TYPE_LABELS] ?? school.type}</>}
                           {school.admissions_open && (
                             <span style={{ marginLeft: 4, background: "#dcfce7", color: "#166534", fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 99 }}>
-                              Admissions Open {YEAR}–{String(YEAR + 1).slice(2)}
+                              Admissions open
                             </span>
                           )}
                         </div>
@@ -305,7 +332,7 @@ export default async function AreaPage({
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {cluster.board && (
-                  <Link href={`/schools/${slug.toLowerCase()}?curriculum=${cluster.board}`}
+                  <Link href={boardHref(slug, cluster.board)}
                     style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", background: "var(--beige-200)", border: "1px solid var(--beige-400)", borderRadius: 99, padding: "5px 14px", textDecoration: "none" }}>
                     All {BOARD_LABEL[cluster.board]} schools in {cityName}
                   </Link>
@@ -475,7 +502,7 @@ export default async function AreaPage({
                 <div key={board}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                     <p style={{ fontSize: 15, fontWeight: 700, color: "var(--dark)" }}>{board} Schools</p>
-                    <Link href={`/schools/${slug.toLowerCase()}?curriculum=${curriculum}`} style={{ fontSize: 12, color: "var(--brown-dark)", fontWeight: 600, textDecoration: "none" }}>
+                    <Link href={boardHref(slug, curriculum)} style={{ fontSize: 12, color: "var(--brown-dark)", fontWeight: 600, textDecoration: "none" }}>
                       View all →
                     </Link>
                   </div>
@@ -533,7 +560,7 @@ export default async function AreaPage({
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {["cbse", "icse", "ib", "igcse"].filter(b => b !== cmp.boardA && b !== cmp.boardB).map((board) => (
-                  <Link key={board} href={`/schools/${slug.toLowerCase()}?curriculum=${board}`}
+                  <Link key={board} href={boardHref(slug, board)}
                     style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", background: "var(--beige-200)", border: "1px solid var(--beige-400)", borderRadius: 99, padding: "5px 14px", textDecoration: "none" }}
                   >
                     {BOARD_LABEL[board]} schools in {cityName}
@@ -634,7 +661,7 @@ export default async function AreaPage({
             </h1>
             <p style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", marginBottom: 20 }}>
               {hasResults
-                ? `${count} verified school${count !== 1 ? "s" : ""} in ${areaLabel} — compare ${YEAR} fees, boards, and real parent reviews.`
+                ? `${count} verified school${count !== 1 ? "s" : ""} in ${areaLabel} — compare ${YEAR} fees, boards, and parent reviews.`
                 : `We don't have schools listed in ${areaLabel} yet — browse all schools in ${cityName} instead.`}
             </p>
 
@@ -643,7 +670,7 @@ export default async function AreaPage({
               {["cbse", "icse", "ib", "igcse"].map((board) => (
                 <Link
                   key={board}
-                  href={`/schools/${slug.toLowerCase()}?curriculum=${board}&area=${encodeURIComponent(areaParam)}`}
+                  href={boardHref(slug, board)}
                   style={{
                     fontSize: 12, fontWeight: 600, padding: "5px 14px", borderRadius: 99,
                     background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)",
@@ -690,7 +717,7 @@ export default async function AreaPage({
                           {school.type && <><span style={{ margin: "0 3px" }}>·</span>{SCHOOL_TYPE_LABELS[school.type as keyof typeof SCHOOL_TYPE_LABELS] ?? school.type}</>}
                           {school.admissions_open && (
                             <span style={{ marginLeft: 4, background: "#dcfce7", color: "#166534", fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 99 }}>
-                              Admissions Open {YEAR}–{String(YEAR + 1).slice(2)}
+                              Admissions open
                             </span>
                           )}
                         </div>
@@ -729,7 +756,7 @@ export default async function AreaPage({
                     All schools in {cityName} →
                   </Link>
                   {["cbse", "ib", "igcse"].map((board) => (
-                    <Link key={board} href={`/schools/${slug.toLowerCase()}?curriculum=${board}`}
+                    <Link key={board} href={boardHref(slug, board)}
                       style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", background: "var(--beige-200)", border: "1px solid var(--beige-400)", borderRadius: 99, padding: "5px 14px", textDecoration: "none" }}
                     >
                       {board.toUpperCase()} schools in {cityName}

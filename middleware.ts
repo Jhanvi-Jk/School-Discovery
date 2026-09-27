@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 // Protected routes that require auth
-const PROTECTED_ROUTES = ["/dashboard", "/manage"];
+const PROTECTED_ROUTES = ["/dashboard", "/manage", "/admin"];
 
 // ── Bot User-Agent detection ─────────────────────────────────────────────────
 // Crawlers don't execute JS so serving them the map's large coordinate JSON is waste.
