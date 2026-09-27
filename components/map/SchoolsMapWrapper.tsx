@@ -15,8 +15,10 @@ const SchoolsMapInner = dynamic(() => import("@/components/map/SchoolsMapInner")
 interface Props {
   schools: SchoolSummary[];
   onSchoolClick?: (slug: string) => void;
+  /** Slugs whose cards are on screen; "Scroll to Card" is only offered for these */
+  listedSlugs?: string[];
 }
 
-export function SchoolsMapWrapper({ schools, onSchoolClick }: Props) {
-  return <SchoolsMapInner schools={schools} onSchoolClick={onSchoolClick} />;
+export function SchoolsMapWrapper({ schools, onSchoolClick, listedSlugs }: Props) {
+  return <SchoolsMapInner schools={schools} onSchoolClick={onSchoolClick} listedSlugs={listedSlugs} />;
 }

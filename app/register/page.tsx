@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { safeNextPath } from "@/lib/safeNext";
 import { useRouter } from "next/navigation";
 import { GraduationCap, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -38,7 +39,9 @@ export default function RegisterPage() {
       password: data.password,
       options: {
         data: { full_name: data.full_name, role: data.role },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+          safeNextPath(new URLSearchParams(window.location.search).get("next"))
+        )}`,
       },
     });
     if (error) {
@@ -52,7 +55,11 @@ export default function RegisterPage() {
   const signUpWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+          safeNextPath(new URLSearchParams(window.location.search).get("next"))
+        )}`,
+      },
     });
   };
 
@@ -79,7 +86,7 @@ export default function RegisterPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 text-blue-700 font-bold text-xl">
             <GraduationCap className="w-8 h-8" />
-            SchoolFinder
+            SchoolFind360
           </Link>
           <h1 className="text-2xl font-bold text-gray-900 mt-6 mb-1">Create account</h1>
           <p className="text-gray-500 text-sm">Start discovering schools for your child</p>

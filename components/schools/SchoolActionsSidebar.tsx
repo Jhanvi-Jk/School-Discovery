@@ -1,33 +1,39 @@
 "use client";
 
-import { Heart, GitCompare, ExternalLink, Phone, Mail, MapPin, Globe } from "lucide-react";
+import { useState } from "react";
+import Link from "next/link";
+import { Heart, GitCompare, ExternalLink, Phone, Mail, MapPin, Globe, CalendarCheck, BellRing, Flag } from "lucide-react";
+import { EnquiryForm } from "@/components/schools/EnquiryForm";
+import { AdmissionAlertForm } from "@/components/forms/AdmissionAlertForm";
 import { useCompareStore } from "@/store/compareStore";
 import { useShortlistStore } from "@/store/shortlistStore";
 
 interface Props {
   school: any;
+  /** Computed on the server from the window dates (see lib/admissions.ts) */
+  admission?: { open: boolean; yearLabel: string; applicationUrl?: string | null };
 }
 
-export function SchoolActionsSidebar({ school }: Props) {
+export function SchoolActionsSidebar({ school, admission }: Props) {
+  const [formKind, setFormKind] = useState<null | "campus_visit" | "admission">(null);
+  const [alertOpen, setAlertOpen] = useState(false);
   const { isSaved, add, remove } = useShortlistStore();
   const saved = isSaved(school.id);
   const { isInCompare, addSchool, removeSchool, canAdd } = useCompareStore();
   const inCompare = isInCompare(school.id);
 
-  const openAdmission = (school.admission_windows || []).find(
-    (a: any) => a.status === "open"
-  );
+  const openAdmission = admission?.open ? admission : null;
 
   const hasContact = school.phone || school.email || school.address_line1 || school.area;
 
   // Primary CTA — prefer apply URL, then website, then phone, then email
   const primaryHref =
-    openAdmission?.application_url ||
+    openAdmission?.applicationUrl ||
     school.website ||
     (school.phone ? `tel:${school.phone}` : null) ||
     (school.email ? `mailto:${school.email}` : null);
 
-  const primaryLabel = openAdmission?.application_url
+  const primaryLabel = openAdmission?.applicationUrl
     ? "Apply Online"
     : school.website
     ? "Visit School Website"
@@ -56,13 +62,25 @@ export function SchoolActionsSidebar({ school }: Props) {
             borderRadius: 99, display: "inline-flex", alignItems: "center",
             gap: 4, marginBottom: 14,
           }}>
-            ✓ Admissions Open {new Date().getFullYear()}–{(new Date().getFullYear() + 1).toString().slice(2)}
+            ✓ Admissions open{openAdmission.yearLabel ? ` ${openAdmission.yearLabel}` : ""}
           </div>
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: openAdmission ? 0 : 12 }}>
 
-          {/* Primary CTA — links directly to school */}
+          {/* Revenue path: enquire / book a campus visit */}
+          <button
+            onClick={() => setFormKind("campus_visit")}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              padding: "12px 0", borderRadius: 12, border: "none", cursor: "pointer",
+              background: "var(--dark)", color: "white", fontSize: 14, fontWeight: 800,
+            }}
+          >
+            <CalendarCheck style={{ width: 15, height: 15 }} /> Enquire / Book a campus visit
+          </button>
+
+          {/* Secondary: go to the school's own site */}
           {primaryHref ? (
             <a
               href={primaryHref}
@@ -71,7 +89,7 @@ export function SchoolActionsSidebar({ school }: Props) {
               style={{
                 width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
                 gap: 8, padding: "11px 0", borderRadius: 12,
-                background: "var(--brown-dark)", color: "white",
+                background: "transparent", color: "var(--brown-dark)", border: "1px solid var(--beige-500)",
                 fontSize: 13, fontWeight: 700, textDecoration: "none",
                 transition: "opacity 0.15s",
               }}
@@ -151,6 +169,22 @@ export function SchoolActionsSidebar({ school }: Props) {
         </div>
       </div>
 
+      {/* ── Admission alerts ── */}
+      <div style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 20 }}>
+        <button
+          onClick={() => setAlertOpen((o) => !o)}
+          aria-expanded={alertOpen}
+          style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 13, fontWeight: 700, color: "var(--dark)", textAlign: "left" }}
+        >
+          <BellRing style={{ width: 14, height: 14, color: "var(--muted)" }} /> Get admission deadline alerts
+        </button>
+        {alertOpen && (
+          <div style={{ marginTop: 12 }}>
+            <AdmissionAlertForm schoolSlug={school.slug} schoolName={school.name} compact />
+          </div>
+        )}
+      </div>
+
       {/* ── Contact card ── */}
       {hasContact && (
         <div style={{
@@ -207,6 +241,13 @@ export function SchoolActionsSidebar({ school }: Props) {
         </div>
       )}
 
+      <Link
+        href={`/report?school=${encodeURIComponent(school.name)}&slug=${school.slug}`}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--muted)", textDecoration: "underline" }}
+      >
+        <Flag style={{ width: 12, height: 12 }} /> Report wrong data on this page
+      </Link>
+
       {school.last_data_updated_at && (
         <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "center" }}>
           Last updated:{" "}
@@ -214,6 +255,9 @@ export function SchoolActionsSidebar({ school }: Props) {
             year: "numeric", month: "short", day: "numeric",
           })}
         </p>
+      )}
+      {formKind && (
+        <EnquiryForm schoolSlug={school.slug} schoolName={school.name} kind={formKind} onClose={() => setFormKind(null)} />
       )}
     </div>
   );

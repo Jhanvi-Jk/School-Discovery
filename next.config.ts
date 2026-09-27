@@ -63,14 +63,6 @@ const nextConfig: NextConfig = {
           { key: "Vary",          value: "Accept-Encoding" },
         ],
       },
-      // Top-level schools directory
-      {
-        source: "/schools",
-        headers: [
-          { key: "Cache-Control", value: "public, max-age=600, stale-while-revalidate=7200" },
-          { key: "Vary",          value: "Accept-Encoding" },
-        ],
-      },
       // Sitemaps — fresh for 1 hr, stale for 24 hrs
       {
         source: "/:sitemap(sitemap.*\\.xml|sitemap)",

@@ -12,25 +12,32 @@ export type TabId =
   | "peer"
   | "unique"
   | "campus"
+  | "transport"
+  | "results"
   | "admission"
   | "fees"
   | "sources";
 
+// Order here MUST match the order of the <section id="section-…"> blocks in
+// app/schools/[slug]/page.tsx — the scroll-spy walks this list top to bottom.
 export const ALL_TABS: { id: TabId; label: string }[] = [
   { id: "photos",    label: "📷 Photos" },
   { id: "basic",     label: "Basic Details" },
   { id: "summary",   label: "Summary" },
-  { id: "sentiment", label: "Sentiment Analysis" },
-  { id: "feedback",  label: "Parent Feedback" },
+  { id: "fees",      label: "Fees" },
+  { id: "campus",    label: "Campus" },
+  { id: "transport", label: "Transport" },
+  { id: "results",   label: "Board Results" },
   { id: "peer",      label: "Peer Group" },
   { id: "unique",    label: "Unique Things" },
-  { id: "campus",    label: "Campus" },
   { id: "admission", label: "Admission" },
-  { id: "fees",      label: "Fees" },
+  { id: "sentiment", label: "Sentiment Analysis" },
+  { id: "feedback",  label: "Parent Feedback" },
   { id: "sources",   label: "Sources" },
 ];
 
 interface Props {
+  /** Tabs whose section is actually rendered; a tab with no section would never highlight. */
   availableTabs?: TabId[];
 }
 
@@ -38,8 +45,11 @@ interface Props {
 const SCROLL_OFFSET = 116;
 
 export function SchoolProfileTabs({ availableTabs }: Props) {
-  const visibleTabs = ALL_TABS;
-  const [active, setActive] = useState<TabId>(ALL_TABS[0].id);
+  const visibleTabs = availableTabs ? ALL_TABS.filter((t) => availableTabs.includes(t.id)) : ALL_TABS;
+  const [active, setActive] = useState<TabId>(visibleTabs[0]?.id ?? ALL_TABS[0].id);
+  // Set when a tab was clicked, so the smooth scroll that follows doesn't
+  // flicker through every section it passes. Released by the next manual scroll.
+  const lockedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeButtonRef = useRef<HTMLButtonElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -72,37 +82,53 @@ export function SchoolProfileTabs({ availableTabs }: Props) {
     });
   }, [active]);
 
-  // IntersectionObserver: highlight tab as section scrolls into view
+  // Scroll-spy: the active tab is the LAST section whose top has reached the sticky bars.
+  // (The previous IntersectionObserver version only looked at the entries that changed in
+  // each callback, so a section peeking in below the current one often won the highlight.)
+  const tabKey = visibleTabs.map((t) => t.id).join(",");
   useEffect(() => {
-    const sections = ALL_TABS
-      .map((t) => document.getElementById(`section-${t.id}`))
-      .filter(Boolean) as HTMLElement[];
+    const ids = tabKey.split(",") as TabId[];
+    let frame = 0;
 
-    if (!sections.length) return;
+    const compute = () => {
+      frame = 0;
+      if (lockedRef.current) return;
+      let current = ids[0];
+      for (const id of ids) {
+        const el = document.getElementById(`section-${id}`);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top <= SCROLL_OFFSET + 12) current = id;
+        else break;
+      }
+      setActive(current);
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(compute); };
+    // Any manual scroll input hands control back to the spy
+    const release = () => { lockedRef.current = false; };
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible.length) {
-          setActive(visible[0].target.id.replace("section-", "") as TabId);
-        }
-      },
-      // rootMargin top offset = SCROLL_OFFSET so sections activate when they clear the sticky bars
-      { rootMargin: `-${SCROLL_OFFSET}px 0px -15% 0px`, threshold: 0 }
-    );
-
-    sections.forEach((s) => observer.observe(s));
-    return () => observer.disconnect();
-  }, []);
+    compute();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    window.addEventListener("wheel", release, { passive: true });
+    window.addEventListener("touchmove", release, { passive: true });
+    window.addEventListener("keydown", release);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("wheel", release);
+      window.removeEventListener("touchmove", release);
+      window.removeEventListener("keydown", release);
+    };
+  }, [tabKey]);
 
   function scrollTo(id: TabId) {
     const el = document.getElementById(`section-${id}`);
     if (!el) return;
     const top = el.getBoundingClientRect().top + window.scrollY - SCROLL_OFFSET;
-    window.scrollTo({ top, behavior: "smooth" });
+    lockedRef.current = true;
     setActive(id);
+    window.scrollTo({ top, behavior: "smooth" });
   }
 
   function scrollNav(dir: "left" | "right") {

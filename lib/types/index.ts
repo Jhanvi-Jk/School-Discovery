@@ -26,6 +26,10 @@ export interface SchoolSummary {
   avg_rating: number | null;
   review_count: number | null;
   admissions_open: boolean | null;
+  /** Academic year of the currently-open admission window, e.g. "2026-27" */
+  admission_year?: string | null;
+  /** Human-readable admission status ("Opens 1 Jan 2027", "Closed for 2025–26"); set by the compare page */
+  admission_label?: string;
   mid_year_available: boolean | null;
   curricula?: Curriculum[];
   sports?: string[];
@@ -35,6 +39,14 @@ export interface SchoolSummary {
   grades_to?: string;
   latitude?: number | null;
   longitude?: number | null;
+  /** Straight-line km from the visitor's saved home location (set when lat/lng are sent) */
+  distance_km?: number | null;
+  /** Columns the listing view also exposes — used for the completeness score */
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  established_year?: number | null;
+  annual_tuition_fees_min?: number | null;
 }
 
 export interface SchoolFilters {
@@ -264,7 +276,7 @@ export const STATE_BOARD_STREAMS = [
   "Vocational",
 ];
 
-export type SortOption = "relevance" | "fees_asc" | "fees_desc" | "rating" | "newest";
+export type SortOption = "relevance" | "fees_asc" | "fees_desc" | "rating" | "newest" | "distance";
 
 export const CURRICULUM_LABELS: Record<Curriculum, string> = {
   cbse: "CBSE",

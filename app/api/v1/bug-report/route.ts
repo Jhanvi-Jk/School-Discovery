@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { escapeHtml, notifyAdmin } from "@/lib/notify";
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,36 +44,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Send email via Resend regardless of DB outcome
-    const adminEmail = "admin@legitfarms.com";
-    const resendKey  = process.env.RESEND_API_KEY;
-
-    if (resendKey) {
-      const emailRes = await fetch("https://api.resend.com/emails", {
-        method:  "POST",
-        headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from:    "SchoolFind360 <noreply@schoolfind360.com>",
-          to:      [adminEmail],
-          subject: `[Bug Report] ${bugType || "General"} — ${context || "No context"}`,
-          html: `
-            <h2>New Bug Report — SchoolFind360</h2>
-            <p><strong>Type:</strong> ${bugType || "General"}</p>
-            ${context ? `<p><strong>Context:</strong> ${context}</p>` : ""}
-            <p><strong>Description:</strong><br>${(description as string).trim()}</p>
-            <p><strong>Wants notification:</strong> ${wantContact ? "Yes" : "No"}</p>
-            ${wantContact && email ? `<p><strong>Contact email:</strong> ${email}</p>` : ""}
-            ${dbError ? `<p style="color:red"><em>⚠️ DB insert failed — check server logs.</em></p>` : ""}
-          `,
-        }),
-      });
-      if (!emailRes.ok) {
-        const txt = await emailRes.text();
-        console.error("[bug-report] Resend error:", emailRes.status, txt);
-      }
-    } else {
-      console.warn("[bug-report] RESEND_API_KEY not set — email skipped. Report:", JSON.stringify(payload));
-    }
+    // E-mail the team regardless of DB outcome (user text is escaped: it goes into an HTML mail)
+    await notifyAdmin(
+      `[Bug Report] ${bugType || "General"} — ${context || "No context"}`.slice(0, 200),
+      `
+        <h2>New Bug Report — SchoolFind360</h2>
+        <p><strong>Type:</strong> ${escapeHtml(bugType || "General")}</p>
+        ${context ? `<p><strong>Context:</strong> ${escapeHtml(context)}</p>` : ""}
+        <p><strong>Description:</strong><br>${escapeHtml((description as string).trim())}</p>
+        <p><strong>Wants notification:</strong> ${wantContact ? "Yes" : "No"}</p>
+        ${wantContact && email ? `<p><strong>Contact email:</strong> ${escapeHtml(email)}</p>` : ""}
+        ${dbError ? `<p style="color:red"><em>DB insert failed — check server logs.</em></p>` : ""}
+      `
+    );
 
     return NextResponse.json({ success: true });
   } catch (err) {

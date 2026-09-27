@@ -30,7 +30,7 @@ export function Header() {
         }}>
           {/* Logo */}
           <Link href="/" style={{ fontSize: 20, fontWeight: 800, color: "white", letterSpacing: -0.5, textDecoration: "none", flexShrink: 0 }}>
-            SchoolFinder<span style={{ color: "var(--beige-500)" }}>.</span>
+            SchoolFind<span style={{ color: "var(--beige-500)" }}>360</span>
           </Link>
 
           {/* Desktop nav */}
@@ -41,6 +41,18 @@ export function Header() {
               background: isActive("/schools") ? "rgba(255,255,255,0.12)" : "none",
               textDecoration: "none",
             }}>Explore</Link>
+            <Link href="/quiz" style={{
+              padding: "7px 14px", borderRadius: 10, fontSize: 13, fontWeight: 500,
+              color: isActive("/quiz") ? "white" : "rgba(255,255,255,0.65)",
+              background: isActive("/quiz") ? "rgba(255,255,255,0.12)" : "none",
+              textDecoration: "none",
+            }}>Get Matched</Link>
+            <Link href="/blog" style={{
+              padding: "7px 14px", borderRadius: 10, fontSize: 13, fontWeight: 500,
+              color: isActive("/blog") ? "white" : "rgba(255,255,255,0.65)",
+              background: isActive("/blog") ? "rgba(255,255,255,0.12)" : "none",
+              textDecoration: "none",
+            }}>Guides</Link>
             <Link href="/shortlist" style={{
               padding: "7px 14px", borderRadius: 10, fontSize: 13, fontWeight: 500,
               color: isActive("/shortlist") ? "white" : "rgba(255,255,255,0.65)",
@@ -82,6 +94,8 @@ export function Header() {
           <button
             onClick={() => setOpen(!open)}
             className="ham-btn"
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
             style={{
               background: "none", border: "none", color: "rgba(255,255,255,0.8)",
               padding: 6, cursor: "pointer", display: "none",
@@ -101,6 +115,14 @@ export function Header() {
               display: "block", padding: "10px 12px", borderRadius: 8,
               color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: 500, textDecoration: "none",
             }}>Explore</Link>
+            <Link href="/quiz" onClick={() => setOpen(false)} style={{
+              display: "block", padding: "10px 12px", borderRadius: 8,
+              color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: 500, textDecoration: "none",
+            }}>Get Matched</Link>
+            <Link href="/blog" onClick={() => setOpen(false)} style={{
+              display: "block", padding: "10px 12px", borderRadius: 8,
+              color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: 500, textDecoration: "none",
+            }}>Guides</Link>
             <Link href="/shortlist" onClick={() => setOpen(false)} style={{
               display: "block", padding: "10px 12px", borderRadius: 8,
               color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: 500, textDecoration: "none",

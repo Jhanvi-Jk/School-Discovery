@@ -2,21 +2,31 @@ import { notFound, redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import {
   MapPin, Phone, Globe, Mail, CheckCircle2, Star,
   Users, Bus, Clock, Calendar, IndianRupee, BookOpen,
   Building2, Trophy, Music, Languages, ChevronRight,
-  ExternalLink, AlertCircle
+  ExternalLink, AlertCircle, Navigation, Sparkles
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { EnquiryForm } from "@/components/schools/EnquiryForm";
 import { SchoolActionsSidebar } from "@/components/schools/SchoolActionsSidebar";
-import { SchoolProfileTabs } from "@/components/schools/SchoolProfileTabs";
+import { SchoolProfileTabs, type TabId } from "@/components/schools/SchoolProfileTabs";
+import { SchoolLocationMap } from "@/components/map/SchoolLocationMap";
+import {
+  admissionLabel, currentAcademicYear, formatAcademicYear, formatAdmissionDate,
+  resolveAdmissionState, summarizeAdmissions,
+} from "@/lib/admissions";
+import { CityHubPage } from "@/components/seo/CityHubPage";
+import { cityFromSlug, boardPageHref } from "@/lib/cities";
+import { getSiteStats, formatCount } from "@/lib/siteStats";
+import { profileCompleteness } from "@/lib/completeness";
+import { buildFactualSummary, buildHighlights, isUsableDescription } from "@/lib/schoolText";
 import {
   formatFeesRange, formatRating, formatSchoolHours,
-  getVerificationBadge, cn
+  cn, formatFees
 } from "@/lib/utils";
 import { CURRICULUM_LABELS, SCHOOL_TYPE_LABELS, GENDER_LABELS } from "@/lib/types";
 
@@ -26,18 +36,6 @@ export const dynamic = "force-dynamic";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.schoolfind360.com";
 const YEAR = new Date().getFullYear();
 
-// Lookup maps used by generateMetadata (hoisted before function call)
-const CITY_HUB_SLUGS_META: Record<string, string> = {
-  bengaluru: "bangalore", bangalore: "bangalore", delhi: "delhi",
-  chennai: "chennai", mumbai: "mumbai",
-};
-const CITY_META_LABELS: Record<string, { label: string }> = {
-  bangalore: { label: "Bengaluru" },
-  delhi:     { label: "Delhi" },
-  chennai:   { label: "Chennai" },
-  mumbai:    { label: "Mumbai" },
-};
-
 // ── Metadata ─────────────────────────────────────────────────────────────────
 export async function generateMetadata({
   params,
@@ -46,13 +44,22 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
 
-  // City hub pages get their own meta
-  const cityKey = CITY_HUB_SLUGS_META[slug.toLowerCase()];
-  if (cityKey) {
-    const m = CITY_META_LABELS[cityKey];
-    const canonicalUrl = `${APP_URL}/schools/${slug.toLowerCase()}`;
-    const title = `Top Schools in ${m.label} ${YEAR} | CBSE, ICSE, IB — SchoolFind360`;
-    const description = `Browse 50+ verified schools in ${m.label}. Compare ${YEAR} fees, CBSE, ICSE, IB boards, area-wise listings, and real parent reviews on SchoolFind360.`;
+  // City hub pages get their own meta, built from the same counts the page shows
+  const hubCity = cityFromSlug(slug);
+  if (hubCity) {
+    const stats = await getSiteStats();
+    const stat = stats.cities.find((c) => c.slug === hubCity.slug);
+    const canonicalUrl = `${APP_URL}/schools/${hubCity.slug}`;
+    if (!stat?.live) {
+      return {
+        title: `Schools in ${hubCity.label} — coming soon`,
+        description: `SchoolFind360 is still collecting verified school data for ${hubCity.label}.`,
+        alternates: { canonical: canonicalUrl },
+        robots: { index: false, follow: true },
+      };
+    }
+    const title = `Top Schools in ${hubCity.label} ${YEAR} | CBSE, ICSE, IB — SchoolFind360`;
+    const description = `Browse ${formatCount(stat.count)} schools in ${hubCity.label}. Compare ${YEAR} fees, CBSE, ICSE, IB boards, area-wise listings, and real parent reviews on SchoolFind360.`;
     return {
       title, description,
       alternates: { canonical: canonicalUrl },
@@ -63,32 +70,34 @@ export async function generateMetadata({
   }
 
   const supabase = await createClient();
-  // Query schools table directly — schools_with_details view may lag newly-added schools
+  // Query the schools table directly (select * so a missing is_listed column can't break the lookup)
   const { data } = await supabase
     .from("schools")
-    .select("name, description, area, city, cover_image_url, type, verified, admissions_open")
+    .select("*, admission_windows(status, opens_at, closes_at, academic_year, is_mid_year)")
     .eq("slug", slug)
     .single();
 
-  if (!data) return {
-    title: { absolute: "SchoolFind360 — School Profile" },
+  // Unlisted (hidden) schools are treated exactly like a missing page
+  if (!data || (data as any).is_listed === false) return {
+    title: { absolute: "School not found | SchoolFind360" },
     robots: { index: false, follow: false },
   };
 
   const canonicalUrl = `${APP_URL}/schools/${slug}`;
   const location  = data.area || data.city || "India";
   const city      = data.city || "Bengaluru";
-  const nextYear  = String(YEAR + 1).slice(2);          // e.g. "27"
 
-  // If admissions are open, surface it in the title — high CTR signal for families
-  // searching "school admissions open 2026-27". Otherwise keep the clean base title.
-  const titleAbsolute = data.admissions_open
-    ? `${data.name} — Admissions Open ${YEAR}–${nextYear} | SchoolFind360`
-    : `SchoolFind360 — ${data.name}`;
+  // "Indus International School, Sarjapur — Fees, Admissions 2026-27, Reviews": name, place and the
+  // things parents search for. When a window is open its academic year is used, else the running year.
+  const admission = summarizeAdmissions((data as any).admission_windows);
+  const yearLabel = admission.state === "open" && admission.academicYear
+    ? formatAcademicYear(admission.academicYear).replace("–", "-")
+    : currentAcademicYear();
+  const titleAbsolute = `${data.name}${data.area ? `, ${data.area}` : `, ${city}`} — Fees, Admissions ${yearLabel}, Reviews`;
 
-  const description = data.description
-    ? `${data.description} View full fees, admissions ${YEAR}, and parent reviews on SchoolFind360.`
-    : `Admissions at ${data.name} in ${location}, ${city} — ${YEAR} fee structure, curriculum, facilities & real parent reviews on SchoolFind360.`;
+  const description = isUsableDescription(data.description)
+    ? `${data.description} View fees, admissions ${yearLabel} and parent reviews on SchoolFind360.`
+    : `${data.name} in ${location}, ${city} — fee structure, curriculum, admissions ${yearLabel}, facilities and parent reviews on SchoolFind360.`;
 
   return {
     title: { absolute: titleAbsolute },
@@ -96,7 +105,7 @@ export async function generateMetadata({
     keywords: [
       data.name,
       `${data.name} fees ${YEAR}`,
-      `${data.name} admissions ${YEAR}`,
+      `${data.name} admissions ${yearLabel}`,
       `schools in ${location}`,
       `best schools ${city}`,
     ],
@@ -159,210 +168,6 @@ function RatingBar({ label, value }: { label: string; value: number }) {
   );
 }
 
-// ── City hub page (SSR) ───────────────────────────────────────────────────────
-const CITY_META: Record<string, { label: string; state: string; description: string; boards: string[] }> = {
-  bangalore: { label: "Bengaluru", state: "Karnataka",    description: "India's tech capital",  boards: ["CBSE","ICSE","IB","IGCSE","Cambridge","State Board"] },
-  delhi:     { label: "Delhi",     state: "Delhi",        description: "The national capital",   boards: ["CBSE","ICSE","IB","IGCSE","Cambridge"] },
-  chennai:   { label: "Chennai",   state: "Tamil Nadu",   description: "Gateway to the South",  boards: ["CBSE","ICSE","IB","Cambridge","State Board"] },
-  mumbai:    { label: "Mumbai",    state: "Maharashtra",  description: "India's financial hub",  boards: ["CBSE","ICSE","IB","Cambridge","State Board"] },
-};
-
-async function CityHubPage({ cityKey, citySlug }: { cityKey: string; citySlug: string }) {
-  const supabase = await createClient();
-  const meta = CITY_META[cityKey];
-  const cityDbName = meta.label;
-
-  // Fetch top schools — no fee filter so we always get results
-  const { data: schools } = await supabase
-    .from("schools_with_details")
-    .select("slug, name, area, type, total_fees_min, total_fees_max, avg_rating, cover_image_url")
-    .eq("city", cityDbName)
-    .order("avg_rating", { ascending: false, nullsFirst: false })
-    .limit(24);
-
-  // Total school count for this city (for desc text)
-  const { count: totalCount } = await supabase
-    .from("schools")
-    .select("id", { count: "exact", head: true })
-    .eq("city", cityDbName);
-
-  // Unique areas with school counts
-  const { data: areaRows } = await supabase
-    .from("schools")
-    .select("area")
-    .eq("city", cityDbName)
-    .not("area", "is", null);
-
-  const areaCounts: Record<string, number> = {};
-  (areaRows || []).forEach((r: any) => {
-    if (r.area) areaCounts[r.area] = (areaCounts[r.area] || 0) + 1;
-  });
-  const areas = Object.entries(areaCounts).sort((a, b) => b[1] - a[1]);
-
-  const schoolCount = totalCount || (schools || []).length;
-  const desc = `Browse ${schoolCount}+ verified schools in ${meta.label}. Compare ${YEAR} fees, CBSE, ICSE, IB boards, area-wise listings, and real parent reviews.`;
-
-  const itemListSchema = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    name: `Top Schools in ${meta.label}`,
-    description: desc,
-    numberOfItems: schoolCount,
-    itemListElement: (schools || []).map((s: any, i: number) => ({
-      "@type": "ListItem",
-      position: i + 1,
-      name: s.name,
-      url: `${APP_URL}/schools/${s.slug}`,
-    })),
-  };
-
-  return (
-    <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
-      <Header />
-      <main style={{ background: "#f9fafb", minHeight: "100vh", paddingBottom: 64 }}>
-        {/* Hero */}
-        <div style={{ background: "linear-gradient(135deg, #2C1810 0%, #5C3820 100%)", color: "#fff", padding: "48px 16px" }}>
-          <div style={{ maxWidth: 896, margin: "0 auto" }}>
-            <nav style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginBottom: 16, display: "flex", alignItems: "center", gap: 4 }}>
-              <Link href="/" style={{ color: "inherit", textDecoration: "none" }}>Home</Link>
-              <ChevronRight style={{ width: 12, height: 12 }} />
-              <Link href="/schools" style={{ color: "inherit", textDecoration: "none" }}>Schools in India</Link>
-              <ChevronRight style={{ width: 12, height: 12 }} />
-              <span style={{ color: "#fff" }}>Schools in {meta.label}</span>
-            </nav>
-            <h1 style={{ fontSize: "clamp(24px,5vw,36px)", fontWeight: 700, marginBottom: 8 }}>
-              Schools in {meta.label}
-            </h1>
-            <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 15, marginBottom: 24 }}>
-              {meta.description} · {schoolCount}+ verified schools
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {meta.boards.map((b) => (
-                <Link
-                  key={b}
-                  href={`/schools/${citySlug}?curriculum=${b.toLowerCase().replace(/\s/g, "-")}`}
-                  style={{
-                    fontSize: 12, padding: "6px 14px", borderRadius: 99,
-                    background: "rgba(255,255,255,0.15)", color: "#fff",
-                    fontWeight: 500, textDecoration: "none", display: "inline-block",
-                  }}
-                >
-                  {b} Schools
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ maxWidth: 896, margin: "0 auto", padding: "32px 16px" }}>
-          {/* Neighbourhoods */}
-          {areas.length > 0 && (
-            <section style={{ marginBottom: 40 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, color: "#111827", marginBottom: 16 }}>
-                Browse by Neighbourhood
-              </h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
-                {areas.map(([area, count]) => {
-                  const areaSlug = area.toLowerCase().replace(/\s+/g, "-");
-                  return (
-                    <Link
-                      key={area}
-                      href={`/schools/${citySlug}/${areaSlug}`}
-                      style={{
-                        background: "#fff", borderRadius: 12, padding: "14px 16px",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.08)", border: "1px solid #f3f4f6",
-                        textDecoration: "none", display: "block",
-                      }}
-                    >
-                      <p style={{ fontWeight: 600, color: "#111827", fontSize: 14 }}>{area}</p>
-                      <p style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
-                        {count} school{count !== 1 ? "s" : ""}
-                      </p>
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {/* School list */}
-          {(schools || []).length > 0 && (
-            <section>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <h2 style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>
-                  Top Schools in {meta.label}
-                </h2>
-                <Link
-                  href={`/schools?city=${cityKey}`}
-                  style={{ fontSize: 14, color: "#2C1810", textDecoration: "none", fontWeight: 500 }}
-                >
-                  View all →
-                </Link>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
-                {(schools || []).map((s: any) => (
-                  <Link
-                    key={s.slug}
-                    href={`/schools/${s.slug}`}
-                    style={{
-                      background: "#fff", borderRadius: 16, overflow: "hidden",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.08)", border: "1px solid #f3f4f6",
-                      display: "flex", textDecoration: "none",
-                    }}
-                  >
-                    <div style={{ width: 96, height: 96, flexShrink: 0, background: "linear-gradient(135deg,#dbeafe,#e0e7ff)", position: "relative", alignSelf: "stretch" }}>
-                      {s.cover_image_url && (
-                        <Image src={s.cover_image_url} alt={`${s.name} campus`} fill style={{ objectFit: "cover" }} />
-                      )}
-                    </div>
-                    <div style={{ padding: "12px 14px", flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: 600, color: "#111827", fontSize: 14, lineHeight: 1.3 }}>{s.name}</p>
-                      {s.area && (
-                        <p style={{ fontSize: 12, color: "#6b7280", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
-                          <MapPin style={{ width: 12, height: 12, flexShrink: 0 }} />{s.area}
-                        </p>
-                      )}
-                      {s.total_fees_min && (
-                        <p style={{ fontSize: 12, fontWeight: 500, color: "#1d4ed8", marginTop: 4 }}>
-                          {formatFeesRange(s.total_fees_min, s.total_fees_max)}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-              <div style={{ textAlign: "center", marginTop: 24 }}>
-                <Link
-                  href={`/schools?city=${cityKey}`}
-                  style={{
-                    display: "inline-block", padding: "12px 24px",
-                    background: "#2C1810", color: "#fff", borderRadius: 12,
-                    fontWeight: 600, fontSize: 14, textDecoration: "none",
-                  }}
-                >
-                  Explore all {meta.label} schools →
-                </Link>
-              </div>
-            </section>
-          )}
-        </div>
-      </main>
-      <Footer />
-    </>
-  );
-}
-
-// ── City hub redirect ─────────────────────────────────────────────────────────
-// /schools/bengaluru, /schools/delhi, /schools/chennai → city hub pages
-const CITY_HUB_SLUGS: Record<string, string> = {
-  bengaluru: "bangalore",
-  bangalore: "bangalore",
-  delhi: "delhi",
-  chennai: "chennai",
-  mumbai: "mumbai",
-};
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default async function SchoolProfilePage({
   params,
@@ -372,9 +177,9 @@ export default async function SchoolProfilePage({
   const { slug } = await params;
 
   // Intercept city hub URLs and render city landing page
-  const cityKey = CITY_HUB_SLUGS[slug.toLowerCase()];
-  if (cityKey) {
-    return <CityHubPage cityKey={cityKey} citySlug={slug.toLowerCase()} />;
+  const hubCity = cityFromSlug(slug);
+  if (hubCity) {
+    return <CityHubPage city={hubCity} />;
   }
 
   const supabase = await createClient();
@@ -394,11 +199,7 @@ export default async function SchoolProfilePage({
         school_sports(sports(id, name)),
         school_extracurriculars(extracurriculars(id, name, category)),
         admission_windows(*),
-        reviews(
-          id, rating_academics, rating_facilities,
-          rating_faculty, rating_value, rating_overall,
-          title, body, relation, is_verified, created_at
-        )
+        reviews(*)
       `)
       .eq("slug", slug)
       .single();
@@ -409,19 +210,29 @@ export default async function SchoolProfilePage({
     fetchFailed = true;
   }
 
-  if (fetchFailed || !school) notFound();
+  // Hidden (unlisted) schools 404, same as a school that doesn't exist
+  if (fetchFailed || !school || school.is_listed === false) notFound();
 
-  // Photos: disabled until migration 024_school_photos.sql is applied in Supabase.
-  // To enable: delete this block and un-comment the query block below it.
-  // ─── DISABLED ─────────────────────────────────────────────────────────────
-  // const { data: photosData } = await supabase
-  //   .from("school_photos")
-  //   .select("url, sort_order, alt_text, is_cover")
-  //   .eq("school_id", school.id)
-  //   .order("sort_order");
-  // const schoolPhotosRaw = photosData ?? [];
-  // ─── END DISABLED ─────────────────────────────────────────────────────────
-  const schoolPhotosRaw: any[] = [];
+  // A missing/erroring photos table just yields no rows — the gallery section is then omitted.
+  const { data: photosData } = await supabase
+    .from("school_photos")
+    .select("url, sort_order, alt_text, is_cover")
+    .eq("school_id", school.id)
+    .order("sort_order");
+  const schoolPhotosRaw: any[] = photosData ?? [];
+
+  // Optional sections: each stays hidden until the school has rows (and if a table isn't there yet, nothing breaks)
+  const optional = async (q: PromiseLike<{ data: any[] | null }>) => {
+    try { return (await q).data ?? []; } catch { return []; }
+  };
+  const [feeRows, resultRows, routeRows] = await Promise.all([
+    optional(supabase.from("school_fee_structure").select("*").eq("school_id", school.id).order("academic_year", { ascending: false }).order("sort_order")),
+    optional(supabase.from("school_board_results").select("*").eq("school_id", school.id).order("exam_year", { ascending: false })),
+    optional(supabase.from("school_transport_routes").select("*").eq("school_id", school.id).order("route_name")),
+  ]);
+  // Fees by grade: show only the most recent year we have
+  const feeYear = feeRows[0]?.academic_year as string | undefined;
+  const feesByGrade = feeRows.filter((f: any) => f.academic_year === feeYear);
 
   const details = Array.isArray(school.school_details)
     ? school.school_details[0] ?? null
@@ -431,7 +242,8 @@ export default async function SchoolProfilePage({
   const extras     = (school.school_extracurriculars || []).map((e: any) => e.extracurriculars?.name).filter(Boolean);
   const languages  = school.school_languages || [];
   const admissions = school.admission_windows || [];
-  const reviews    = school.reviews || [];
+  // Only moderator-approved reviews are shown (rows from before moderation existed have no status and count as approved)
+  const reviews    = (school.reviews || []).filter((r: any) => (r.status ?? "approved") === "approved");
   // Photos: from separate safe query; empty array → sheen fallback in UI
   const photos: { url: string; alt: string }[] = schoolPhotosRaw
     .map((p: any) => ({ url: p.url, alt: p.alt_text || school.name }));
@@ -482,8 +294,16 @@ export default async function SchoolProfilePage({
       }
     : null;
 
-  const openAdmissions = admissions.filter((a: any) => a.status === "open");
-  const badge = getVerificationBadge(school.verified);
+  // The stored `status` goes stale; the window dates decide (see lib/admissions.ts)
+  const admissionSummary = summarizeAdmissions(admissions);
+  const admissionOpen = admissionSummary.state === "open";
+  const openAdmissions = admissions.filter((a: any) => resolveAdmissionState(a) === "open");
+  const admissionYear = formatAcademicYear(admissionSummary.academicYear);
+  // "Verified" is earned by a filled-in profile; otherwise show how complete it is
+  const completeness = profileCompleteness(
+    { ...details, ...school, curricula, review_count: reviews.length },
+    school.verified
+  );
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.schoolfind360.com";
   const sd = Array.isArray(school.school_details) ? school.school_details[0] : school.school_details;
@@ -503,8 +323,10 @@ export default async function SchoolProfilePage({
     "@context": "https://schema.org",
     "@type": "School",
     name: school.name,
-    description: school.description ?? undefined,
+    description: isUsableDescription(school.description) ? school.description : undefined,
     url: `${appUrl}/schools/${school.slug}`,
+    ...(school.phone && { telephone: school.phone }),
+    ...(school.email && { email: school.email }),
     ...(school.logo_url && { logo: school.logo_url }),
     ...(school.cover_image_url && { image: school.cover_image_url }),
     address: {
@@ -645,12 +467,23 @@ export default async function SchoolProfilePage({
   }
 
   // Admissions FAQ
-  const admissionStatus = openAdmissions.length > 0 ? "open" : "closed";
+  const admissionFaqAnswer = (() => {
+    switch (admissionSummary.state) {
+      case "open":
+        return `Yes — ${school.name} has an admission window open${admissionYear ? ` for ${admissionYear}` : ""}${admissionSummary.closesAt ? ` until ${formatAdmissionDate(admissionSummary.closesAt)}` : ""}. Visit the school's official website or contact them directly to apply.`;
+      case "upcoming":
+        return `Not yet. The next admission window at ${school.name} ${admissionSummary.opensAt ? `opens on ${formatAdmissionDate(admissionSummary.opensAt)}` : "has not opened"}. Contact the school for the latest schedule.`;
+      case "waitlist":
+        return `${school.name} is currently taking waitlist applications only. Contact the school directly for the latest status.`;
+      case "closed":
+        return `No. The most recent admission window listed for ${school.name}${admissionYear ? ` (${admissionYear})` : ""} has closed. Dates for the next session haven't been published yet — contact the school directly to ask.`;
+      default:
+        return `${school.name} hasn't published admission dates yet. Contact the school directly to ask about the next intake.`;
+    }
+  })();
   faqItems.push({
-    q: `Are admissions currently open at ${school.name} for ${YEAR}–${YEAR + 1}?`,
-    a: openAdmissions.length > 0
-      ? `Yes, ${school.name} has open admissions for ${YEAR}–${YEAR + 1}. Visit the school's official website or contact them directly to apply.`
-      : `Admissions at ${school.name} are currently closed or details are not listed for ${YEAR}–${YEAR + 1}. Check back closer to the academic year or contact the school directly.`,
+    q: `Are admissions currently open at ${school.name}?`,
+    a: admissionFaqAnswer,
   });
 
   // Student-teacher ratio FAQ
@@ -687,6 +520,98 @@ export default async function SchoolProfilePage({
     .neq("slug", school.slug)
     .not("total_fees_min", "is", null)
     .limit(4);
+
+  // ── Peer group: nearby schools on a comparable board and fee band ──────────
+  const myMin: number | null = details?.total_fees_min ?? null;
+  const myMax: number | null = details?.total_fees_max ?? myMin;
+  const myMid = myMin != null && myMax != null ? (myMin + myMax) / 2 : null;
+  let peers: any[] = [];
+  try {
+    const cols = "id, slug, name, area, city, total_fees_min, total_fees_max, avg_rating, review_count";
+    let candidates: any[] = [];
+    if (school.area) {
+      const { data } = await supabase.from("schools_with_details").select(cols)
+        .eq("city", school.city).eq("area", school.area).neq("id", school.id)
+        .not("total_fees_min", "is", null).limit(40);
+      candidates = data ?? [];
+    }
+    if (candidates.length < 8) {
+      let q = supabase.from("schools_with_details").select(cols)
+        .eq("city", school.city).neq("id", school.id).not("total_fees_min", "is", null);
+      if (myMid) q = q.gte("total_fees_min", Math.round(myMid * 0.5)).lte("total_fees_min", Math.round(myMid * 1.5));
+      const { data } = await q.limit(40);
+      const have = new Set(candidates.map((c) => c.id));
+      candidates = [...candidates, ...(data ?? []).filter((c: any) => !have.has(c.id))];
+    }
+    if (candidates.length > 0) {
+      const { data: candCurricula } = await supabase
+        .from("school_curricula").select("school_id, curriculum")
+        .in("school_id", candidates.map((c) => c.id));
+      const byId: Record<string, string[]> = {};
+      (candCurricula ?? []).forEach((r: any) => { (byId[r.school_id] ||= []).push(r.curriculum); });
+
+      peers = candidates
+        .map((c) => ({ ...c, curricula: byId[c.id] ?? [] }))
+        // A peer must share at least one board with this school (when we know it)
+        .filter((c) => curricula.length === 0 || c.curricula.some((x: string) => curricula.includes(x)))
+        .map((c) => {
+          const mid = (c.total_fees_min + (c.total_fees_max ?? c.total_fees_min)) / 2;
+          return { ...c, _gap: myMid ? Math.abs(mid - myMid) : 0, _sameArea: school.area && c.area === school.area ? 0 : 1 };
+        })
+        .sort((a, b) => a._sameArea - b._sameArea || a._gap - b._gap)
+        .slice(0, 3);
+    }
+  } catch {
+    peers = [];
+  }
+
+  const lat = school.latitude != null ? Number(school.latitude) : NaN;
+  const lng = school.longitude != null ? Number(school.longitude) : NaN;
+  const hasCoords = Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0);
+  const mapsQuery = hasCoords
+    ? `${lat},${lng}`
+    : encodeURIComponent([school.name, school.area, school.city].filter(Boolean).join(", "));
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
+
+  const firstGrade = rawGrades[0];
+  const summaryText = isUsableDescription(school.description)
+    ? school.description
+    : buildFactualSummary({
+        name: school.name, type: school.type, gender: school.gender,
+        area: school.area, city: school.city, establishedYear: school.established_year,
+        curricula, gradeFrom: firstGrade?.grade_from, gradeTo: firstGrade?.grade_to,
+      });
+
+  const highlights = buildHighlights({
+    establishedYear: school.established_year, curricula,
+    studentTeacherRatio: details?.student_teacher_ratio, hasTransport: details?.has_transport,
+    sports, extracurriculars: extras,
+    gradeMin: minGrade, gradeMax: maxGrade,
+    languages: languages.map((l: any) => l.language), currentYear: YEAR,
+  });
+
+  const hasFeeFigures = !!(details && (details.total_fees_min || details.total_fees_max ||
+    details.annual_tuition_fees_min || details.development_fees || details.transport_fees ||
+    details.activity_fees || details.admission_fees));
+
+  // Only sections that have real content get a tab — an empty tab can never highlight.
+  const availableTabs: TabId[] = ["basic", "summary", "fees", "admission", "feedback", "sources"];
+  if (photos.length > 0) availableTabs.push("photos");
+  if (sports.length > 0 || extras.length > 0) availableTabs.push("campus");
+  if (routeRows.length > 0) availableTabs.push("transport");
+  if (resultRows.length > 0) availableTabs.push("results");
+  if (peers.length > 0) availableTabs.push("peer");
+  if (highlights.length > 0) availableTabs.push("unique");
+  if (avgBreakdown) availableTabs.push("sentiment");
+
+  const cardStyle: CSSProperties = {
+    background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24,
+  };
+  const eyebrowStyle: CSSProperties = {
+    fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase",
+    letterSpacing: "0.08em", marginBottom: 14,
+  };
+  const mutedNote: CSSProperties = { fontSize: 13, color: "var(--muted)", lineHeight: 1.6 };
 
 
   return (
@@ -732,17 +657,22 @@ export default async function SchoolProfilePage({
               )}
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-                  {badge.verified && (
+                  {completeness.showVerified ? (
                     <span style={{ fontSize: 11, fontWeight: 700, background: "rgba(255,255,255,0.15)",
                       color: "rgba(255,255,255,0.9)", padding: "3px 10px", borderRadius: 99,
                       display: "flex", alignItems: "center", gap: 4 }}>
                       <CheckCircle2 style={{ width: 11, height: 11 }} /> Verified
                     </span>
+                  ) : (
+                    <span style={{ fontSize: 11, fontWeight: 700, background: "rgba(255,255,255,0.1)",
+                      color: "rgba(255,255,255,0.75)", padding: "3px 10px", borderRadius: 99 }}>
+                      Profile {completeness.score}% complete
+                    </span>
                   )}
-                  {openAdmissions.length > 0 && (
+                  {admissionOpen && (
                     <span style={{ fontSize: 11, fontWeight: 700, background: "#16a34a",
                       color: "white", padding: "3px 10px", borderRadius: 99 }}>
-                      Admissions Open 2026-27
+                      {admissionYear ? `Admissions Open ${admissionYear}` : "Admissions Open"}
                     </span>
                   )}
                   {curricula.slice(0, 2).map((c: string) => (
@@ -792,7 +722,7 @@ export default async function SchoolProfilePage({
         </div>
 
         {/* ── Tab bar ── */}
-        <SchoolProfileTabs />
+        <SchoolProfileTabs availableTabs={availableTabs} />
 
         {/* ── Body ── */}
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 20px" }}>
@@ -801,11 +731,10 @@ export default async function SchoolProfilePage({
             {/* Main */}
             <div className="lg:col-span-2" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-              {/* PHOTOS */}
-              <section id="section-photos" className="profile-section"
-                style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, overflow: "hidden" }}>
-                {photos.length > 0 ? (
-                  /* Gallery grid — up to 3 photos from school_photos table */
+              {/* PHOTOS — only rendered when real photos exist */}
+              {photos.length > 0 && (
+                <section id="section-photos" className="profile-section"
+                  style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, overflow: "hidden" }}>
                   <div style={{
                     display: "grid",
                     gridTemplateColumns: photos.length === 1 ? "1fr" : photos.length === 2 ? "1fr 1fr" : "2fr 1fr",
@@ -818,31 +747,17 @@ export default async function SchoolProfilePage({
                         gridRow: photos.length >= 3 && i === 0 ? "1 / 3" : undefined,
                         overflow: "hidden",
                       }}>
-                        <Image src={p.url} alt={p.alt} fill className="object-cover"
+                        <Image src={p.url} alt={p.alt} fill className="object-cover" unoptimized
                           style={{ transition: "transform 0.3s" }} priority={i === 0} />
                       </div>
                     ))}
                   </div>
-                ) : (
-                  /* Sheen skeleton — photos not yet available; cover is shown in hero above */
-                  <div style={{ padding: 24 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase",
-                      letterSpacing: "0.08em", marginBottom: 14 }}>Campus Photos</p>
-                    <div className="sheen-wrap">
-                      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gridTemplateRows: "180px 180px", gap: 3 }}>
-                        <div className="sheen" style={{ gridRow: "1 / 3", borderRadius: "10px 0 0 10px" }} />
-                        <div className="sheen" style={{ borderRadius: "0 10px 0 0" }} />
-                        <div className="sheen" style={{ borderRadius: "0 0 10px 0" }} />
-                      </div>
-                      <div className="sheen-overlay"><span className="sheen-badge">📷 Collecting campus photos</span></div>
-                    </div>
-                  </div>
-                )}
-              </section>
+                </section>
+              )}
 
-              {/* BASIC STATS */}
-              <div id="section-basic" className="profile-section"
-                style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+              {/* BASIC DETAILS: key stats, school details, location & contact */}
+              <div id="section-basic" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
                 {[
                   { icon: IndianRupee, label: "Annual Fees", value: formatFeesRange(details?.total_fees_min, details?.total_fees_max) },
                   avgRating ? { icon: Star, label: "Overall Rating", value: `${formatRating(avgRating)} / 5`, sub: `${reviews.length} reviews` } : null,
@@ -864,111 +779,9 @@ export default async function SchoolProfilePage({
                 ))}
               </div>
 
-              {/* SUMMARY */}
-              <section id="section-summary" className="profile-section"
-                style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>About</p>
-                {school.description ? (
-                  <p style={{ fontSize: 14, color: "var(--dark)", lineHeight: 1.7 }}>{school.description}</p>
-                ) : (
-                  <div className="sheen-wrap">
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      {[85, 65, 75, 55].map((w, i) => (
-                        <div key={i} className="sheen" style={{ height: 13, width: `${w}%` }} />
-                      ))}
-                    </div>
-                    <div className="sheen-overlay"><span className="sheen-badge">📝 Writing this school's profile</span></div>
-                  </div>
-                )}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
-                  {[
-                    SCHOOL_TYPE_LABELS[school.type as keyof typeof SCHOOL_TYPE_LABELS],
-                    GENDER_LABELS[school.gender as keyof typeof GENDER_LABELS],
-                    school.established_year && `Est. ${school.established_year}`,
-                  ].filter(Boolean).map((tag: any) => (
-                    <span key={tag} style={{ fontSize: 12, background: "var(--beige-300)",
-                      color: "var(--muted)", padding: "4px 12px", borderRadius: 99,
-                      border: "1px solid var(--beige-500)" }}>{tag}</span>
-                  ))}
-                  {curricula.map((c: string) => (
-                    <span key={c} style={{ fontSize: 12, background: "var(--dark)", color: "white",
-                      padding: "4px 12px", borderRadius: 99, fontWeight: 600 }}>
-                      {CURRICULUM_LABELS[c as keyof typeof CURRICULUM_LABELS] || c}
-                    </span>
-                  ))}
-                </div>
-              </section>
-
-              {/* FEES */}
-              <section id="section-fees" className="profile-section"
-                style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>Fee Breakdown</p>
-                {details ? (
-                  <div>
-                    {[
-                      { label: "Annual Tuition", min: details.annual_tuition_fees_min, max: details.annual_tuition_fees_max },
-                      { label: "Development Fee", min: details.development_fees, max: null },
-                      { label: "Transport Fee",   min: details.transport_fees,   max: null },
-                      { label: "Activity Fee",    min: details.activity_fees,    max: null },
-                      { label: "Admission (one-time)", min: details.admission_fees, max: null },
-                    ].filter((f) => f.min).map((fee, i, arr) => (
-                      <div key={fee.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
-                        padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--beige-400)" : "none" }}>
-                        <span style={{ fontSize: 13, color: "var(--muted)" }}>{fee.label}</span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--dark)" }}>{formatFeesRange(fee.min, fee.max)}</span>
-                      </div>
-                    ))}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
-                      paddingTop: 12, marginTop: 4, borderTop: "2px solid var(--beige-400)" }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--dark)" }}>Total Annual Fees</span>
-                      <span style={{ fontSize: 15, fontWeight: 800, color: "var(--brown-dark)" }}>
-                        {formatFeesRange(details.total_fees_min, details.total_fees_max)}
-                      </span>
-                    </div>
-
-                    {/* Level breakdown — only shown when school spans 2+ distinct levels */}
-                    {applicableLevels.length > 1 && (
-                      <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--beige-400)" }}>
-                        <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: 10,
-                          textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 700 }}>
-                          By School Level
-                        </p>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                          {applicableLevels.map((level, i) => (
-                            <div key={level.name} style={{
-                              display: "flex", justifyContent: "space-between", alignItems: "center",
-                              padding: "9px 0",
-                              borderBottom: i < applicableLevels.length - 1 ? "1px solid var(--beige-400)" : "none",
-                            }}>
-                              <span style={{ fontSize: 13, color: "var(--dark)", fontWeight: 500 }}>{level.name}</span>
-                              <span style={{ fontSize: 12, color: "var(--muted)",
-                                background: "var(--beige-300)", padding: "3px 10px", borderRadius: 99,
-                                border: "1px solid var(--beige-500)" }}>
-                                Data pending
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="sheen-wrap">
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      {["Annual Tuition", "Development Fee", "Transport Fee", "Total"].map((label) => (
-                        <div key={label} style={{ display: "flex", justifyContent: "space-between" }}>
-                          <div className="sheen" style={{ height: 13, width: "40%" }} />
-                          <div className="sheen" style={{ height: 13, width: "20%" }} />
-                        </div>
-                      ))}
-                    </div>
-                    <div className="sheen-overlay"><span className="sheen-badge">💰 Verifying fee details with this school</span></div>
-                  </div>
-                )}
-              </section>
 
               {/* SCHOOL DETAILS */}
-              <section id="section-basic-details" className="profile-section"
+              <section
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>School Details</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14 }}>
@@ -1025,17 +838,6 @@ export default async function SchoolProfilePage({
                       </div>
                     </div>
                   )}
-                  {school.phone && (
-                    <div style={{ display: "flex", gap: 10 }}>
-                      <Phone style={{ width: 16, height: 16, color: "var(--muted)", marginTop: 2, flexShrink: 0 }} />
-                      <div>
-                        <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: 2 }}>Phone</p>
-                        <a href={`tel:${school.phone}`} style={{ fontSize: 13, fontWeight: 600, color: "var(--dark)" }}>
-                          {school.phone}
-                        </a>
-                      </div>
-                    </div>
-                  )}
                 </div>
                 {languages.length > 0 && (
                   <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--beige-400)" }}>
@@ -1060,7 +862,173 @@ export default async function SchoolProfilePage({
                 )}
               </section>
 
-              {/* CAMPUS */}
+
+              {/* LOCATION & CONTACT */}
+              <section className="profile-section" style={cardStyle}>
+                <p style={eyebrowStyle}>Location &amp; Contact</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14, marginBottom: 16 }}>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <MapPin style={{ width: 16, height: 16, color: "var(--muted)", marginTop: 2, flexShrink: 0 }} />
+                    <div>
+                      <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: 2 }}>Address</p>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--dark)", lineHeight: 1.5 }}>
+                        {school.address_line1 && <>{school.address_line1}<br /></>}
+                        {school.address_line2 && <>{school.address_line2}<br /></>}
+                        {[school.area, school.city, school.pincode && `– ${school.pincode}`].filter(Boolean).join(", ")}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {school.phone && (
+                      <a href={`tel:${school.phone}`} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 600, color: "var(--dark)" }}>
+                        <Phone style={{ width: 16, height: 16, color: "var(--muted)", flexShrink: 0 }} />
+                        {school.phone}
+                      </a>
+                    )}
+                    {school.email && (
+                      <a href={`mailto:${school.email}`} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 600, color: "var(--dark)", overflowWrap: "anywhere" }}>
+                        <Mail style={{ width: 16, height: 16, color: "var(--muted)", flexShrink: 0 }} />
+                        {school.email}
+                      </a>
+                    )}
+                    {!school.phone && !school.email && (
+                      <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>
+                        Phone and email aren&apos;t listed for this school yet
+                        {school.website ? " — try the school website." : "."}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {hasCoords && <SchoolLocationMap latitude={lat} longitude={lng} name={school.name} />}
+
+                <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                  style={{ marginTop: hasCoords ? 12 : 0, display: "inline-flex", alignItems: "center", gap: 6,
+                    fontSize: 13, fontWeight: 600, color: "var(--brown-dark)" }}>
+                  <Navigation style={{ width: 14, height: 14 }} />
+                  {hasCoords ? "Get directions" : "Find on Google Maps"}
+                  <ExternalLink style={{ width: 11, height: 11, opacity: 0.6 }} />
+                </a>
+              </section>
+              </div>
+
+              {/* SUMMARY */}
+              <section id="section-summary" className="profile-section" style={cardStyle}>
+                <p style={eyebrowStyle}>About</p>
+                <p style={{ fontSize: 14, color: "var(--dark)", lineHeight: 1.7 }}>{summaryText}</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
+                  {[
+                    SCHOOL_TYPE_LABELS[school.type as keyof typeof SCHOOL_TYPE_LABELS],
+                    GENDER_LABELS[school.gender as keyof typeof GENDER_LABELS],
+                    school.established_year && `Est. ${school.established_year}`,
+                  ].filter(Boolean).map((tag: any) => (
+                    <span key={tag} style={{ fontSize: 12, background: "var(--beige-300)",
+                      color: "var(--muted)", padding: "4px 12px", borderRadius: 99,
+                      border: "1px solid var(--beige-500)" }}>{tag}</span>
+                  ))}
+                  {curricula.map((c: string) => (
+                    <span key={c} style={{ fontSize: 12, background: "var(--dark)", color: "white",
+                      padding: "4px 12px", borderRadius: 99, fontWeight: 600 }}>
+                      {CURRICULUM_LABELS[c as keyof typeof CURRICULUM_LABELS] || c}
+                    </span>
+                  ))}
+                </div>
+              </section>
+
+              {/* PROFILE COMPLETENESS */}
+              <section className="profile-section" style={cardStyle} aria-label="Profile completeness">
+                <p style={eyebrowStyle}>Profile completeness</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                  <div style={{ flex: 1, height: 8, background: "var(--beige-400)", borderRadius: 99, overflow: "hidden" }}>
+                    <div style={{ width: `${completeness.score}%`, height: "100%", background: completeness.showVerified ? "#16a34a" : "var(--brown-dark)" }} />
+                  </div>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: "var(--dark)" }}>{completeness.score}%</span>
+                </div>
+                <p style={mutedNote}>
+                  {completeness.showVerified
+                    ? "This profile has been checked by our team and is well filled in."
+                    : "We show a completeness score, not a Verified badge, until a profile is both checked and well filled in."}
+                  {completeness.missing.length > 0 && <> Still missing: {completeness.missing.slice(0, 6).join(", ")}{completeness.missing.length > 6 ? "…" : ""}.</>}
+                </p>
+                <p style={{ ...mutedNote, marginTop: 8 }}>
+                  <Link href={`/report?school=${encodeURIComponent(school.name)}&slug=${school.slug}`} style={{ fontWeight: 600, color: "var(--brown-dark)" }}>Report wrong or missing data</Link>
+                  {" · "}
+                  <Link href="/schools/claim" style={{ fontWeight: 600, color: "var(--brown-dark)" }}>Are you the school? Claim this profile</Link>
+                  {" · "}
+                  <Link href="/how-we-verify" style={{ fontWeight: 600, color: "var(--brown-dark)" }}>How we verify</Link>
+                </p>
+              </section>
+
+              {/* FEES */}
+              <section id="section-fees" className="profile-section"
+                style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>Fee Breakdown</p>
+                {hasFeeFigures ? (
+                  <div>
+                    {[
+                      { label: "Annual Tuition", min: details.annual_tuition_fees_min, max: details.annual_tuition_fees_max },
+                      { label: "Development Fee", min: details.development_fees, max: null },
+                      { label: "Transport Fee",   min: details.transport_fees,   max: null },
+                      { label: "Activity Fee",    min: details.activity_fees,    max: null },
+                      { label: "Admission (one-time)", min: details.admission_fees, max: null },
+                    ].filter((f) => f.min).map((fee, i, arr) => (
+                      <div key={fee.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                        padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--beige-400)" : "none" }}>
+                        <span style={{ fontSize: 13, color: "var(--muted)" }}>{fee.label}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--dark)" }}>{formatFeesRange(fee.min, fee.max)}</span>
+                      </div>
+                    ))}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                      paddingTop: 12, marginTop: 4, borderTop: "2px solid var(--beige-400)" }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--dark)" }}>Total Annual Fees</span>
+                      <span style={{ fontSize: 15, fontWeight: 800, color: "var(--brown-dark)" }}>
+                        {formatFeesRange(details.total_fees_min, details.total_fees_max)}
+                      </span>
+                    </div>
+
+                  </div>
+                ) : (
+                  <p style={mutedNote}>
+                    {school.name} hasn&apos;t published its fee structure with us yet. Please contact the school
+                    directly for the current fee schedule before you plan your budget.
+                  </p>
+                )}
+
+                {feesByGrade.length > 0 && (
+                  <div style={{ marginTop: 20 }}>
+                    <p style={{ ...eyebrowStyle, marginBottom: 8 }}>Fees by grade · {formatAcademicYear(feeYear)}</p>
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 380 }}>
+                        <thead>
+                          <tr style={{ textAlign: "left", color: "var(--muted)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                            <th style={{ padding: "6px 8px 8px 0" }}>Grades</th>
+                            <th style={{ padding: "6px 8px 8px" }}>Tuition</th>
+                            <th style={{ padding: "6px 8px 8px" }}>Other fees</th>
+                            <th style={{ padding: "6px 0 8px 8px" }}>One-time admission</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {feesByGrade.map((f: any) => (
+                            <tr key={f.id} style={{ borderTop: "1px solid var(--beige-400)" }}>
+                              <td style={{ padding: "9px 8px 9px 0", fontWeight: 600, color: "var(--dark)" }}>{f.grade_label}</td>
+                              <td style={{ padding: "9px 8px" }}>{f.tuition_fee ? formatFees(f.tuition_fee) : "—"}</td>
+                              <td style={{ padding: "9px 8px" }}>{f.other_fees ? formatFees(f.other_fees) : "—"}</td>
+                              <td style={{ padding: "9px 0 9px 8px" }}>{f.admission_fee ? formatFees(f.admission_fee) : "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {feesByGrade[0]?.source_url && (
+                      <p style={{ ...mutedNote, marginTop: 8, fontSize: 11 }}>
+                        Source: <a href={feesByGrade[0].source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>school fee circular</a>. Confirm with the school before paying.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </section>
+
+              {(sports.length > 0 || extras.length > 0) && (
               <section id="section-campus" className="profile-section"
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>Sports & Extracurriculars</p>
@@ -1097,99 +1065,200 @@ export default async function SchoolProfilePage({
                       </div>
                     )}
                   </>
-                ) : (
-                  <div className="sheen-wrap">
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {[80, 100, 65, 90, 75, 110, 70, 95].map((w, i) => (
-                        <div key={i} className="sheen" style={{ height: 28, width: w, borderRadius: 99 }} />
-                      ))}
-                    </div>
-                    <div className="sheen-overlay"><span className="sheen-badge">🏟️ Gathering sports & activity information</span></div>
-                  </div>
-                )}
+                ) : null}
               </section>
+              )}
 
-              {/* PEER GROUP */}
-              <section id="section-peer" className="profile-section"
-                style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>Peer Group</p>
-                <div className="sheen-wrap">
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="sheen" style={{ height: 90, borderRadius: 14 }} />
-                    ))}
-                  </div>
-                  <div className="sheen-overlay"><span className="sheen-badge">🏫 Peer comparison coming soon</span></div>
-                </div>
-              </section>
-
-              {/* UNIQUE THINGS */}
-              <section id="section-unique" className="profile-section"
-                style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>What Makes This School Unique</p>
-                <div className="sheen-wrap">
-                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                    {[70, 55, 65].map((w, i) => (
-                      <div key={i} style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                        <div className="sheen" style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0 }} />
-                        <div className="sheen" style={{ height: 13, width: `${w}%` }} />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="sheen-overlay"><span className="sheen-badge">✨ Learning what makes this school special</span></div>
-                </div>
-              </section>
-
-              {/* ADMISSIONS */}
-              <section id="section-admission" className="profile-section"
-                style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>Admissions</p>
-                {admissions.length > 0 ? (
+              {/* TRANSPORT ROUTES */}
+              {routeRows.length > 0 && (
+                <section id="section-transport" className="profile-section" style={cardStyle}>
+                  <p style={eyebrowStyle}>Transport Routes</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {admissions.map((a: any) => (
-                      <div key={a.id} style={{ border: `1px solid ${a.status === "open" ? "#86efac" : "var(--beige-500)"}`,
-                        borderRadius: 12, padding: 14,
-                        background: a.status === "open" ? "rgba(134,239,172,0.12)" : "var(--beige-200)" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--dark)" }}>
-                            {a.academic_year} · {a.grade_from} – {a.grade_to}
-                          </span>
-                          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99,
-                            background: a.status === "open" ? "#16a34a" : a.status === "upcoming" ? "var(--beige-400)" : "var(--beige-300)",
-                            color: a.status === "open" ? "white" : "var(--dark)" }}>
-                            {a.status ? a.status.charAt(0).toUpperCase() + a.status.slice(1) : "Unknown"}
-                          </span>
+                    {routeRows.map((r: any) => (
+                      <div key={r.id} style={{ border: "1px solid var(--beige-500)", background: "var(--beige-200)", borderRadius: 12, padding: 14 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--dark)" }}>{r.route_name}</span>
+                          {r.annual_fee ? <span style={{ fontSize: 13, fontWeight: 600, color: "var(--dark)" }}>{formatFees(r.annual_fee)} / year</span> : null}
                         </div>
-                        {(a.opens_at || a.closes_at) && (
-                          <p style={{ fontSize: 11, color: "var(--muted)" }}>
-                            {a.opens_at && `Opens: ${new Date(a.opens_at).toLocaleDateString("en-IN")}`}
-                            {a.opens_at && a.closes_at && " · "}
-                            {a.closes_at && `Closes: ${new Date(a.closes_at).toLocaleDateString("en-IN")}`}
-                          </p>
-                        )}
-                        {a.application_url && (
-                          <a href={a.application_url} target="_blank" rel="noopener noreferrer"
-                            style={{ fontSize: 12, color: "var(--brown-dark)", fontWeight: 600,
-                              display: "inline-flex", alignItems: "center", gap: 4, marginTop: 6 }}>
-                            Apply online <ExternalLink style={{ width: 11, height: 11 }} />
-                          </a>
-                        )}
+                        {r.areas_covered?.length > 0 && <p style={{ ...mutedNote, marginTop: 4 }}>Covers: {r.areas_covered.join(", ")}</p>}
+                        {r.notes && <p style={{ ...mutedNote, marginTop: 2 }}>{r.notes}</p>}
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="sheen-wrap">
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      {[1, 2].map((i) => (
-                        <div key={i} className="sheen" style={{ height: 56, borderRadius: 14 }} />
-                      ))}
-                    </div>
-                    <div className="sheen-overlay"><span className="sheen-badge">📅 Admission details unconfirmed — enquire directly</span></div>
+                </section>
+              )}
+
+              {/* BOARD RESULTS — every row cites its source */}
+              {resultRows.length > 0 && (
+                <section id="section-results" className="profile-section" style={cardStyle}>
+                  <p style={eyebrowStyle}>Board Results</p>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 420 }}>
+                      <thead>
+                        <tr style={{ textAlign: "left", color: "var(--muted)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                          <th style={{ padding: "6px 8px 8px 0" }}>Exam</th>
+                          <th style={{ padding: "6px 8px 8px" }}>Year</th>
+                          <th style={{ padding: "6px 8px 8px" }}>Appeared</th>
+                          <th style={{ padding: "6px 8px 8px" }}>Pass %</th>
+                          <th style={{ padding: "6px 0 8px 8px" }}>Average</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {resultRows.map((r: any) => (
+                          <tr key={r.id} style={{ borderTop: "1px solid var(--beige-400)" }}>
+                            <td style={{ padding: "9px 8px 9px 0", fontWeight: 600, color: "var(--dark)" }}>
+                              {r.source_url ? <a href={r.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>{r.exam}</a> : r.exam}
+                            </td>
+                            <td style={{ padding: "9px 8px" }}>{r.exam_year}</td>
+                            <td style={{ padding: "9px 8px" }}>{r.students_appeared ?? "—"}</td>
+                            <td style={{ padding: "9px 8px" }}>{r.pass_percentage != null ? `${r.pass_percentage}%` : "—"}</td>
+                            <td style={{ padding: "9px 0 9px 8px" }}>{r.average_score != null ? r.average_score : "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p style={{ ...mutedNote, marginTop: 8, fontSize: 11 }}>Results are as published by the school or the board; tap an exam name for the source.</p>
+                </section>
+              )}
+
+              {/* PEER GROUP — nearby schools on a comparable board and fee band */}
+              {peers.length > 0 && (
+                <section id="section-peer" className="profile-section" style={cardStyle}>
+                  <p style={eyebrowStyle}>Peer Group</p>
+                  <p style={{ ...mutedNote, marginBottom: 14 }}>
+                    Schools in {school.area || school.city} following a similar curriculum, closest in fees first.
+                  </p>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 460 }}>
+                      <thead>
+                        <tr style={{ textAlign: "left", color: "var(--muted)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                          <th style={{ padding: "6px 8px 10px 0", fontWeight: 700 }}>School</th>
+                          <th style={{ padding: "6px 8px 10px", fontWeight: 700 }}>Board</th>
+                          <th style={{ padding: "6px 8px 10px", fontWeight: 700 }}>Annual fees</th>
+                          <th style={{ padding: "6px 0 10px 8px", fontWeight: 700 }}>Rating</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { id: school.id, slug: null as string | null, name: school.name, area: school.area,
+                            curricula, total_fees_min: details?.total_fees_min ?? null, total_fees_max: details?.total_fees_max ?? null,
+                            avg_rating: avgRating, review_count: reviews.length },
+                          ...peers,
+                        ].map((row: any, i: number) => (
+                          <tr key={row.id} style={{ borderTop: "1px solid var(--beige-400)", background: i === 0 ? "var(--beige-200)" : "transparent" }}>
+                            <td style={{ padding: "10px 8px 10px 6px" }}>
+                              {row.slug ? (
+                                <Link href={`/schools/${row.slug}`} style={{ fontWeight: 600, color: "var(--dark)" }}>{row.name}</Link>
+                              ) : (
+                                <span style={{ fontWeight: 700, color: "var(--dark)" }}>{row.name} <span style={{ fontWeight: 500, color: "var(--muted)" }}>(this school)</span></span>
+                              )}
+                              {row.area && <div style={{ fontSize: 11, color: "var(--muted)" }}>{row.area}</div>}
+                            </td>
+                            <td style={{ padding: "10px 8px", color: "var(--dark)" }}>
+                              {(row.curricula || []).map((c: string) => CURRICULUM_LABELS[c as keyof typeof CURRICULUM_LABELS] || c).join(", ") || "—"}
+                            </td>
+                            <td style={{ padding: "10px 8px", color: "var(--dark)", whiteSpace: "nowrap" }}>
+                              {row.total_fees_min ? formatFeesRange(row.total_fees_min, row.total_fees_max) : "—"}
+                            </td>
+                            <td style={{ padding: "10px 0 10px 8px", color: "var(--dark)", whiteSpace: "nowrap" }}>
+                              {row.avg_rating && row.review_count > 0 ? `${formatRating(Number(row.avg_rating))} / 5` : "No reviews"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
+              {/* UNIQUE THINGS — every line is derived from data we hold for this school */}
+              {highlights.length > 0 && (
+                <section id="section-unique" className="profile-section" style={cardStyle}>
+                  <p style={eyebrowStyle}>What Makes This School Unique</p>
+                  <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+                    {highlights.map((h) => (
+                      <li key={h} style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 14, color: "var(--dark)", lineHeight: 1.5 }}>
+                        <Sparkles style={{ width: 15, height: 15, color: "#d97706", flexShrink: 0, marginTop: 3 }} />
+                        {h}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {/* ADMISSIONS — status is derived from the window dates, never the stored label */}
+              <section id="section-admission" className="profile-section" style={cardStyle}>
+                <p style={eyebrowStyle}>Admissions</p>
+
+                <div style={{
+                  padding: "12px 14px", borderRadius: 12, marginBottom: admissions.length > 0 ? 14 : 0,
+                  border: `1px solid ${admissionSummary.state === "open" ? "#86efac" : "var(--beige-500)"}`,
+                  background: admissionSummary.state === "open" ? "rgba(134,239,172,0.12)" : "var(--beige-200)",
+                }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "var(--dark)", marginBottom: 2 }}>
+                    {admissionLabel(admissionSummary)}
+                  </p>
+                  <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>
+                    {admissionSummary.state === "open" && (admissionSummary.closesAt
+                      ? `Applications close on ${formatAdmissionDate(admissionSummary.closesAt)}.`
+                      : "Contact the school for the closing date.")}
+                    {admissionSummary.state === "upcoming" && "Contact the school to confirm the schedule."}
+                    {admissionSummary.state === "waitlist" && "New applications are being added to the waitlist."}
+                    {admissionSummary.state === "closed" &&
+                      `The latest window we have on record ended${admissionSummary.closesAt ? ` on ${formatAdmissionDate(admissionSummary.closesAt)}` : ""}. Dates for the next session haven't been published — enquire with the school directly.`}
+                    {admissionSummary.state === "unknown" &&
+                      "This school hasn't published its admission dates with us. Enquire with the school directly about the next intake."}
+                  </p>
+                </div>
+
+                {admissions.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {[...admissions]
+                      .sort((a: any, b: any) => (b.opens_at ?? "").localeCompare(a.opens_at ?? ""))
+                      .map((a: any) => {
+                        const state = resolveAdmissionState(a);
+                        const chip = {
+                      open:     { label: "Open",      bg: "#16a34a",         fg: "white" },
+                      upcoming: { label: "Upcoming",  bg: "var(--beige-400)", fg: "var(--dark)" },
+                      waitlist: { label: "Waitlist",  bg: "#f59e0b",         fg: "white" },
+                      closed:   { label: "Closed",    bg: "var(--beige-300)", fg: "var(--muted)" },
+                    }[state];
+                        const live = state === "open" || state === "upcoming";
+                        return (
+                          <div key={a.id} style={{ border: `1px solid ${state === "open" ? "#86efac" : "var(--beige-500)"}`,
+                            borderRadius: 12, padding: 14, opacity: state === "closed" ? 0.8 : 1,
+                            background: state === "open" ? "rgba(134,239,172,0.12)" : "var(--beige-200)" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--dark)" }}>
+                                {formatAcademicYear(a.academic_year)}{a.grade_from && ` · ${a.grade_from}${a.grade_to && a.grade_to !== a.grade_from ? ` – ${a.grade_to}` : ""}`}
+                                {a.is_mid_year && " · Mid-year"}
+                              </span>
+                              <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99,
+                                background: chip.bg, color: chip.fg, flexShrink: 0 }}>{chip.label}</span>
+                            </div>
+                            {(a.opens_at || a.closes_at) && (
+                              <p style={{ fontSize: 11, color: "var(--muted)" }}>
+                                {a.opens_at && `Opens ${formatAdmissionDate(a.opens_at)}`}
+                                {a.opens_at && a.closes_at && " · "}
+                                {a.closes_at && `Closes ${formatAdmissionDate(a.closes_at)}`}
+                              </p>
+                            )}
+                            {a.application_url && live && (
+                              <a href={a.application_url} target="_blank" rel="noopener noreferrer"
+                                style={{ fontSize: 12, color: "var(--brown-dark)", fontWeight: 600,
+                                  display: "inline-flex", alignItems: "center", gap: 4, marginTop: 6 }}>
+                                Apply online <ExternalLink style={{ width: 11, height: 11 }} />
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })}
                   </div>
                 )}
               </section>
 
-              {/* SENTIMENT */}
+              {avgBreakdown && (
               <section id="section-sentiment" className="profile-section"
                 style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>
@@ -1226,23 +1295,9 @@ export default async function SchoolProfilePage({
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="sheen-wrap">
-                    <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-                      <div className="sheen" style={{ width: 72, height: 72, borderRadius: "50%", flexShrink: 0 }} />
-                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, paddingTop: 4 }}>
-                        {["Academics", "Facilities", "Faculty", "Value"].map((label) => (
-                          <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <div className="sheen" style={{ height: 11, width: 70, flexShrink: 0 }} />
-                            <div className="sheen" style={{ height: 8, flex: 1, borderRadius: 99 }} />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="sheen-overlay"><span className="sheen-badge">📊 More reviews needed for sentiment analysis</span></div>
-                  </div>
-                )}
+                ) : null}
               </section>
+              )}
 
               {/* FEEDBACK */}
               <section id="section-feedback" className="profile-section"
@@ -1276,23 +1331,10 @@ export default async function SchoolProfilePage({
                     ))}
                   </div>
                 ) : (
-                  <div className="sheen-wrap">
-                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                          <div className="sheen" style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0 }} />
-                          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-                            <div className="sheen" style={{ height: 12, width: "45%" }} />
-                            <div className="sheen" style={{ height: 11, width: "80%" }} />
-                            <div className="sheen" style={{ height: 11, width: "65%" }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="sheen-overlay">
-                      <span className="sheen-badge">✍️ Be the first parent to share your experience</span>
-                    </div>
-                  </div>
+                  <p style={mutedNote}>
+                    No parent reviews have been posted for this school yet. If your child studies here, your
+                    experience would help other families decide.
+                  </p>
                 )}
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--beige-400)" }}>
                   <Link href={`/schools/${school.slug}/reviews`}
@@ -1303,38 +1345,60 @@ export default async function SchoolProfilePage({
               </section>
 
               {/* SOURCES */}
-              <section id="section-sources" className="profile-section"
-                style={{ background: "var(--beige-100)", border: "1px solid var(--beige-500)", borderRadius: 16, padding: 24 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>Sources & Links</p>
-                {school.website ? (
-                  <a href={school.website} target="_blank" rel="noopener noreferrer"
+              <section id="section-sources" className="profile-section" style={cardStyle}>
+                <p style={eyebrowStyle}>Sources &amp; Links</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {school.website && (
+                    <a href={school.website} target="_blank" rel="noopener noreferrer"
+                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+                        background: "var(--beige-200)", border: "1px solid var(--beige-500)", borderRadius: 12 }}>
+                      <Globe style={{ width: 16, height: 16, color: "var(--muted)", flexShrink: 0 }} />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--dark)" }}>Official Website</p>
+                        <p style={{ fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {school.website}
+                        </p>
+                      </div>
+                      <ExternalLink style={{ width: 14, height: 14, color: "var(--muted)", flexShrink: 0 }} />
+                    </a>
+                  )}
+                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
                     style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
-                      background: "var(--beige-200)", border: "1px solid var(--beige-500)",
-                      borderRadius: 12, transition: "border-color 0.15s" }}>
-                    <Globe style={{ width: 16, height: 16, color: "var(--muted)", flexShrink: 0 }} />
+                      background: "var(--beige-200)", border: "1px solid var(--beige-500)", borderRadius: 12 }}>
+                    <MapPin style={{ width: 16, height: 16, color: "var(--muted)", flexShrink: 0 }} />
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--dark)" }}>Official Website</p>
-                      <p style={{ fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {school.website}
-                      </p>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--dark)" }}>Google Maps</p>
+                      <p style={{ fontSize: 11, color: "var(--muted)" }}>Location, directions and photos</p>
                     </div>
                     <ExternalLink style={{ width: 14, height: 14, color: "var(--muted)", flexShrink: 0 }} />
                   </a>
-                ) : (
-                  <div className="sheen-wrap">
-                    <div className="sheen" style={{ height: 52, borderRadius: 12 }} />
-                    <div className="sheen-overlay"><span className="sheen-badge">🔗 Verifying school links</span></div>
-                  </div>
-                )}
-                <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 10 }}>
-                  Information sourced from school websites, Ezyschooling, and parent surveys. We verify and update profiles regularly — last reviewed {YEAR}.
+                  {!school.website && (
+                    <p style={{ fontSize: 12, color: "var(--muted)" }}>The school&apos;s official website isn&apos;t listed yet.</p>
+                  )}
+                </div>
+                <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 12, lineHeight: 1.6 }}>
+                  Compiled from the school&apos;s own website, public school directories and parent feedback.
+                  {school.last_data_updated_at && ` Last updated ${new Date(school.last_data_updated_at).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}.`}
+                  {" "}Fees and admission dates change — please confirm with the school before you apply.
                 </p>
               </section>
             </div>
 
             {/* ── Sidebar ── */}
             <aside className="lg:col-span-1">
-              <SchoolActionsSidebar school={school} />
+              <SchoolActionsSidebar
+                school={{
+                  // Only what the sidebar needs — the full row (raw description, reviews…) stays on the server
+                  id: school.id, slug: school.slug, name: school.name, area: school.area, city: school.city,
+                  pincode: school.pincode, type: school.type, cover_image_url: school.cover_image_url,
+                  website: school.website, phone: school.phone, email: school.email,
+                  address_line1: school.address_line1, address_line2: school.address_line2,
+                  last_data_updated_at: school.last_data_updated_at,
+                  total_fees_min: details?.total_fees_min ?? null, total_fees_max: details?.total_fees_max ?? null,
+                  curricula, avg_rating: avgRating,
+                }}
+                admission={{ open: admissionOpen, yearLabel: admissionYear, applicationUrl: openAdmissions.find((a: any) => a.application_url)?.application_url ?? null }}
+              />
             </aside>
           </div>
         </div>
@@ -1350,7 +1414,7 @@ export default async function SchoolProfilePage({
               const boardName = CURRICULUM_LABELS[c as keyof typeof CURRICULUM_LABELS] || c;
               return (
                 <Link key={`board-${c}`}
-                  href={`/schools/${citySlug}?curriculum=${c}`}
+                  href={boardPageHref(citySlug, c)}
                   style={{
                     fontSize: 12, fontWeight: 600, color: "var(--muted)",
                     background: "var(--beige-200)", border: "1px solid var(--beige-400)",
@@ -1364,9 +1428,9 @@ export default async function SchoolProfilePage({
             })}
 
             {/* Area-specific link */}
-            {school.area && (
+            {school.area && areaSlug && (
               <Link
-                href={`/schools/${citySlug}?area=${encodeURIComponent(school.area)}`}
+                href={`/schools/${citySlug}/${areaSlug}`}
                 style={{
                   fontSize: 12, fontWeight: 600, color: "var(--muted)",
                   background: "var(--beige-200)", border: "1px solid var(--beige-400)",
@@ -1430,9 +1494,6 @@ export default async function SchoolProfilePage({
           </div>
         )}
 
-        {/* Scroll spacer — gives the last section just enough room to scroll
-            past the 116px sticky header+tab offset. ~800px is sufficient. */}
-        <div aria-hidden="true" style={{ height: 800 }} />
       </main>
       <Footer />
     </>

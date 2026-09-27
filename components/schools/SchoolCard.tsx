@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Star, IndianRupee, Check, Plus, MessageSquare, Heart } from "lucide-react";
-import { formatFeesRange, formatRating } from "@/lib/utils";
+import { MapPin, IndianRupee, Check, Plus, MessageSquare, Heart, BadgeCheck, Navigation } from "lucide-react";
+import { formatFeesRange } from "@/lib/utils";
+import { commuteEstimate } from "@/lib/geo";
+import { profileCompleteness } from "@/lib/completeness";
+import { formatAcademicYear } from "@/lib/admissions";
 import { CURRICULUM_LABELS, SCHOOL_TYPE_LABELS, type SchoolSummary } from "@/lib/types";
 import { useCompareStore } from "@/store/compareStore";
 import { useShortlistStore } from "@/store/shortlistStore";
@@ -21,6 +24,10 @@ export function SchoolCard({ school, highlighted }: SchoolCardProps) {
 
   const { isSaved, add: addToShortlist, remove: removeFromShortlist } = useShortlistStore();
   const saved = isSaved(school.id);
+
+  // "Verified" is only shown for profiles that are also filled in; the rest show how complete they are
+  const completeness = profileCompleteness(school, school.verified);
+  const commute = school.distance_km != null ? commuteEstimate(school.distance_km) : null;
 
   const handleCompare = () => {
     if (inCompare) removeSchool(school.id);
@@ -131,6 +138,33 @@ export function SchoolCard({ school, highlighted }: SchoolCardProps) {
         {SCHOOL_TYPE_LABELS[school.type]}
       </div>
 
+      {/* Trust: earned Verified badge, or an honest completeness score */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, margin: "-2px 0 8px" }}>
+        {completeness.showVerified ? (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "#166534", background: "#dcfce7", padding: "2px 8px", borderRadius: 99 }}>
+            <BadgeCheck size={12} /> Verified
+          </span>
+        ) : (
+          <span
+            title={completeness.missing.length ? `Missing: ${completeness.missing.slice(0, 5).join(", ")}${completeness.missing.length > 5 ? "…" : ""}` : undefined}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--muted)" }}
+          >
+            <span aria-hidden="true" style={{ width: 36, height: 4, borderRadius: 99, background: "var(--beige-400)", overflow: "hidden", display: "inline-block" }}>
+              <span style={{ display: "block", width: `${completeness.score}%`, height: "100%", background: completeness.score >= 50 ? "#a16207" : "#b45309" }} />
+            </span>
+            Profile {completeness.score}% complete
+          </span>
+        )}
+        {school.distance_km != null && commute && (
+          <span
+            title="Straight-line distance from your saved location. The drive time is a rough range for Indian city traffic, not a promise."
+            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--dark)", fontWeight: 600 }}
+          >
+            <Navigation size={11} /> {school.distance_km} km · ~{commute.min}–{commute.max} min
+          </span>
+        )}
+      </div>
+
       {/* Stats */}
       <div className="card-stats">
         <div className="card-stat">
@@ -166,23 +200,11 @@ export function SchoolCard({ school, highlighted }: SchoolCardProps) {
               fontSize: 11, fontWeight: 600,
               padding: "2px 8px", borderRadius: 99,
             }}>
-              Admissions Open 2026-27
+              {school.admission_year ? `Admissions open ${formatAcademicYear(school.admission_year)}` : "Admissions open"}
             </span>
           </div>
         )}
       </div>
-
-      {/* Description snippet — skip raw template strings */}
-      {school.description && !school.description.startsWith("Grades offered:") && !school.description.includes("Fee Range:") && (
-        <p style={{
-          fontSize: 12, color: "var(--muted)", fontStyle: "italic",
-          lineHeight: 1.5, margin: "6px 0 2px",
-          display: "-webkit-box", WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical", overflow: "hidden",
-        }}>
-          "{school.description}"
-        </p>
-      )}
 
       {/* Actions */}
       <div className="card-actions" style={{ flexWrap: "wrap", gap: 6 }}>
