@@ -22,7 +22,7 @@ const ROWS: { label: string; fn: (s: SchoolSummary) => string }[] = [
   { label: "Annual Fees",     fn: (s: SchoolSummary) => formatFeesRange(s.total_fees_min, s.total_fees_max) || "—" },
   { label: "Profile completeness", fn: (s: SchoolSummary) => `${profileCompleteness(s, s.verified).score}%` },
   { label: "Rating",          fn: (s: SchoolSummary) => s.avg_rating ? `${formatRating(s.avg_rating)} / 5` : "No reviews" },
-  { label: "Transport",       fn: (s: SchoolSummary) => s.has_transport ? "Available" : "Not available" },
+  { label: "Transport",       fn: (s: SchoolSummary) => s.has_transport == null ? "Not confirmed" : s.has_transport ? "Available" : "Not available" },
   { label: "Student:Teacher", fn: (s: SchoolSummary) => s.student_teacher_ratio ? `${s.student_teacher_ratio}:1` : "—" },
   { label: "Hours",           fn: (s: SchoolSummary) => (s.school_hours_start && s.school_hours_end) ? formatSchoolHours(s.school_hours_start, s.school_hours_end) : "—" },
   // Wording comes from the same date-aware logic as the listing cards and the profile page

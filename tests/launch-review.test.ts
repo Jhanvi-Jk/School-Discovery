@@ -88,3 +88,21 @@ describe("admissions (today = 17 Nov 2026)", () => {
     expect(admissionLabel(s)).toBe("Admissions open 2027–28");
   });
 });
+
+describe("data we couldn't confirm", () => {
+  it("names unconfirmed fields in plain words", async () => {
+    const { unconfirmedLabels, joinWithAnd } = await import("@/lib/schoolText");
+    const labels = unconfirmedLabels(["fees", "transport", "student_teacher_ratio", "pre_primary"]);
+    expect(joinWithAnd(labels)).toBe("fees, transport, student–teacher ratio and pre-primary (Nursery–UKG) classes");
+  });
+  it("drops a flag once the value has been filled in", async () => {
+    const { unconfirmedLabels } = await import("@/lib/schoolText");
+    expect(unconfirmedLabels(["fees", "transport"], { hasFees: true })).toEqual(["transport"]);
+    expect(unconfirmedLabels(null)).toEqual([]);
+  });
+  it("new-school descriptions are shown, not filtered as blurbs", () => {
+    const d = "National Hill View Public School is affiliated to CBSE up to Class 12 (affiliation no. 830080) and is run by the National Hill View Public School. CBSE records give 2001 as its year of foundation.";
+    expect(isUsableDescription(d)).toBe(true);
+    expect(isSeedTemplate(d)).toBe(false);
+  });
+});

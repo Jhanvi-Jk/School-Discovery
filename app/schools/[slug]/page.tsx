@@ -23,7 +23,7 @@ import { CityHubPage } from "@/components/seo/CityHubPage";
 import { cityFromSlug, boardPageHref } from "@/lib/cities";
 import { getSiteStats, formatCount } from "@/lib/siteStats";
 import { profileCompleteness } from "@/lib/completeness";
-import { buildFactualSummary, buildHighlights, cleanDescription } from "@/lib/schoolText";
+import { buildFactualSummary, buildHighlights, cleanDescription, joinWithAnd, unconfirmedLabels } from "@/lib/schoolText";
 import {
   formatFeesRange, formatRating, formatSchoolHours,
   cn, formatFees
@@ -234,11 +234,13 @@ export default async function SchoolProfilePage({
   const optional = async (q: PromiseLike<{ data: any[] | null }>) => {
     try { return (await q).data ?? []; } catch { return []; }
   };
-  const [feeRows, resultRows, routeRows] = await Promise.all([
+  const [feeRows, resultRows, routeRows, subjectRows] = await Promise.all([
     optional(supabase.from("school_fee_structure").select("*").eq("school_id", school.id).order("academic_year", { ascending: false }).order("sort_order")),
     optional(supabase.from("school_board_results").select("*").eq("school_id", school.id).order("exam_year", { ascending: false })),
     optional(supabase.from("school_transport_routes").select("*").eq("school_id", school.id).order("route_name")),
+    optional(supabase.from("school_subjects").select("kind, name").eq("school_id", school.id).order("name")),
   ]);
+  const streams: string[] = subjectRows.filter((r: any) => r.kind === "stream").map((r: any) => r.name);
   // Fees by grade: show only the most recent year we have
   const feeYear = feeRows[0]?.academic_year as string | undefined;
   const feesByGrade = feeRows.filter((f: any) => f.academic_year === feeYear);
@@ -246,6 +248,12 @@ export default async function SchoolProfilePage({
   const details = Array.isArray(school.school_details)
     ? school.school_details[0] ?? null
     : school.school_details ?? null;
+  // Fields we looked for and could not confirm — named on the page instead of silently hidden
+  const notConfirmed = unconfirmedLabels(details?.unconfirmed, {
+    hasFees: details?.total_fees_min != null || details?.annual_tuition_fees_min != null,
+    hasTransport: details?.has_transport != null,
+    hasRatio: details?.student_teacher_ratio != null,
+  });
   const curricula  = (school.school_curricula || []).map((c: any) => c.curriculum);
   const sports     = (school.school_sports || []).map((s: any) => s.sports?.name).filter(Boolean);
   const extras     = (school.school_extracurriculars || []).map((e: any) => e.extracurriculars?.name).filter(Boolean);
@@ -866,6 +874,26 @@ export default async function SchoolProfilePage({
                         </span>
                       ))}
                     </div>
+                  </div>
+                )}
+                {streams.length > 0 && (
+                  <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--beige-400)" }}>
+                    <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: 10 }}>Streams offered in Class 11–12</p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {streams.map((s: string) => (
+                        <span key={s} style={{ fontSize: 12, padding: "4px 12px", borderRadius: 99,
+                          background: "var(--beige-300)", color: "var(--muted)", border: "1px solid var(--beige-500)" }}>{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {notConfirmed.length > 0 && (
+                  <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--beige-400)" }}>
+                    <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: 6 }}>Not confirmed yet</p>
+                    <p style={{ fontSize: 13, color: "var(--dark)", lineHeight: 1.6 }}>
+                      We couldn&apos;t confirm this school&apos;s {joinWithAnd(notConfirmed)} from official sources.
+                      Please check with the school before you decide.
+                    </p>
                   </div>
                 )}
               </section>

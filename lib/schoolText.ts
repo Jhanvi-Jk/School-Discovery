@@ -112,6 +112,39 @@ function joinList(items: string[]): string {
   if (items.length <= 1) return items.join("");
   return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }
+export const joinWithAnd = joinList;
+
+// school_details.unconfirmed keys (migration 048) → wording on the profile
+const UNCONFIRMED_LABELS: Record<string, string> = {
+  fees: "fees",
+  transport: "transport",
+  student_teacher_ratio: "student–teacher ratio",
+  sports: "sports",
+  activities: "activities and clubs",
+  languages: "languages taught",
+  streams: "Class 11–12 streams",
+  pre_primary: "pre-primary (Nursery–UKG) classes",
+  grades: "exact classes offered",
+  gender: "co-ed status",
+  contact: "phone and email",
+  boarding: "day/boarding status",
+  established_year: "founding year",
+};
+
+/**
+ * Plain-language list of what we couldn't confirm for a school. A field that has since
+ * been filled in (fees, transport, ratio) is dropped even if it is still flagged.
+ */
+export function unconfirmedLabels(
+  keys: string[] | null | undefined,
+  have: { hasFees?: boolean; hasTransport?: boolean; hasRatio?: boolean } = {},
+): string[] {
+  if (!keys?.length) return [];
+  const filled: Record<string, boolean | undefined> = {
+    fees: have.hasFees, transport: have.hasTransport, student_teacher_ratio: have.hasRatio,
+  };
+  return [...new Set(keys)].filter((k) => UNCONFIRMED_LABELS[k] && !filled[k]).map((k) => UNCONFIRMED_LABELS[k]);
+}
 
 /** A plain factual summary assembled only from fields we actually hold. */
 export function buildFactualSummary(f: FactSheet): string {
