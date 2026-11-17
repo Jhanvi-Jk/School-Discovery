@@ -1,22 +1,21 @@
 import Link from "next/link";
-import { ChevronRight, IndianRupee, MapPin, Star } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { createPublicClient } from "@/lib/supabase/public";
-import { fetchByIds } from "@/lib/supabase/fetchAll";
-import { parseSearchParams, searchSchools } from "@/lib/schools/search";
+import { SchoolGrid } from "@/components/schools/SchoolGrid";
+import { loadCityCatalog } from "@/lib/schools/catalog";
+import { areaStats, type CatalogSchool } from "@/lib/schools/core";
 import { BOARD_INFO } from "@/lib/seo/boards";
 import { BOARD_SLUGS, type CityConfig } from "@/lib/cities";
-import { formatFeesRange, formatFees, formatRating } from "@/lib/utils";
-import { formatAcademicYear } from "@/lib/admissions";
+import { formatFees } from "@/lib/utils";
 import { SITE_URL } from "@/lib/site";
 
 const YEAR = new Date().getFullYear();
 
 export interface BoardPageData {
   count: number;
-  schools: any[];
-  areas: [string, number][];
+  schools: CatalogSchool[];
+  areas: [string, number, string][];
   feeMedian: number | null;
   feeLow: number | null;
   feeHigh: number | null;
@@ -35,27 +34,15 @@ export async function loadBoardPageData(city: CityConfig, boardDb: string): Prom
 }
 
 async function loadBoardPageDataUnsafe(city: CityConfig, boardDb: string): Promise<BoardPageData> {
-  const supabase = createPublicClient();
-  const query = (extra: Record<string, string>) =>
-    parseSearchParams(new URLSearchParams({ city: city.dbName, curriculum: boardDb, ...extra }));
-
-  const [list, every] = await Promise.all([
-    searchSchools(supabase, query({ limit: "24" })),
-    // Every match (ids + area only) for neighbourhood counts and the fee range
-    searchSchools(supabase, query({ lean: "1", limit: "1000" })),
-  ]);
-  const fees = (await fetchByIds<{ id: string; total_fees_min: number | null }>(
-    every.schools.map((s: any) => s.id),
-    (batch) => supabase.from("schools_with_details").select("id, total_fees_min").in("id", batch)
-  )).map((r) => r.total_fees_min).filter((f): f is number => !!f).sort((a, b) => a - b);
-
-  const areaCounts: Record<string, number> = {};
-  every.schools.forEach((r: any) => { if (r.area) areaCounts[r.area] = (areaCounts[r.area] || 0) + 1; });
-
+  // Same catalogue as the Explore page and area pages, so the counts match everywhere
+  const matching = (await loadCityCatalog(city)).filter((s) => s.curricula.includes(boardDb));
+  const fees = matching.map((s) => s.feesMin).filter((f): f is number => !!f).sort((a, b) => a - b);
+  const top = [...matching].sort((a, b) =>
+    b.completeness.score - a.completeness.score || (b.rating ?? 0) - (a.rating ?? 0) || a.name.localeCompare(b.name));
   return {
-    count: list.total,
-    schools: list.schools,
-    areas: Object.entries(areaCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 12),
+    count: matching.length,
+    schools: top.slice(0, 24),
+    areas: areaStats(matching).slice(0, 12).map((a) => [a.name, a.count, a.slug] as [string, number, string]),
     feeMedian: fees.length ? fees[Math.floor(fees.length / 2)] : null,
     feeLow: fees.length ? fees[0] : null,
     feeHigh: fees.length ? fees[fees.length - 1] : null,
@@ -179,30 +166,10 @@ export async function BoardLandingPage({ city, boardSlug }: { city: CityConfig; 
               <h2 id="school-list" style={{ fontSize: 20, fontWeight: 800, color: "var(--dark)", marginBottom: 14 }}>
                 Top {info.name} schools in {city.label}
               </h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {d.schools.map((s) => (
-                  <Link key={s.id} href={`/schools/${s.slug}`} style={{ textDecoration: "none" }}>
-                    <div style={{ background: "white", border: "1px solid var(--beige-400)", borderRadius: 16, padding: "16px 18px" }}>
-                      <p style={{ fontSize: 16, fontWeight: 700, color: "var(--dark)", marginBottom: 4 }}>{s.name}</p>
-                      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px 12px", fontSize: 12, color: "var(--muted)" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><MapPin size={11} />{s.area || s.city}</span>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3, color: "var(--dark)", fontWeight: 600 }}><IndianRupee size={11} />{formatFeesRange(s.total_fees_min, s.total_fees_max)}</span>
-                        {s.avg_rating != null && s.review_count > 0 && (
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><Star size={11} style={{ fill: "#f59e0b", color: "#f59e0b" }} />{formatRating(Number(s.avg_rating))} ({s.review_count})</span>
-                        )}
-                        {s.admissions_open && (
-                          <span style={{ background: "#dcfce7", color: "#166534", fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 99 }}>
-                            {s.admission_year ? `Admissions open ${formatAcademicYear(s.admission_year)}` : "Admissions open"}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+              <SchoolGrid schools={d.schools} />
               {d.count > d.schools.length && (
                 <p style={{ marginTop: 14, fontSize: 13 }}>
-                  Showing {d.schools.length} of {d.count}. <Link href={`/schools?city=${city.slug}&curriculum=${board.db}`} style={{ fontWeight: 700, color: "var(--brown-dark)" }}>See all {info.name} schools in the explorer →</Link>
+                  Showing {d.schools.length} of {d.count}. <Link href={`/schools?city=${city.slug}&curriculum=${boardSlug}`} style={{ fontWeight: 700, color: "var(--brown-dark)" }}>See all {info.name} schools in the explorer →</Link>
                 </p>
               )}
             </section>
@@ -218,8 +185,8 @@ export async function BoardLandingPage({ city, boardSlug }: { city: CityConfig; 
             <section style={{ marginBottom: 28 }}>
               <h2 style={{ fontSize: 18, fontWeight: 800, color: "var(--dark)", marginBottom: 12 }}>{info.name} schools by neighbourhood</h2>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {d.areas.map(([area, n]) => (
-                  <Link key={area} href={`/schools/${city.slug}/${area.toLowerCase().replace(/\s+/g, "-")}`} style={pill}>{area} ({n})</Link>
+                {d.areas.map(([area, n, areaSlug]) => (
+                  <Link key={areaSlug} href={`/schools/${city.slug}/${areaSlug}`} style={pill}>{area} ({n})</Link>
                 ))}
               </div>
             </section>

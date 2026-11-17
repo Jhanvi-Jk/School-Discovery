@@ -1,4 +1,4 @@
-import { isUsableDescription } from "@/lib/schoolText";
+import { cleanDescription } from "@/lib/schoolText";
 
 // A "Verified" badge on a mostly empty profile hurts trust, so the badge is earned by
 // a complete profile and everything else shows an honest completeness score.
@@ -40,7 +40,7 @@ export const COMPLETENESS_CRITERIA: Criterion[] = [
   { key: "photos",      label: "Photos",                 weight: 15, met: (s) => !!s.cover_image_url },
   { key: "contact",     label: "Phone or email",         weight: 15, met: (s) => !!(s.phone || s.email) },
   { key: "fees",        label: "Annual fees",            weight: 15, met: (s) => !!s.total_fees_min },
-  { key: "description", label: "School description",     weight: 10, met: (s) => isUsableDescription(s.description) },
+  { key: "description", label: "School description",     weight: 10, met: (s) => cleanDescription(s.description) != null },
   { key: "location",    label: "Map location",           weight: 10, met: hasCoords },
   { key: "boards",      label: "Board / curriculum",     weight: 10, met: (s) => (s.curricula?.length ?? 0) > 0 },
   { key: "website",     label: "Official website",       weight: 5,  met: (s) => !!s.website },

@@ -40,6 +40,44 @@ export function cityFromDbName(name: string | null | undefined): CityConfig | un
   return CITIES.find((c) => c.dbName.toLowerCase() === name.toLowerCase());
 }
 
+/** Cities announced in the picker but not launched: shown disabled with a "Coming soon" tag. */
+export const COMING_SOON_CITIES: { slug: string; label: string }[] = [
+  { slug: "pune", label: "Pune" },
+  { slug: "kolkata", label: "Kolkata" },
+];
+
+export function comingSoonCity(slug: string) {
+  return COMING_SOON_CITIES.find((c) => c.slug === slug.toLowerCase());
+}
+
+/** Query params that filter a listing. On a city hub URL they redirect to a page that honours them. */
+export const LISTING_FILTER_PARAMS = [
+  "curriculum", "gender", "type", "area", "grade", "fees_min", "fees_max", "q",
+  "admissions_open", "mid_year", "transport", "has_transport", "sport", "extracurricular", "language", "sort",
+];
+
+/**
+ * Where a city hub URL with filter params should go: a single board → its landing page
+ * (/schools/bengaluru/ib), anything else → the Explore page with the same filters.
+ * Returns null when there is nothing to redirect.
+ */
+export function hubRedirectTarget(citySlug: string, sp: URLSearchParams): string | null {
+  const keys = [...new Set([...sp.keys()])].filter((k) => LISTING_FILTER_PARAMS.includes(k));
+  if (keys.length === 0) return null;
+  const city = cityFromSlug(citySlug);
+  if (!city) return null;
+  const boards = sp.getAll("curriculum").flatMap((v) => v.split(",")).map((b) => b.trim().toLowerCase().replace(/_/g, "-")).filter(Boolean);
+  if (keys.length === 1 && keys[0] === "curriculum" && boards.length === 1 && BOARD_SLUGS[boards[0]]) {
+    return `/schools/${city.slug}/${boards[0]}`;
+  }
+  const out = new URLSearchParams({ city: city.slug });
+  sp.forEach((v, k) => {
+    if (!LISTING_FILTER_PARAMS.includes(k)) return;
+    out.append(k === "has_transport" ? "transport" : k, k === "curriculum" ? v.toLowerCase().replace(/_/g, "-") : v);
+  });
+  return `/schools?${out.toString()}`;
+}
+
 /** A city needs at least this many listed schools before we present it as live. */
 export const MIN_SCHOOLS_FOR_LIVE_CITY = 10;
 

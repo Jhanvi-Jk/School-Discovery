@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { createPublicClient } from "@/lib/supabase/public";
+import { loadCatalog } from "@/lib/schools/catalog";
 import { CITIES, MIN_SCHOOLS_FOR_LIVE_CITY, type CityConfig } from "@/lib/cities";
 
 // The single source of truth for "how many schools do we have". The meta descriptions,
@@ -25,18 +25,11 @@ const EMPTY: SiteStats = {
 };
 
 async function loadSiteStats(): Promise<SiteStats> {
-  const supabase = createPublicClient();
-  const results = await Promise.all(
-    CITIES.map((c) =>
-      supabase.from("schools_with_details").select("id", { count: "exact", head: true }).eq("city", c.dbName)
-    )
-  );
-  // Throwing keeps a failed lookup out of the cache (unstable_cache never stores errors)
-  const failed = results.find((r) => r.error);
-  if (failed) throw failed.error;
-
-  const cities: CityStat[] = CITIES.map((c, i) => {
-    const count = results[i].count ?? 0;
+  // Counted from the same catalogue the listings render, so a headline number always
+  // equals the number of cards a visitor can actually page through.
+  const catalog = await loadCatalog();
+  const cities: CityStat[] = CITIES.map((c) => {
+    const count = catalog.filter((s) => s.city.toLowerCase() === c.dbName.toLowerCase()).length;
     return { ...c, count, live: count >= MIN_SCHOOLS_FOR_LIVE_CITY };
   });
   return {

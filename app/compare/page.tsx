@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { X, ArrowLeft, Plus } from "lucide-react";
 import { Header } from "@/components/layout/Header";
-import { useCompareStore } from "@/store/compareStore";
+import { useCompareStore, type CompareItem } from "@/store/compareStore";
 import { formatFeesRange, formatRating, formatSchoolHours } from "@/lib/utils";
 import { admissionLabel, summarizeAdmissions } from "@/lib/admissions";
 import { profileCompleteness } from "@/lib/completeness";
@@ -36,7 +36,17 @@ const rupees = (n: number | null) => (n ? formatFeesRange(n, n) : "—");
 
 export default function ComparePage() {
   const { schools: storedSchools, removeSchool, clearAll } = useCompareStore();
-  const [schools, setSchools] = useState<SchoolSummary[]>(storedSchools);
+  // The store only keeps {id, slug, name}; full rows are fetched below. Until they arrive
+  // (or if a fetch fails) each school is shown with empty fields rather than crashing.
+  const placeholder = (s: CompareItem): SchoolSummary => ({
+    id: s.id, slug: s.slug, name: s.name, description: null, type: "private" as SchoolSummary["type"],
+    gender: "coed" as SchoolSummary["gender"], verified: false, area: null, city: "", cover_image_url: null,
+    logo_url: null, total_fees_min: null, total_fees_max: null, has_transport: null, student_teacher_ratio: null,
+    school_hours_start: null, school_hours_end: null, student_count: null, avg_rating: null, review_count: null,
+    admissions_open: null, mid_year_available: null, curricula: [],
+  } as SchoolSummary);
+  const [schools, setSchools] = useState<SchoolSummary[]>(() => storedSchools.map(placeholder));
+  const storedKey = storedSchools.map((s) => s.slug).join(",");
   const [feeRows, setFeeRows] = useState<FeeRow[]>([]);
   const [resultRows, setResultRows] = useState<ResultRow[]>([]);
   const home = useHomeStore((s) => s.home);
@@ -67,9 +77,12 @@ export default function ComparePage() {
   // Re-fetch fresh data for each school to get latest ratio/hours/fees from DB
   useEffect(() => {
     if (storedSchools.length === 0) { setSchools([]); return; }
+    let cancelled = false;
+    setSchools(storedSchools.map(placeholder));
     Promise.all(
-      storedSchools.map((s) =>
-        fetch(`/api/v1/schools/${s.slug}`)
+      storedSchools.map((item) => {
+        const s = placeholder(item);
+        return fetch(`/api/v1/schools/${s.slug}`)
           .then((r) => r.json())
           .then((json) => {
             if (!json.success) return s;
@@ -97,10 +110,13 @@ export default function ComparePage() {
               admission_label: admissionLabel(summarizeAdmissions(d.admission_windows)),
             } as SchoolSummary;
           })
-          .catch(() => s)
-      )
-    ).then(setSchools);
-  }, [storedSchools.length]);
+          .catch(() => s);
+      })
+    ).then((rows) => { if (!cancelled) setSchools(rows); });
+    return () => { cancelled = true; };
+    // Keyed on the saved slugs (not just how many), so swapping one school for another refreshes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storedKey]);
 
   return (
     <>

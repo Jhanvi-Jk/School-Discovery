@@ -31,6 +31,8 @@ export interface SchoolSummary {
   /** Human-readable admission status ("Opens 1 Jan 2027", "Closed for 2025–26"); set by the compare page */
   admission_label?: string;
   mid_year_available: boolean | null;
+  /** "Nursery–Class 12", "Pre-school only", "Class 11–12 only"; null when unknown */
+  grade_range?: string | null;
   curricula?: Curriculum[];
   sports?: string[];
   extracurriculars?: string[];

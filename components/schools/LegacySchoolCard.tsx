@@ -1,0 +1,250 @@
+"use client";
+
+import Link from "next/link";
+import { MapPin, IndianRupee, Check, Plus, MessageSquare, Heart, BadgeCheck, Navigation } from "lucide-react";
+import { formatFeesRange } from "@/lib/utils";
+import { commuteEstimate } from "@/lib/geo";
+import { profileCompleteness } from "@/lib/completeness";
+import { formatAcademicYear } from "@/lib/admissions";
+import { CURRICULUM_LABELS, SCHOOL_TYPE_LABELS, type SchoolSummary } from "@/lib/types";
+import { useCompareStore } from "@/store/compareStore";
+import { useShortlistStore } from "@/store/shortlistStore";
+
+interface SchoolCardProps {
+  school: SchoolSummary;
+  view?: "grid" | "list";
+  isSaved?: boolean;
+  onSave?: (id: string) => void;
+  highlighted?: boolean;
+}
+
+// Temporary: the pre-catalogue card, used only by SchoolsClient until the Explore rewrite.
+export function LegacySchoolCard({ school, highlighted }: SchoolCardProps) {
+  const { isInCompare, addSchool, removeSchool, canAdd } = useCompareStore();
+  const inCompare = isInCompare(school.id);
+
+  const { isSaved, add: addToShortlist, remove: removeFromShortlist } = useShortlistStore();
+  const saved = isSaved(school.id);
+
+  // "Verified" is only shown for profiles that are also filled in; the rest show how complete they are
+  const completeness = profileCompleteness(school, school.verified);
+  const commute = school.distance_km != null ? commuteEstimate(school.distance_km) : null;
+
+  const handleCompare = () => {
+    if (inCompare) removeSchool(school.id);
+    else if (canAdd()) addSchool(school);
+  };
+
+  const handleHeart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (saved) {
+      removeFromShortlist(school.id);
+    } else {
+      addToShortlist({
+        id: school.id,
+        slug: school.slug,
+        name: school.name,
+        area: school.area ?? undefined,
+        city: school.city,
+        type: school.type,
+        cover_image_url: school.cover_image_url ?? undefined,
+        website: undefined,
+        total_fees_min: school.total_fees_min ?? undefined,
+        total_fees_max: school.total_fees_max ?? undefined,
+        curricula: school.curricula,
+        avg_rating: school.avg_rating ?? undefined,
+        savedAt: Date.now(),
+      });
+    }
+  };
+
+  return (
+    <div
+      id={`card-${school.slug}`}
+      className="school-card"
+      itemScope
+      itemType="https://schema.org/EducationalOrganization"
+      style={{
+        position: "relative",
+        transition: "box-shadow 0.4s, outline 0.4s",
+        outline: highlighted ? "2.5px solid var(--brown-dark)" : "none",
+        boxShadow: highlighted ? "0 0 0 4px rgba(44,24,16,0.12)" : undefined,
+      }}
+    >
+
+      {/* ── Heart / shortlist button — top right ── */}
+      <button
+        onClick={handleHeart}
+        title={saved ? "Remove from shortlist" : "Save to shortlist"}
+        style={{
+          position: "absolute", top: 12, right: 12,
+          background: saved ? "rgba(239,68,68,0.08)" : "rgba(0,0,0,0.04)",
+          border: "none",
+          borderRadius: "50%",
+          width: 32, height: 32,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer",
+          transition: "background 0.15s, transform 0.15s",
+          zIndex: 2,
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.15)")}
+        onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+      >
+        <Heart
+          size={16}
+          style={{
+            fill: saved ? "#ef4444" : "none",
+            color: saved ? "#ef4444" : "var(--muted)",
+            transition: "fill 0.15s, color 0.15s",
+          }}
+        />
+      </button>
+
+      {/* Board + grade-span badges: a pre-school or Class 11–12-only college is obvious at a glance */}
+      <div style={{ marginBottom: 10, paddingRight: 44, display: "flex", flexWrap: "wrap", gap: 4 }}>
+        {school.curricula && school.curricula.length > 0 ? (
+          school.curricula.map((c) => (
+            <span key={c} className="card-badge" style={{ marginBottom: 0 }}>
+              {CURRICULUM_LABELS[c] ?? c}
+            </span>
+          ))
+        ) : (
+          <span className="card-badge card-badge-muted" style={{ marginBottom: 0 }} title="We haven't confirmed this school's board yet">
+            Board not listed
+          </span>
+        )}
+        {school.grade_range && (
+          <span className="card-badge card-badge-grade" style={{ marginBottom: 0 }}>{school.grade_range}</span>
+        )}
+      </div>
+
+      {/* School name */}
+      <Link prefetch={false} href={`/schools/${school.slug}`} itemProp="url">
+        <div className="card-name" style={{ paddingRight: 44 }} itemProp="name">
+          {school.name}
+        </div>
+      </Link>
+
+      {/* Location — hidden microdata for address */}
+      <span
+        itemProp="address"
+        itemScope
+        itemType="https://schema.org/PostalAddress"
+        style={{ display: "none" }}
+      >
+        {school.area && <span itemProp="addressLocality">{school.area}</span>}
+        {school.city && <span itemProp="addressRegion">{school.city}</span>}
+        <span itemProp="addressCountry">IN</span>
+      </span>
+
+      {/* Location */}
+      <div className="card-meta">
+        <MapPin size={12} />
+        {/* Always name the city: an "All cities" list mixes Bengaluru, Chennai and Delhi */}
+        {[school.area, school.city].filter(Boolean).join(", ")}
+        <span style={{ margin: "0 4px" }}>·</span>
+        {SCHOOL_TYPE_LABELS[school.type]}
+      </div>
+
+      {/* Trust: earned Verified badge, or an honest completeness score */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, margin: "-2px 0 8px" }}>
+        {completeness.showVerified ? (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "#166534", background: "#dcfce7", padding: "2px 8px", borderRadius: 99 }}>
+            <BadgeCheck size={12} /> Verified
+          </span>
+        ) : (
+          <span
+            title={completeness.missing.length ? `Missing: ${completeness.missing.slice(0, 5).join(", ")}${completeness.missing.length > 5 ? "…" : ""}` : undefined}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--muted)" }}
+          >
+            <span aria-hidden="true" style={{ width: 36, height: 4, borderRadius: 99, background: "var(--beige-400)", overflow: "hidden", display: "inline-block" }}>
+              <span style={{ display: "block", width: `${completeness.score}%`, height: "100%", background: completeness.score >= 50 ? "#a16207" : "#b45309" }} />
+            </span>
+            Profile {completeness.score}% complete
+          </span>
+        )}
+        {school.distance_km != null && commute && (
+          <span
+            title="Straight-line distance from your saved location. The drive time is a rough range for Indian city traffic, not a promise."
+            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--dark)", fontWeight: 600 }}
+          >
+            <Navigation size={11} /> {school.distance_km} km · ~{commute.min}–{commute.max} min
+          </span>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div className="card-stats">
+        <div className="card-stat">
+          <IndianRupee size={12} style={{ color: "#7a6a5a" }} />
+          {school.total_fees_min || school.total_fees_max ? (
+            <span itemProp="priceRange">{formatFeesRange(school.total_fees_min, school.total_fees_max)}</span>
+          ) : (
+            <span style={{ color: "#b0a090", fontSize: 11 }}>Fee details coming</span>
+          )}
+        </div>
+        {school.avg_rating != null && school.review_count != null && school.review_count > 0 && (
+          <span
+            itemProp="aggregateRating"
+            itemScope
+            itemType="https://schema.org/AggregateRating"
+            style={{ display: "none" }}
+          >
+            <span itemProp="ratingValue">{school.avg_rating}</span>
+            <span itemProp="reviewCount">{school.review_count}</span>
+            <span itemProp="bestRating">5</span>
+          </span>
+        )}
+        {school.review_count != null && school.review_count > 0 && (
+          <div className="card-stat">
+            <MessageSquare size={12} style={{ color: "#7a6a5a" }} />
+            <span>{school.review_count} review{school.review_count !== 1 ? "s" : ""}</span>
+          </div>
+        )}
+        {school.admissions_open && (
+          <div className="card-stat">
+            <span style={{
+              background: "#dcfce7", color: "#166534",
+              fontSize: 11, fontWeight: 600,
+              padding: "2px 8px", borderRadius: 99,
+            }}>
+              {school.admission_year ? `Admissions open ${formatAcademicYear(school.admission_year)}` : "Admissions open"}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="card-actions" style={{ flexWrap: "wrap", gap: 6 }}>
+        <Link prefetch={false} href={`/schools/${school.slug}`} className="btn-view" style={{ flex: 1, minWidth: 90 }}>
+          Explore School →
+        </Link>
+        <Link
+          prefetch={false}
+          href={`/schools/${school.slug}/reviews`}
+          style={{
+            display: "flex", alignItems: "center", gap: 5,
+            padding: "10px 12px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+            border: "1.5px solid var(--beige-500)", color: "var(--muted)",
+            background: "transparent", textDecoration: "none", transition: "all 0.15s",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <MessageSquare size={13} /> Reviews
+        </Link>
+        <button
+          onClick={handleCompare}
+          disabled={!inCompare && !canAdd()}
+          className={`btn-compare${inCompare ? " added" : ""}`}
+        >
+          {inCompare ? (
+            <><Check size={13} /> Added</>
+          ) : (
+            <><Plus size={13} /> Compare</>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}

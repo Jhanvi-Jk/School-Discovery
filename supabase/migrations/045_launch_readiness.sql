@@ -164,6 +164,12 @@ FROM ranked r
 WHERE s.id = r.id AND r.rn > 1;
 
 -- ══ 3. Descriptions that must never be shown ═════════════════════════════════
+-- First repair the leaked board code in otherwise-good text ("Offers STATE_BOARD
+-- curriculum from Class 1 to Class 12" — ~270 real State Board schools), so the
+-- raw-code rule below doesn't throw those descriptions away.
+UPDATE schools SET description = replace(description, 'STATE_BOARD', 'State Board')
+WHERE description LIKE '%STATE\_BOARD%';
+
 -- Internal team notes, raw enum codes ("Offers STATE_BOARD curriculum"), generated
 -- filler ("layout parameters", "tier index tracking") and one-liners too short to be
 -- a real description. The site builds a factual summary from structured fields instead.

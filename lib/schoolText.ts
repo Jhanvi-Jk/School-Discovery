@@ -14,7 +14,7 @@ const INTERNAL_NOTE =
 // Filler produced by the original seed scripts: fragments that read as generated
 // ("Balanced practical application layout parameters", "tier index tracking choice").
 const MACHINE_FILLER =
-  /\b(layout parameters?|tier index|tracking (data|choices?|metrics?|index)|index ranking|metrics? index|performance index|brand extension|framework metrics?|profile metrics?|layout scores?|layout framework|infrastructure tracking|campus tracking)\b/i;
+  /\b(layout parameters?|tier index|tracking (data|choices?|metrics?|index)|index ranking|metrics? index|performance index|brand extension|framework metrics?|profile metrics?|layout scores?|layout framework|infrastructure tracking|campus tracking|blend profiles?|design frameworks?|success rate metrics|tracking portfolios|quotient tracking|progress tracking|faculty baseline)\b/i;
 
 // Raw database codes leaking into prose: "Offers STATE_BOARD curriculum."
 const RAW_ENUM_CODE = /\b[A-Z]{2,}(?:_[A-Z]+)+\b/;
@@ -25,12 +25,56 @@ export function isInternalOrMachineText(d: string | null | undefined): boolean {
   return INTERNAL_NOTE.test(d) || MACHINE_FILLER.test(d) || RAW_ENUM_CODE.test(d);
 }
 
+// Something a parent could check: a board, a year, a group/trust, a campus or road.
+const FACT_MARKER =
+  /\b(CBSE|ICSE|ISC|CISCE|IB|IGCSE|Cambridge|State Board|NIOS|Montessori|founded|established|affiliat\w*|run by|managed by|part of|campus|road|nagar|layout|\d{4}|class(es)?|grades?|nursery)\b/i;
+
+/**
+ * One-sentence marketing blurbs from the original seed data with nothing verifiable in
+ * them — "Iconic heritage school with unparalleled infrastructure and rich history in
+ * molding leaders." Checked against every listed school (Nov 2026): ~30 rows, all puffery.
+ */
+export function isUnsourcedBlurb(d: string): boolean {
+  const t = d.trim();
+  const sentences = t.split(/(?<=[.!?])\s+/).filter(Boolean);
+  return sentences.length === 1 && t.length <= 170 && !FACT_MARKER.test(t);
+}
+
+/**
+ * The generated one-liner most rows were seeded with: "X is a private co-educational
+ * school established in 2007, located in HAL, Bengaluru. Offers CBSE curriculum from
+ * Nursery to Class 12." Accurate, but it only repeats a card's badges, so listings skip it.
+ */
+const SEED_TEMPLATE =
+  /^.{3,140}? is an? (private|government|government-run|aided|international)[\w\s-]*? school(,| established in \d{4},)? located in [^.]+\. Offers [^.]+ curriculum[^.]*\.$/i;
+export function isSeedTemplate(d: string | null | undefined): boolean {
+  return !!d && SEED_TEMPLATE.test(d.trim());
+}
+
+// Board codes that leaked into otherwise good prose ("Offers STATE_BOARD curriculum from
+// Class 1 to Class 12"). ~270 real State Board schools carry this line, so the code is
+// rewritten to its label instead of the whole description being thrown away.
+const BOARD_CODE_LABELS: Record<string, string> = {
+  STATE_BOARD: "State Board", CBSE: "CBSE", ICSE: "ICSE", IB: "IB", IGCSE: "IGCSE", CAMBRIDGE: "Cambridge",
+};
+function humaniseBoardCodes(t: string): string {
+  return t.replace(/\b(STATE_BOARD)\b/g, (m) => BOARD_CODE_LABELS[m] ?? m);
+}
+
+/** The description a parent should see — board codes repaired — or null when it must be hidden. */
+export function cleanDescription(d: string | null | undefined): string | null {
+  if (!d) return null;
+  const t = humaniseBoardCodes(d.trim());
+  return isUsableDescription(t) ? t : null;
+}
+
 export function isUsableDescription(d: string | null | undefined): d is string {
   if (!d) return false;
   const t = d.trim();
   if (t.length < MIN_DESCRIPTION_LENGTH) return false;
   if (t.startsWith("Grades offered:") || t.includes("Fee Range:")) return false;
   if (isInternalOrMachineText(t)) return false;
+  if (isUnsourcedBlurb(t)) return false;
   if (/(\.\.\.|…)$/.test(t)) return false;
   return /[.!?]["')\]]?$/.test(t);
 }

@@ -168,7 +168,13 @@ export function SchoolProfileTabs({ availableTabs }: Props) {
         <div
           ref={scrollRef}
           className="scrollbar-hide"
-          style={{ flex: 1, display: "flex", alignItems: "center", gap: 2, overflowX: "auto", padding: "7px 6px" }}
+          style={{
+            flex: 1, display: "flex", alignItems: "center", gap: 2, overflowX: "auto", padding: "7px 6px",
+            // Fade the clipped edge so a half-scrolled tab ("tos" for "Photos") reads as "more this way"
+            // rather than a rendering bug
+            maskImage: `linear-gradient(to right, ${canScrollLeft ? "transparent 0, #000 28px" : "#000 0"}, ${canScrollRight ? "#000 calc(100% - 28px), transparent 100%" : "#000 100%"})`,
+            WebkitMaskImage: `linear-gradient(to right, ${canScrollLeft ? "transparent 0, #000 28px" : "#000 0"}, ${canScrollRight ? "#000 calc(100% - 28px), transparent 100%" : "#000 100%"})`,
+          }}
         >
           {visibleTabs.map((tab) => {
             const isActive = active === tab.id;

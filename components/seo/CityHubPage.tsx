@@ -1,14 +1,13 @@
-import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, MapPin } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { createPublicClient } from "@/lib/supabase/public";
-import { fetchAllRows } from "@/lib/supabase/fetchAll";
-import { parseSearchParams, searchSchools } from "@/lib/schools/search";
+import { SchoolGrid } from "@/components/schools/SchoolGrid";
+import { loadCityCatalog } from "@/lib/schools/catalog";
+import { areaStats } from "@/lib/schools/core";
 import { getSiteStats, formatCount } from "@/lib/siteStats";
 import { BOARD_SLUGS, boardSlugFromDb, type CityConfig } from "@/lib/cities";
-import { formatFeesRange, formatFees } from "@/lib/utils";
+import { formatFees } from "@/lib/utils";
 import { SITE_URL } from "@/lib/site";
 
 const YEAR = new Date().getFullYear();
@@ -44,28 +43,16 @@ export async function CityHubPage({ city }: { city: CityConfig }) {
     );
   }
 
-  const supabase = createPublicClient();
-  const [list, rows] = await Promise.all([
-    searchSchools(supabase, parseSearchParams(new URLSearchParams({ city: city.dbName, limit: "24" }))),
-    // The view's curricula column needs migration 027+; without it, fall back to areas and fees only
-    fetchAllRows<{ area: string | null; curricula?: string[] | null; total_fees_min: number | null }>((from, to) =>
-      supabase.from("schools_with_details").select("area, curricula, total_fees_min").eq("city", city.dbName).order("area").range(from, to)
-    ).catch(() =>
-      fetchAllRows<{ area: string | null; curricula?: string[] | null; total_fees_min: number | null }>((from, to) =>
-        supabase.from("schools_with_details").select("area, total_fees_min").eq("city", city.dbName).order("area").range(from, to)
-      )
-    ),
-  ]);
-
-  const areaCounts: Record<string, number> = {};
+  // Same catalogue rows as the area pages, so "Whitefield (26)" here is exactly what /schools/bengaluru/whitefield lists
+  const all = await loadCityCatalog(city);
+  const areas = areaStats(all);
   const boardCounts: Record<string, number> = {};
-  rows.forEach((r) => {
-    if (r.area) areaCounts[r.area] = (areaCounts[r.area] || 0) + 1;
-    (r.curricula ?? []).forEach((c) => { boardCounts[c] = (boardCounts[c] || 0) + 1; });
-  });
-  const areas = Object.entries(areaCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  all.forEach((s) => s.curricula.forEach((c) => { boardCounts[c] = (boardCounts[c] || 0) + 1; }));
   const boards = Object.entries(boardCounts).sort((a, b) => b[1] - a[1]);
-  const fees = rows.map((r) => r.total_fees_min).filter((f): f is number => !!f).sort((a, b) => a - b);
+  const top = [...all]
+    .sort((a, b) => b.completeness.score - a.completeness.score || (b.rating ?? 0) - (a.rating ?? 0) || a.name.localeCompare(b.name))
+    .slice(0, 12);
+  const fees = all.map((r) => r.feesMin).filter((f): f is number => !!f).sort((a, b) => a - b);
   const count = stat.count;
   const url = `${SITE_URL}/schools/${city.slug}`;
 
@@ -92,7 +79,7 @@ export async function CityHubPage({ city }: { city: CityConfig }) {
     {
       "@context": "https://schema.org", "@type": "ItemList",
       name: `Top Schools in ${city.label}`, numberOfItems: count,
-      itemListElement: list.schools.map((s: any, i: number) => ({ "@type": "ListItem", position: i + 1, name: s.name, url: `${SITE_URL}/schools/${s.slug}` })),
+      itemListElement: top.map((s, i) => ({ "@type": "ListItem", position: i + 1, name: s.name, url: `${SITE_URL}/schools/${s.slug}` })),
     },
     {
       "@context": "https://schema.org", "@type": "BreadcrumbList",
@@ -139,8 +126,8 @@ export async function CityHubPage({ city }: { city: CityConfig }) {
             <section style={{ marginBottom: 40 }}>
               <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--dark)", marginBottom: 16 }}>Browse by Neighbourhood</h2>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
-                {areas.map(([area, n]) => (
-                  <Link key={area} href={`/schools/${city.slug}/${area.toLowerCase().replace(/\s+/g, "-")}`}
+                {areas.map(({ slug: areaSlug, name: area, count: n }) => (
+                  <Link key={areaSlug} href={`/schools/${city.slug}/${areaSlug}`} data-area-count={n}
                     style={{ background: "#fff", borderRadius: 12, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", border: "1px solid var(--beige-400)", display: "block" }}>
                     <p style={{ fontWeight: 600, color: "var(--dark)", fontSize: 14 }}>{area}</p>
                     <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{n} school{n !== 1 ? "s" : ""}</p>
@@ -150,27 +137,13 @@ export async function CityHubPage({ city }: { city: CityConfig }) {
             </section>
           )}
 
-          {list.schools.length > 0 && (
+          {top.length > 0 && (
             <section style={{ marginBottom: 40 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                 <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--dark)" }}>Top Schools in {city.label}</h2>
                 <Link href={`/schools?city=${city.slug}`} style={{ fontSize: 14, color: "var(--brown-dark)", fontWeight: 600 }}>View all →</Link>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
-                {list.schools.map((s: any) => (
-                  <Link key={s.slug} href={`/schools/${s.slug}`}
-                    style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", border: "1px solid var(--beige-400)", display: "flex" }}>
-                    <div style={{ width: 96, flexShrink: 0, background: "var(--beige-300)", position: "relative", alignSelf: "stretch", minHeight: 96 }}>
-                      {s.cover_image_url && <Image src={s.cover_image_url} alt={`${s.name} campus in ${s.area || city.label}`} fill sizes="96px" style={{ objectFit: "cover" }} />}
-                    </div>
-                    <div style={{ padding: "12px 14px", flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: 600, color: "var(--dark)", fontSize: 14, lineHeight: 1.3 }}>{s.name}</p>
-                      {s.area && <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}><MapPin style={{ width: 12, height: 12, flexShrink: 0 }} />{s.area}</p>}
-                      {s.total_fees_min && <p style={{ fontSize: 12, fontWeight: 500, color: "var(--brown-dark)", marginTop: 4 }}>{formatFeesRange(s.total_fees_min, s.total_fees_max)}</p>}
-                    </div>
-                  </Link>
-                ))}
-              </div>
+              <SchoolGrid schools={top} />
               <div style={{ textAlign: "center", marginTop: 24 }}>
                 <Link href={`/schools?city=${city.slug}`} className="btn-primary">Explore all {formatCount(count)} {city.label} schools →</Link>
               </div>

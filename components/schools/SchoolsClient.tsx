@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Search, X, SlidersHorizontal, ChevronRight, MapPin, ArrowLeft, Map as MapIcon, LocateFixed } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { FilterPanel, MobileFilterSheet } from "@/components/schools/FilterPanel";
-import { SchoolCard } from "@/components/schools/SchoolCard";
+import { LegacySchoolCard as SchoolCard } from "@/components/schools/LegacySchoolCard";
 import { Pagination } from "@/components/schools/Pagination";
 import { CompareTray } from "@/components/schools/CompareTray";
 import { SchoolsMapWrapper } from "@/components/map/SchoolsMapWrapper";
@@ -513,8 +513,12 @@ export function SchoolsClient({
                   <ChevronRight size={12} />
                 </button>
 
-                <button className="btn-toggle-map desktop-only" onClick={() => setShowMap(!showMap)}>
-                  {showMap ? "Hide Map" : "Show Map"}
+                <button
+                  className="btn-toggle-map desktop-only"
+                  onClick={() => (noCity ? setCityPanelOpen(true) : setShowMap(!showMap))}
+                  title={noCity ? "Choose a city to see its schools on the map" : undefined}
+                >
+                  {noCity ? "Choose a city for map" : showMap ? "Hide Map" : "Show Map"}
                 </button>
               </div>
 
@@ -523,39 +527,18 @@ export function SchoolsClient({
                 @media (max-width: 1024px) { .mob-filter-btn { display: block; } }
               `}</style>
 
-              {showMap && (
+              {/* The map only makes sense inside one city. With "All cities" chosen the toggle
+                  opens the city picker instead of showing a blurred, unusable map. */}
+              {showMap && !noCity && (
                 <div className="map-box desktop-only" style={{ position: "relative" }}>
-                  <SchoolsMapWrapper schools={noCity ? [] : mapSchools} listedSlugs={schools.map((s) => s.slug)} onSchoolClick={handleSchoolClick} />
-                  {noCity && (
-                    <div onClick={() => setCityPanelOpen(true)} style={{
-                      position: "absolute", inset: 0, borderRadius: "inherit",
-                      background: "rgba(245,240,235,0.82)", backdropFilter: "blur(3px)",
-                      display: "flex", flexDirection: "column", alignItems: "center",
-                      justifyContent: "center", cursor: "pointer", gap: 8,
-                    }}>
-                      <MapPin size={28} color="var(--muted)" />
-                      <p style={{ fontWeight: 700, color: "var(--dark)", fontSize: 15 }}>Select a city to explore the map</p>
-                      <p style={{ fontSize: 12, color: "var(--muted)" }}>Tap to choose</p>
-                    </div>
-                  )}
+                  <SchoolsMapWrapper schools={mapSchools} listedSlugs={schools.map((s) => s.slug)} onSchoolClick={handleSchoolClick} />
                 </div>
               )}
 
               <div className="mob-map-fullscreen">
-                {mobileView === "map" && (
+                {mobileView === "map" && !noCity && (
                   <div style={{ position: "relative", height: "100%" }}>
-                    <SchoolsMapWrapper schools={noCity ? [] : mapSchools} listedSlugs={schools.map((s) => s.slug)} onSchoolClick={handleSchoolClick} />
-                    {noCity && (
-                      <div onClick={() => setCityPanelOpen(true)} style={{
-                        position: "absolute", inset: 0, background: "rgba(245,240,235,0.82)",
-                        backdropFilter: "blur(3px)", display: "flex", flexDirection: "column",
-                        alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer",
-                      }}>
-                        <MapPin size={28} color="var(--muted)" />
-                        <p style={{ fontWeight: 700, color: "var(--dark)", fontSize: 15 }}>Select a city</p>
-                        <p style={{ fontSize: 12, color: "var(--muted)" }}>Tap to choose</p>
-                      </div>
-                    )}
+                    <SchoolsMapWrapper schools={mapSchools} listedSlugs={schools.map((s) => s.slug)} onSchoolClick={handleSchoolClick} />
                   </div>
                 )}
               </div>
@@ -656,7 +639,7 @@ export function SchoolsClient({
           <SlidersHorizontal size={20} /> Filters
         </button>
         <button className={`mob-view-toggle${mobileView === "map" ? " map-active" : ""}`}
-          onClick={() => setMobileView(v => v === "list" ? "map" : "list")}
+          onClick={() => (noCity && mobileView === "list" ? setCityPanelOpen(true) : setMobileView(v => v === "list" ? "map" : "list"))}
         >
           {mobileView === "map" ? <><SlidersHorizontal size={18} /> List View</> : <><MapIcon size={18} /> Map View</>}
         </button>

@@ -101,12 +101,17 @@ export function SchoolActionsSidebar({ school, admission }: Props) {
               <ExternalLink style={{ width: 12, height: 12, opacity: 0.7 }} />
             </a>
           ) : (
+            // No website/phone on record: say so plainly and offer the two real ways forward,
+            // instead of a "coming soon" placeholder.
             <div style={{
-              width: "100%", padding: "11px 0", borderRadius: 12, textAlign: "center",
-              background: "var(--beige-300)", border: "1px solid var(--beige-500)",
-              fontSize: 13, color: "var(--muted)",
+              width: "100%", padding: "10px 12px", borderRadius: 12, textAlign: "center",
+              background: "var(--beige-200)", border: "1px solid var(--beige-500)",
+              fontSize: 12, color: "var(--muted)", lineHeight: 1.5,
             }}>
-              Contact details coming soon
+              We don&apos;t have this school&apos;s contact details yet — send us an enquiry using the button above.{" "}
+              <Link href="/schools/claim" prefetch={false} style={{ color: "var(--brown-dark)", fontWeight: 600 }}>
+                Work here? Add them
+              </Link>
             </div>
           )}
 

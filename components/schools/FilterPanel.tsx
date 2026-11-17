@@ -651,6 +651,9 @@ export function FilterPanel({ className }: { className?: string }) {
       </AdvancedSection>
 
       {/* ── Save preferences ───────────────────────────────── */}
+      {/* Saving stores a city + filters, so it only appears once a city is chosen —
+          no disabled button with a hint that sits far away from the city picker. */}
+      {(selectedCity || isSaved) && (
       <div style={{
         padding: "14px 16px",
         borderTop: "1.5px solid var(--beige-400)",
@@ -693,15 +696,16 @@ export function FilterPanel({ className }: { className?: string }) {
           }}
         >
           <Bookmark size={13} />
-          {isSaved ? "Update saved filters" : "Save filters & city"}
+          {isSaved ? "Update saved search" : "Save this search"}
         </button>
 
         {!selectedCity && (
           <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", marginTop: 5 }}>
-            Choose a city first to enable saving
+            Pick a city above to update your saved search
           </p>
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -500,6 +500,55 @@ input { font-family: inherit; }
 .btn-compare.added { background: var(--brown-dark); color: white; }
 .btn-compare:disabled { border-color: var(--beige-500); color: var(--beige-500); cursor: not-allowed; }
 
+.school-card { position: relative; }
+.school-card.is-highlighted { outline: 2.5px solid var(--brown-dark); box-shadow: 0 0 0 4px rgba(44,24,16,0.12); }
+.school-card .card-name a { color: inherit; text-decoration: none; }
+.school-card .card-name a::after { content: ""; position: absolute; inset: 0; z-index: 0; }
+.school-card .card-heart, .school-card .card-actions { position: relative; z-index: 1; }
+/* Grade span ("Nursery–Class 12", "Pre-school only") and "Board not listed" sit beside the board badges */
+.card-badge.card-badge-grade { background: var(--beige-300); color: var(--dark); letter-spacing: 0.02em; text-transform: none; border: 1px solid var(--beige-500); }
+.card-badge.card-badge-muted { background: transparent; color: var(--muted); letter-spacing: 0.02em; text-transform: none; border: 1px dashed var(--beige-500); }
+.card-badges { display: flex; flex-wrap: wrap; gap: 4px; padding-right: 40px; margin-bottom: 8px; }
+.card-badges .card-badge { margin-bottom: 0; }
+.card-meta { flex-wrap: wrap; }
+.card-heart {
+  position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; border: none; cursor: pointer;
+  background: rgba(0,0,0,0.04); color: var(--muted); transition: transform 0.15s, background 0.15s;
+}
+.card-heart:hover { transform: scale(1.12); }
+.card-heart.on { background: rgba(239,68,68,0.08); color: #ef4444; }
+.card-heart.on svg { fill: #ef4444; }
+.card-trust { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -2px 0 10px; }
+.card-completeness { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.card-completeness .bar { width: 36px; height: 4px; border-radius: 99px; background: var(--beige-400); overflow: hidden; display: inline-block; }
+.card-completeness .bar span { display: block; height: 100%; background: #a16207; }
+.card-distance { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--dark); }
+.card-stats { flex-wrap: wrap; gap: 8px 14px; }
+.card-stat { color: var(--dark); font-weight: 600; }
+.card-stat svg { color: var(--muted); }
+.card-stat .star { fill: #f59e0b; color: #f59e0b; }
+.card-about {
+  font-size: 12px; line-height: 1.5; color: var(--muted); margin-bottom: 12px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.card-actions { flex-wrap: wrap; }
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 5px; padding: 10px 12px; border-radius: 10px;
+  font-size: 13px; font-weight: 600; border: 1.5px solid var(--beige-500); color: var(--muted);
+  background: transparent; text-decoration: none; white-space: nowrap;
+}
+.btn-ghost:hover { border-color: var(--brown-dark); color: var(--brown-dark); }
+.pill {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 99px; white-space: nowrap;
+}
+.pill-green { background: #dcfce7; color: #166534; font-weight: 700; }
+.sr-only {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
 /* ── Skeleton ─────────────────────────────────────────────── */
 .skeleton-card {
   background: var(--beige-200);
@@ -1023,7 +1072,8 @@ body.map-expanded .map-box {
 }
 .fp-fee-max-prefix, .fp-fee-max-suffix { font-size: 12px; font-weight: 600; color: var(--muted); }
 .fp-fee-max-input {
-  width: 38px; border: none; outline: none; background: transparent;
+  /* sized for the "No limit" placeholder (8 chars) so it never clips to "No limi" */
+  width: 8.5ch; min-width: 0; border: none; outline: none; background: transparent;
   font-size: 12px; font-weight: 600; color: var(--dark); text-align: right;
   padding: 0;
 }
@@ -1111,3 +1161,32 @@ body.map-expanded .map-box {
   .report-fab { bottom: 20px; }
   .report-fab-label { display: inline; }
 }
+
+/* ── Server-rendered listing pages (city / area / board) ─────────── */
+.listing-page { background: var(--beige-100); min-height: 100vh; }
+.listing-hero { background: var(--dark); color: #fff; padding: 36px 16px 30px; }
+.listing-hero-inner, .listing-body { max-width: 1100px; margin: 0 auto; }
+.listing-hero h1 { font-size: clamp(22px, 4vw, 32px); font-weight: 800; line-height: 1.2; margin-bottom: 8px; }
+.listing-hero p { font-size: 14px; color: rgba(255,255,255,0.7); max-width: 680px; line-height: 1.6; }
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12px; color: rgba(255,255,255,0.55); margin-bottom: 14px; }
+.crumbs a { color: inherit; text-decoration: none; }
+.crumbs a:hover { color: #fff; }
+.crumbs [aria-current] { color: rgba(255,255,255,0.9); }
+.hero-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.hero-chips a {
+  font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: 99px; text-decoration: none;
+  background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.18);
+}
+.hero-chips a:hover { background: rgba(255,255,255,0.22); }
+.listing-body { padding: 24px 16px 64px; }
+.listing-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; font-size: 14px; color: var(--muted); }
+.listing-toolbar strong { color: var(--dark); }
+.listing-toolbar .btn-secondary { display: inline-flex; align-items: center; gap: 6px; }
+.listing-related { margin-top: 8px; padding-top: 24px; border-top: 1px solid var(--beige-400); }
+.listing-related h2 { font-size: 16px; font-weight: 800; color: var(--dark); margin-bottom: 12px; }
+.pill-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill-links a {
+  font-size: 12px; font-weight: 600; color: var(--muted); background: var(--beige-200);
+  border: 1px solid var(--beige-400); border-radius: 99px; padding: 5px 14px; text-decoration: none;
+}
+.pill-links a:hover, .pill-links a.strong { color: var(--brown-dark); border-color: var(--beige-500); }

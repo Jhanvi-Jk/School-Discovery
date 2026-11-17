@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { SchoolSummary } from "@/lib/types";
-import { useCityStore, CITY_LABELS, CITY_CENTERS, type CityKey } from "@/store/cityStore";
+import { useCityStore, CITY_CENTERS, type CityKey } from "@/store/cityStore";
 
 // ── Exact GPS overrides (slug → [lat, lng]) ─────────────────
 // Hard-coded so pins are always at the right spot regardless of DB state.
@@ -329,7 +329,7 @@ export default function SchoolsMapInner({ schools, onSchoolClick, listedSlugs }:
   const [zoom, setZoom] = useState(11);
   const [expanded, setExpanded] = useState(false);
   const mapRef = useRef<any>(null);
-  const { selectedCity, setCity } = useCityStore();
+  const { selectedCity } = useCityStore();
 
   useEffect(() => {
     Promise.all([import("react-leaflet"), import("leaflet")]).then(([rl, leaflet]) => {
@@ -430,8 +430,7 @@ export default function SchoolsMapInner({ schools, onSchoolClick, listedSlugs }:
             so we use OpenStreetMap's free standard tiles, same as BangaloreMap.tsx. */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          subdomains="abc"
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           maxZoom={19}
         />
 
@@ -508,56 +507,6 @@ export default function SchoolsMapInner({ schools, onSchoolClick, listedSlugs }:
       </MapContainer>
       </div>{/* end inner clip wrapper */}
 
-      {/* City selection overlay — shown until user picks a city */}
-      {!selectedCity && (
-        <div style={{
-          position: "absolute", inset: 0, zIndex: 2000,
-          background: "rgba(255,255,255,0.88)",
-          backdropFilter: "blur(3px)",
-          display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center",
-          borderRadius: "inherit", padding: "24px 16px",
-        }}>
-          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: "#a89880", textTransform: "uppercase", marginBottom: 8 }}>
-            Welcome to SchoolFind360
-          </p>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#2C1810", marginBottom: 20, textAlign: "center" }}>
-            Which city do you reside in?
-          </h2>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", maxWidth: 400 }}>
-            {(Object.keys(CITY_LABELS) as CityKey[]).map((city) => (
-              <button
-                key={city}
-                onClick={() => setCity(city)}
-                style={{
-                  padding: "10px 22px",
-                  background: "white",
-                  border: "1.5px solid #d4c5b0",
-                  borderRadius: 10,
-                  cursor: "pointer",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: "#2C1810",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                  transition: "all 0.15s",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = "#2C1810";
-                  (e.currentTarget as HTMLButtonElement).style.color = "white";
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = "#2C1810";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = "white";
-                  (e.currentTarget as HTMLButtonElement).style.color = "#2C1810";
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = "#d4c5b0";
-                }}
-              >
-                {CITY_LABELS[city]}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Expand button (normal view) */}
       {!expanded && (

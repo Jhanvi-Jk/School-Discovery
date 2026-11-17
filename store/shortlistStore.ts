@@ -45,6 +45,6 @@ export const useShortlistStore = create<ShortlistState>()(
 
       clear: () => set({ schools: [] }),
     }),
-    { name: "sf360-shortlist" }
+    { name: "sf360-shortlist", skipHydration: true }
   )
 );

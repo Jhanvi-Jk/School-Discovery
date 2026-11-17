@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllRows, fetchByIds } from "@/lib/supabase/fetchAll";
 import { applyAdmissionState, loadAdmissionIndex } from "@/lib/admissions";
 import { haversineKm } from "@/lib/geo";
+import { gradeIndex, gradeRangeLabel } from "@/lib/schools/core";
 import type { SortOption } from "@/lib/types";
 
 // Shared by the /api/v1/schools route and the server-rendered listing page, so the
@@ -249,7 +250,22 @@ export async function searchSchools(supabase: AnySupabaseClient, p: SchoolSearch
     : { data: [] as { school_id: string; curriculum: string }[] };
   const boardsById: Record<string, string[]> = {};
   (curriculaRows || []).forEach((r: any) => { (boardsById[r.school_id] ||= []).push(r.curriculum); });
-  let enriched = await applyAdmissionState(supabase, schools.map((s) => ({ ...s, curricula: boardsById[s.id] || s.curricula || [] })));
+
+  // Grade span for the card badge, so pre-schools and Class 11–12-only colleges stand out
+  const { data: gradeRows } = ids.length
+    ? await supabase.from("school_grades").select("school_id, grade_from, grade_to").in("school_id", ids)
+    : { data: [] as { school_id: string; grade_from: string; grade_to: string }[] };
+  const rangesById: Record<string, [number, number][]> = {};
+  (gradeRows || []).forEach((r: any) => {
+    const lo = gradeIndex(r.grade_from), hi = gradeIndex(r.grade_to);
+    if (lo != null && hi != null) (rangesById[r.school_id] ||= []).push([Math.min(lo, hi), Math.max(lo, hi)]);
+  });
+
+  let enriched = await applyAdmissionState(supabase, schools.map((s) => ({
+    ...s,
+    curricula: boardsById[s.id] || s.curricula || [],
+    grade_range: gradeRangeLabel(rangesById[s.id] ?? []),
+  })));
 
   if (p.lat !== null && p.lng !== null) {
     enriched = enriched.map((s: any) => ({

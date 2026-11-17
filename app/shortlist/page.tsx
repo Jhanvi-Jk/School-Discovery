@@ -11,32 +11,38 @@ import type { ShortlistedSchool } from "@/store/shortlistStore";
 
 export default function ShortlistPage() {
   const { schools: stored, remove, clear } = useShortlistStore();
-  const [schools, setSchools] = useState<ShortlistedSchool[]>(stored);
+  // The store is the single source of truth — the header badge and every heart icon read it
+  // too, so this page can never say "nothing saved" while the badge says "1". Fresh fees and
+  // boards fetched from the API are only layered on top, keyed by school id.
+  const [fresh, setFresh] = useState<Record<string, Partial<ShortlistedSchool>>>({});
+  const schools: ShortlistedSchool[] = stored.map((s) => ({ ...s, ...fresh[s.id] }));
+  const storedKey = stored.map((s) => s.slug).join(",");
 
-  // Re-fetch fresh data (curricula + fees) from the API for each saved school
   useEffect(() => {
-    if (stored.length === 0) { setSchools([]); return; }
-    Promise.all(
-      stored.map((s) =>
-        fetch(`/api/v1/schools/${s.slug}`)
-          .then((r) => r.json())
-          .then((json) => {
-            if (!json.success) return s;
-            const d = json.data;
-            const sd = (Array.isArray(d.school_details) ? d.school_details[0] : d.school_details) || {};
-            return {
-              ...s,
+    let cancelled = false;
+    stored.forEach((s) => {
+      if (fresh[s.id]) return;
+      fetch(`/api/v1/schools/${s.slug}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((json) => {
+          if (cancelled || !json?.success) return;
+          const d = json.data;
+          const sd = (Array.isArray(d.school_details) ? d.school_details[0] : d.school_details) || {};
+          setFresh((prev) => ({
+            ...prev,
+            [s.id]: {
               curricula: (d.school_curricula || []).map((c: any) => c.curriculum),
               total_fees_min: sd.total_fees_min ?? s.total_fees_min,
               total_fees_max: sd.total_fees_max ?? s.total_fees_max,
               avg_rating: d.avg_rating ?? s.avg_rating,
               cover_image_url: d.cover_image_url ?? s.cover_image_url,
-            } as ShortlistedSchool;
-          })
-          .catch(() => s)
-      )
-    ).then(setSchools);
-  }, [stored.length]);
+            },
+          }));
+        })
+        .catch(() => { /* keep the saved snapshot */ });
+    });
+    return () => { cancelled = true; };
+  }, [storedKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -59,7 +65,7 @@ export default function ShortlistPage() {
                 <p className="compare-sub">
                   {schools.length === 0
                     ? "No schools saved yet"
-                    : `${schools.length} school${schools.length !== 1 ? "s" : ""} saved`}
+                    : `${schools.length} school${schools.length !== 1 ? "s" : ""} saved on this device — no sign-in needed`}
                 </p>
               </div>
             </div>

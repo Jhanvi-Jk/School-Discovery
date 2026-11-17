@@ -9,7 +9,7 @@ import {
   Building2, Trophy, Music, Languages, ChevronRight,
   ExternalLink, AlertCircle, Navigation, Sparkles
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { SchoolActionsSidebar } from "@/components/schools/SchoolActionsSidebar";
@@ -23,15 +23,23 @@ import { CityHubPage } from "@/components/seo/CityHubPage";
 import { cityFromSlug, boardPageHref } from "@/lib/cities";
 import { getSiteStats, formatCount } from "@/lib/siteStats";
 import { profileCompleteness } from "@/lib/completeness";
-import { buildFactualSummary, buildHighlights, isUsableDescription } from "@/lib/schoolText";
+import { buildFactualSummary, buildHighlights, cleanDescription } from "@/lib/schoolText";
 import {
   formatFeesRange, formatRating, formatSchoolHours,
   cn, formatFees
 } from "@/lib/utils";
 import { CURRICULUM_LABELS, SCHOOL_TYPE_LABELS, GENDER_LABELS } from "@/lib/types";
 
-// Dynamic rendering — no static params needed at build time
-export const dynamic = "force-dynamic";
+// Incremental static regeneration: each profile is rendered on first request and then
+// served from cache for 5 minutes (matching the Cache-Control header in next.config).
+// It used to be force-dynamic with a cookie-bound client, so every one of the ~24
+// "View school" links prefetched by a listing page triggered a full uncached render with
+// several database queries — the burst behind the intermittent 503s. Everything on this
+// page is public data (reviews are filtered to approved ones), so no cookies are needed.
+export const revalidate = 300;
+export async function generateStaticParams() {
+  return []; // nothing at build time; render on demand, then cache
+}
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.schoolfind360.com";
 const YEAR = new Date().getFullYear();
@@ -58,7 +66,7 @@ export async function generateMetadata({
         robots: { index: false, follow: true },
       };
     }
-    const title = `Top Schools in ${hubCity.label} ${YEAR} | CBSE, ICSE, IB — SchoolFind360`;
+    const title = `Schools in ${hubCity.label} (${formatCount(stat.count)}) – CBSE, ICSE, IB Fees & Reviews ${YEAR}`;
     const description = `Browse ${formatCount(stat.count)} schools in ${hubCity.label}. Compare ${YEAR} fees, CBSE, ICSE, IB boards, area-wise listings, and real parent reviews on SchoolFind360.`;
     return {
       title, description,
@@ -69,7 +77,7 @@ export async function generateMetadata({
     };
   }
 
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   // Query the schools table directly (select * so a missing is_listed column can't break the lookup)
   const { data } = await supabase
     .from("schools")
@@ -95,8 +103,9 @@ export async function generateMetadata({
     : currentAcademicYear();
   const titleAbsolute = `${data.name}${data.area ? `, ${data.area}` : `, ${city}`} — Fees, Admissions ${yearLabel}, Reviews`;
 
-  const description = isUsableDescription(data.description)
-    ? `${data.description} View fees, admissions ${yearLabel} and parent reviews on SchoolFind360.`
+  const cleanedAbout = cleanDescription(data.description);
+  const description = cleanedAbout
+    ? `${cleanedAbout} View fees, admissions ${yearLabel} and parent reviews on SchoolFind360.`
     : `${data.name} in ${location}, ${city} — fee structure, curriculum, admissions ${yearLabel}, facilities and parent reviews on SchoolFind360.`;
 
   return {
@@ -182,7 +191,7 @@ export default async function SchoolProfilePage({
     return <CityHubPage city={hubCity} />;
   }
 
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   // Fetch school — never call notFound() inside try, it throws and gets swallowed
   let school: any = null;
@@ -323,7 +332,7 @@ export default async function SchoolProfilePage({
     "@context": "https://schema.org",
     "@type": "School",
     name: school.name,
-    description: isUsableDescription(school.description) ? school.description : undefined,
+    description: cleanDescription(school.description) ?? undefined,
     url: `${appUrl}/schools/${school.slug}`,
     ...(school.phone && { telephone: school.phone }),
     ...(school.email && { email: school.email }),
@@ -574,9 +583,8 @@ export default async function SchoolProfilePage({
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
 
   const firstGrade = rawGrades[0];
-  const summaryText = isUsableDescription(school.description)
-    ? school.description
-    : buildFactualSummary({
+  const summaryText = cleanDescription(school.description)
+    ?? buildFactualSummary({
         name: school.name, type: school.type, gender: school.gender,
         area: school.area, city: school.city, establishedYear: school.established_year,
         curricula, gradeFrom: firstGrade?.grade_from, gradeTo: firstGrade?.grade_to,
